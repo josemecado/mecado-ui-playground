@@ -1,0 +1,17 @@
+import { Routes, Route } from "react-router-dom";
+import ProjectChatWindow from "./pages/ProjectChatWindow";
+import { ThemeProvider } from "./utilities/ThemeContext";
+
+function App() {
+  return (
+    <div className="App">
+      <ThemeProvider>
+        <Routes>
+          <Route path="/" element={<ProjectChatWindow />} />
+        </Routes>
+      </ThemeProvider>
+    </div>
+  );
+}
+
+export default App;

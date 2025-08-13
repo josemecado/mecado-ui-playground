@@ -1,0 +1,63 @@
+/* 1. Define the Container. */
+.ChatFormContainer {
+  container-type: inline-size;
+  container-name: chat-form;
+}
+
+/* 2. Apply container queries to the children, targeting the parent container's container-name. */
+/* Input Container Queries */
+.InputContainer {
+  margin: 24px 36px;
+}
+
+@container chat-form (min-width: 600px) {
+  .InputContainer {
+    margin: 24px 72px;
+  }
+}
+
+@container chat-form (min-width: 900px) {
+  .InputContainer {
+    margin: 24px 120px;
+  }
+}
+
+@container chat-form (min-width: 1200px) {
+  .InputContainer {
+    margin: 24px 200px;
+  }
+}
+
+/* Chat Box Queries */
+.ChatBox {
+  container-type: inline-size;
+  container-name: chat-box;
+  min-height: 100px;
+}
+
+/* Chat Box Queries */
+@container chat-form (min-width: 900px) {
+  .ChatBox {
+    min-height: 150px;
+  }
+}
+
+@container chat-form (max-width: 600px) {
+  .DropDownButton {
+    padding: 8px;
+    gap: 2px;
+    span {
+      display: none;
+    }
+  }
+}
+
+@container chat-form (max-width: 600px) {
+  .SubmitButton {
+    padding: 8px;
+    gap: 2px;
+    span {
+      display: none;
+    }
+  }
+}
