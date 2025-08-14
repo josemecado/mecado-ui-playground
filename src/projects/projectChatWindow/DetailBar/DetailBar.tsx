@@ -4,12 +4,10 @@ import { useState } from "react";
 const DetailBarContainer = styled.div<{ isExpanded: boolean }>`
   display: flex;
   flex-direction: column;
-  flex: 1 1 0;
-  min-width: ${(props) => (props.isExpanded ? "800px" : "350px")};
-  max-width: 1200px;
+  flex: ${(props) => (props.isExpanded ? "2 1 0" : "1 1 0")};
   background-color: var(--bg-secondary);
   padding: 24px;
-  transition: min-width 0.3s ease; // Add a transition for a smoother effect
+  transition: all 0.3s ease; // Add a transition for a smoother effect
   gap: 32px;
 `;
 
@@ -27,12 +25,11 @@ const BottomSection = styled.div`
   align-items: center;
   justify-content: center;
   gap: 24px;
-  /* background: var(--accent-neutral); */
 `;
 
 const ResizableRectangle = styled.div<{ isExpanded: boolean }>`
-  width: ${(props) => (props.isExpanded ? "100%" : "70%")};
-  height: ${(props) => (props.isExpanded ? "80%" : "60%")};
+  width: 100%;
+  height: ${(props) => (props.isExpanded ? "100%" : "70%")};
   background: var(--bg-primary);
   transition: all 0.3s ease;
   box-shadow: rgba(0, 0, 0, 0.16) 0px 1px 4px;

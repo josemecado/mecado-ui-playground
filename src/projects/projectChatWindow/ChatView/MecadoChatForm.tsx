@@ -51,7 +51,7 @@ export default ChatForm;
 // Main form containers
 export const ChatFormContainer = styled.form<{ disabled?: boolean }>`
   display: flex;
-  flex: 1 1 0; // Grows 2x more than DetailBar
+  flex: 2 1 0; // Grows 2x more than DetailBar
   justify-content: center;
   align-items: flex-end;
   min-width: 300px;

@@ -161,6 +161,7 @@ const SidebarContainer = styled.div<{ $collapsed?: boolean }>`
   /* width expands temporarily on hover when collapsed */
   width: ${(p) => (p.$collapsed ? "80px" : "250px")};
   min-width: 80px;
+  min-width: ${(props) => (props.$collapsed ? "80px" : "250px")};
   background-color: var(--bg-secondary);
   overflow-y: auto;
   overflow-x: hidden;
@@ -184,7 +185,7 @@ const SidebarContainer = styled.div<{ $collapsed?: boolean }>`
 const ContentContainer = styled.div`
   display: flex;
   flex-direction: column;
-  padding: 0 16px;
+  padding: 0 24px;
 `;
 
 const HoverTrigger = styled.div`

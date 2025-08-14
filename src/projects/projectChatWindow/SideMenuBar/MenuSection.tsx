@@ -102,7 +102,7 @@ const SectionHeader = styled.div<{ isCollapsed?: boolean }>`
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin: 16px 0 8px 0;
+  margin: 8px 0 4px 0;
 `;
 
 // Sub-menu container

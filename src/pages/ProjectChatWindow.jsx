@@ -18,5 +18,4 @@ const Container = styled.div`
   flex-direction: row;
   height: 100vh; // full height
   width: 100%;
-  background: red;
 `;

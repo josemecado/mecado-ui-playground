@@ -89,7 +89,7 @@ const ToggleButton = styled.button<{ isCollapsed?: boolean }>`
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: ${(props) => props.theme.colors.textMuted};
+  color: var(--text-muted);
   transition: all 0.3s ease;
   transform: ${(props) =>
     props.isCollapsed ? "rotate(180deg)" : "rotate(0deg)"};

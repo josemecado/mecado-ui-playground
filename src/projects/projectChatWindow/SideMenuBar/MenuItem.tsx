@@ -69,9 +69,7 @@ const BaseMenuItem = styled.button<{
   padding: 6px;
   border: none;
   background: ${(props) =>
-    props.$isCollapsed
-      ? "none"
-      : props.$isActive
+    props.$isActive
       ? "var(--primary-alternate)"
       : "none"};
   border-radius: 8px;
@@ -113,15 +111,7 @@ const IconContainer = styled.div<{
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 32px;
-  width: 32px;
-  padding: ${(props) => (props.$isCollapsed ? "0 6px" : "0")};
   border-radius: 8px;
-
-  background: ${(props) =>
-    props.$isCollapsed && props.$isActive
-      ? "var(--primary-alternate)"
-      : "none"};
   svg {
     color: ${(props) =>
       props.$isActive ? "var(--text-inverted)" : "var(--text-muted)"};
