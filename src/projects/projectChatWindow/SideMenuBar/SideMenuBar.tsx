@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styled from "styled-components";
-import { Pin, Folder, Settings, FileText } from "lucide-react";
+import { MessageSquare, Box, Home, Grid, Pin, Folder, Settings, FileText } from "lucide-react";
 import { MenuHeader } from "./MenuHeader";
 import { MenuSection } from "./MenuSection";
 import { Equation } from "./Equation";
 import ThemeToggleButton from "../../../reusable-components/ThemeToggleButton";
-
+import { useLocation } from "react-router-dom";
+import { NavigationMenuItem } from "./NavigationMenuItem";
 interface FileItem {
   name: string;
   path: string;
@@ -27,13 +28,33 @@ export const SideMenu: React.FC<SideMenuProps> = ({
   const [isHovered, setIsHovered] = useState(false);
   const effectiveCollapsed = isCollapsed && !isHovered;
 
+  // Add this useEffect to handle responsive collapse
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1000) {
+        setCollapse(true);
+      } else {
+        setCollapse(false);
+      }
+    };
+
+    // Set initial state
+    handleResize();
+
+    // Add event listener
+    window.addEventListener("resize", handleResize);
+
+    // Cleanup
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   // ✅ Purely UI data — no handlers, no logs, no state
   const mainMenuItems = [
     {
       id: "pinned",
       icon: <Pin />,
       text: "Equations",
-      isActive: true,
+      isActive: false,
       hasSubItems: true,
       subItems:
         pinnedEquations.length > 0
@@ -78,19 +99,6 @@ export const SideMenu: React.FC<SideMenuProps> = ({
         },
       ],
     },
-    {
-      id: "projects",
-      icon: <Folder />,
-      text: "Projects",
-      isActive: false,
-      hasSubItems: true,
-      subItems: [
-        { id: "recent-projects", text: "Recent Projects" },
-        { id: "project-templates", text: "Project Templates" },
-        { id: "shared-projects", text: "Shared Projects" },
-        { id: "archived-projects", text: "Archived Projects" },
-      ],
-    },
   ];
 
   const navigationMenuItems = [
@@ -110,13 +118,45 @@ export const SideMenu: React.FC<SideMenuProps> = ({
     },
   ];
 
+  const destinationItems = [
+    {
+      id: "dashboard",
+      icon: <Home size={18} />,
+      text: "Dashboard",
+      destination: "/projectDashboard",
+    },
+    {
+      id: "tool-selection",
+      icon: <Grid size={18} />,
+      text: "Tool Selection",
+      destination: "/tools",
+    },
+    {
+      id: "documentation",
+      icon: <FileText size={18} />,
+      text: "Documentation",
+      destination: "/docs",
+    },
+    {
+      id: "settings",
+      icon: <Settings size={18} />,
+      text: "Settings",
+      destination: "/settings",
+    },
+  ];
+
+  // Get current location for active state
+  const location = useLocation();
+
+  // Then in your return statement, add this new section after the VIEWS section:
+
   return (
     <>
       {isCollapsed && !isHovered && (
         <HoverTrigger onMouseEnter={() => setIsHovered(true)} />
       )}
       <SidebarContainer
-        $collapsed={effectiveCollapsed} // <- replace isExpanded/isCollapsed with this
+        $collapsed={effectiveCollapsed}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onFocusCapture={() => setIsHovered(true)}
@@ -130,6 +170,30 @@ export const SideMenu: React.FC<SideMenuProps> = ({
         />
 
         <ContentContainer>
+                  <NavigationSection>
+          <SectionHeader isCollapsed={false}>
+            VIEWS
+          </SectionHeader>
+          
+          <NavigationMenuItem
+            icon={<MessageSquare />}
+            text="Chat"
+            isActive={true}
+            isCollapsed={effectiveCollapsed}
+            onClick={() => {}}
+          />
+          
+          <NavigationMenuItem
+            icon={<Box />}
+            text="Geometry"
+            isActive={false}
+            isCollapsed={effectiveCollapsed}
+            disabled={false}
+            tooltip={"No geometry available for this version"}
+            onClick={() => {}}
+          />
+        </NavigationSection>
+
           <MenuSection
             title="TOOLS"
             items={mainMenuItems}
@@ -137,14 +201,12 @@ export const SideMenu: React.FC<SideMenuProps> = ({
             allowSubmenus={!effectiveCollapsed}
           />
 
-          <MenuSection
-            title="VIEWS"
-            items={navigationMenuItems}
-            isCollapsedForLayout={effectiveCollapsed}
-            allowSubmenus={!effectiveCollapsed}
-          />
-
-          {!effectiveCollapsed && <ThemeToggleButton />}
+          {!effectiveCollapsed && 
+          
+            <ToggleButtonContainer>
+              <ThemeToggleButton />
+            </ToggleButtonContainer>
+          }
         </ContentContainer>
       </SidebarContainer>
     </>
@@ -186,8 +248,8 @@ const ContentContainer = styled.div`
   display: flex;
   flex-direction: column;
   padding: 0 24px;
+  flex: 1;
 `;
-
 const HoverTrigger = styled.div`
   position: fixed;
   left: 0;
@@ -197,4 +259,47 @@ const HoverTrigger = styled.div`
   z-index: 999;
   /* make it keyboard focusable for accessibility if you add tabIndex above */
   outline: none;
+`;
+
+const NavigationSection = styled.div`
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-bg, #e5e7eb);
+`;
+
+const SectionHeader = styled.div<{ isCollapsed?: boolean }>`
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 16px 0 8px 0;
+  animation: ${props => props.isCollapsed ? 'fadeOut 0.3s ease forwards' : 'fadeIn 0.3s ease forwards'};
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeOut {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+`;
+
+const ToggleButtonContainer = styled.div`
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  align-items: flex-end;
+  margin-top: auto;
+  margin-bottom: 16px;
 `;
