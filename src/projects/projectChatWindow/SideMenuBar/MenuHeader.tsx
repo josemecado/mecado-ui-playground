@@ -23,7 +23,7 @@ export const MenuHeader: React.FC<MenuHeaderProps> = ({
   const currentLogo = theme === "light" ? LogoBlack : Logo;
 
   return (
-    <HeaderContainer>
+    <HeaderContainer isCollapsed={isCollapsed} >
       <LogoContainer isCollapsed={isCollapsed}>
         <LogoSection>
           <LogoIcon>
@@ -46,10 +46,12 @@ export const MenuHeader: React.FC<MenuHeaderProps> = ({
   );
 };
 
-const HeaderContainer = styled.div`
+const HeaderContainer = styled.div<{ isCollapsed?: boolean }>`
   display: flex;
   flex-direction: column;
-  padding: 12px 24px;
+  padding: ${props => props.isCollapsed ? "12px 20px" : "12px 12px"};;
+  transition: padding 0.2s ease;
+
 `;
 
 // Logo and title container
@@ -90,7 +92,7 @@ const ToggleButton = styled.button<{ isCollapsed?: boolean }>`
   justify-content: center;
   cursor: pointer;
   color: var(--text-muted);
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   transform: ${(props) =>
     props.isCollapsed ? "rotate(180deg)" : "rotate(0deg)"};
   padding: 4px;

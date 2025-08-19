@@ -12,40 +12,44 @@
   --theme-darkBgSecondary: #202020;
   --theme-darkBgTertiary: #252525;
 
+  --theme-darkShadowBackground: #202020;
+
   --theme-darkPrimaryAction: #5b7aa6;
   --theme-darkPrimaryAlternate: #ffffff;
 
-  --theme-darkAccentPrimary: #8e64f7;
+  --theme-darkAccentPrimary: #0265fe;
   --theme-darkAccentNeutral: #b1bec9;
 
-  --theme-darkHoverBg: #2c2c2c;
+  --theme-darkTextPrimary: #f1f5f9;
+  --theme-darkTextMuted: #94a3b8;
+  --theme-darkTextInverted: #1a1d21;
 
   --theme-darkBorderBg: #374151;
 
-  --theme-darkTextPrimary: #f1f5f9;
-  --theme-darkTextInverted: #1a1d21;
-  --theme-darkTextMuted: #94a3b8;
+  --theme-darkHoverBg: #3d3f45;
 
   --theme-darkError: #f87171;
 
   /* Light Theme Colors */
   --theme-lightBgPrimary: #eef0f1;
   --theme-lightBgSecondary: #fff;
-  --theme-lightBgTertiary: #e3e5e9;
+  --theme-lightBgTertiary: #f4f4f6;
+
+  --theme-lightShadowBackground: #f4f4f6;
 
   --theme-lightPrimaryAction: #42526f;
   --theme-lightPrimaryAlternate: #242b36;
 
-  --theme-lightAccentPrimary: #8b5cff;
+  --theme-lightAccentPrimary: #0158ea;
   --theme-lightAccentNeutral: #b1bec9;
 
-  --theme-lightHoverBg: #efefef;
+  --theme-lightTextPrimary: #000;
+  --theme-lightTextMuted: #6b7280;
+  --theme-lightTextInverted: #eef0f1;
 
   --theme-lightBorderBg: #e5e7eb;
 
-  --theme-lightTextPrimary: #000;
-  --theme-lightTextInverted: #eef0f1;
-  --theme-lightTextMuted: #6b7280;
+  --theme-lightHoverBg: #f4f4f6;
 
   --theme-lightError: #ef4444;
 
@@ -53,6 +57,8 @@
   --bg-primary: var(--theme-lightBgPrimary);
   --bg-secondary: var(--theme-lightBgSecondary);
   --bg-tertiary: var(--theme-lightBgTertiary);
+
+  --bg-shadow: var(--theme-lightShadowBackground);
 
   --primary-action: var(--theme-lightPrimaryAction);
   --primary-alternate: var(--theme-lightPrimaryAlternate);
@@ -92,7 +98,7 @@
   --text-inverted: var(--theme-darkTextInverted);
   --text-muted: var(--theme-darkTextMuted);
 
-  --border-bg: var(--theme-darkBorderBg);
+  --border-bg: var(--theme-darkHoverBg);
   --border-outline: var(--text-muted);
 
   --error: var(--theme-darkError);

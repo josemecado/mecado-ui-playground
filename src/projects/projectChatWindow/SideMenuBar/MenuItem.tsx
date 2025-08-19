@@ -26,34 +26,60 @@ export const MenuItem: React.FC<MenuItemProps> = ({
   onClick,
 }) => {
   return (
-    <BaseMenuItem
-      $isActive={isActive}
-      $isCollapsed={isCollapsed}
-      $isNavigation={isNavigation}
-      onClick={onClick}
-    >
-      <MenuItemContent>
-        <IconContainer $isActive={isActive} $isCollapsed={isCollapsed}>
-          {icon}
-        </IconContainer>
+    <NavItemWrapper  $isActive={isActive}>
+      <BaseMenuItem
+        $isActive={isActive}
+        $isCollapsed={isCollapsed}
+        $isNavigation={isNavigation}
+        onClick={onClick}
+      >
+        <MenuItemContent>
+          <IconContainer $isActive={isActive}>
+            {icon}
+          </IconContainer>
 
-        {!isCollapsed && <MenuItemText>{text}</MenuItemText>}
-      </MenuItemContent>
+          {!isCollapsed && <MenuItemText $isActive={isActive}>{text}</MenuItemText>}
+        </MenuItemContent>
 
-      {!isCollapsed && !isNavigation && (
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          {badge && <NotificationBadge>{badge}</NotificationBadge>}
+        {!isCollapsed && !isNavigation && (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {badge && <NotificationBadge>{badge}</NotificationBadge>}
 
-          {hasSubItems && (
-            <ExpandChevron isExpanded={isExpanded}>
-              <ChevronDown />
-            </ExpandChevron>
-          )}
-        </div>
-      )}
-    </BaseMenuItem>
+            {hasSubItems && (
+              <ExpandChevron isExpanded={isExpanded}>
+                <ChevronDown />
+              </ExpandChevron>
+            )}
+          </div>
+        )}
+      </BaseMenuItem>
+    </NavItemWrapper>
   );
 };
+
+const NavItemWrapper = styled.div<{
+  $isActive?: boolean;
+}>`
+  position: relative;
+  padding: 0 12px 0 12px;
+
+  /* Active indicator bar */
+  ${(props) =>
+    props.$isActive &&
+    `
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 32px;
+      background: var(--accent-primary, white);
+      border-radius: 0 8px 8px 0;
+    }
+  `}
+`;
 
 // Base menu item styles
 const BaseMenuItem = styled.button<{
@@ -65,13 +91,13 @@ const BaseMenuItem = styled.button<{
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 8px;
   height: 32px;
-  padding: 6px;
+  width: ${(props) => (props.$isCollapsed ? "none" : "100%")};
+  margin-left: ${(props) => (props.$isCollapsed ? "8px" : "0")};
   border: none;
   background: ${(props) =>
-    props.$isActive
-      ? "var(--primary-alternate)"
-      : "none"};
+    props.$isActive ? "var(--primary-alternate)" : "none"};
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -94,29 +120,36 @@ const BaseMenuItem = styled.button<{
 const MenuItemContent = styled.div`
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
 `;
 
 // Menu item text
-const MenuItemText = styled.span`
-  font-size: 13px;
-  font-weight: 500;
+const MenuItemText = styled.span<{ $isActive?: boolean }>`
+  font-size: 14px;
+  font-weight: ${(props) => (props.$isActive ? "600" : "500")};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  text-align: left;
 `;
 
-// Icon container
 const IconContainer = styled.div<{
   $isActive?: boolean;
-  $isCollapsed?: boolean;
 }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  flex-shrink: 0;
+
   svg {
-    color: ${(props) =>
-      props.$isActive ? "var(--text-inverted)" : "var(--text-muted)"};
     width: 18px;
     height: 18px;
+    color: ${(props) => {
+      if (props.$isActive) return "var(--text-primary, white)";
+      return "var(--text-muted, #6b7280)";
+    }};
+    transition: color 0.2s ease;
   }
 `;
 

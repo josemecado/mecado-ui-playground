@@ -1,6 +1,15 @@
 import { useState, useEffect } from "react";
 import styled from "styled-components";
-import { MessageSquare, Box, Home, Grid, Pin, Folder, Settings, FileText } from "lucide-react";
+import {
+  MessageSquare,
+  Box,
+  Home,
+  Grid,
+  Pin,
+  Folder,
+  Settings,
+  FileText,
+} from "lucide-react";
 import { MenuHeader } from "./MenuHeader";
 import { MenuSection } from "./MenuSection";
 import { Equation } from "./Equation";
@@ -170,29 +179,27 @@ export const SideMenu: React.FC<SideMenuProps> = ({
         />
 
         <ContentContainer>
-                  <NavigationSection>
-          <SectionHeader isCollapsed={false}>
-            VIEWS
-          </SectionHeader>
-          
-          <NavigationMenuItem
-            icon={<MessageSquare />}
-            text="Chat"
-            isActive={true}
-            isCollapsed={effectiveCollapsed}
-            onClick={() => {}}
-          />
-          
-          <NavigationMenuItem
-            icon={<Box />}
-            text="Geometry"
-            isActive={false}
-            isCollapsed={effectiveCollapsed}
-            disabled={false}
-            tooltip={"No geometry available for this version"}
-            onClick={() => {}}
-          />
-        </NavigationSection>
+          <NavigationSection>
+            <SectionHeader $isCollapsed={effectiveCollapsed} $isHidden ={false}>VIEWS</SectionHeader>
+
+            <NavigationMenuItem
+              icon={<MessageSquare />}
+              text="Chat"
+              isActive={true}
+              isCollapsed={effectiveCollapsed}
+              onClick={() => {}}
+            />
+
+            <NavigationMenuItem
+              icon={<Box />}
+              text="Geometry"
+              isActive={false}
+              isCollapsed={effectiveCollapsed}
+              disabled={true}
+              tooltip={"No geometry available for this version"}
+              onClick={() => {}}
+            />
+          </NavigationSection>
 
           <MenuSection
             title="TOOLS"
@@ -201,12 +208,11 @@ export const SideMenu: React.FC<SideMenuProps> = ({
             allowSubmenus={!effectiveCollapsed}
           />
 
-          {!effectiveCollapsed && 
-          
+          {!effectiveCollapsed && (
             <ToggleButtonContainer>
               <ThemeToggleButton />
             </ToggleButtonContainer>
-          }
+          )}
         </ContentContainer>
       </SidebarContainer>
     </>
@@ -247,7 +253,6 @@ const SidebarContainer = styled.div<{ $collapsed?: boolean }>`
 const ContentContainer = styled.div`
   display: flex;
   flex-direction: column;
-  padding: 0 24px;
   flex: 1;
 `;
 const HoverTrigger = styled.div`
@@ -262,19 +267,39 @@ const HoverTrigger = styled.div`
 `;
 
 const NavigationSection = styled.div`
+  display: flex;
+  flex-direction: column;
   margin-bottom: 8px;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--border-bg, #e5e7eb);
+  gap: 8px;
 `;
 
-const SectionHeader = styled.div<{ isCollapsed?: boolean }>`
+const SectionHeader = styled.div<{
+  $isCollapsed?: boolean;
+  $isHidden?: boolean;
+}>`
   font-size: 12px;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin: 16px 0 8px 0;
-  animation: ${props => props.isCollapsed ? 'fadeOut 0.3s ease forwards' : 'fadeIn 0.3s ease forwards'};
+  margin: 16px 0 8px 12px;
+  margin: ${props => props.$isCollapsed ? "16px 0 8px 18px" : "16px 0 8px 12px"};;
+
+  animation: ${(props) => {
+    if (!props.$isHidden) {
+      return "none";
+    }
+
+    if (props.$isCollapsed) {
+      return "fadeOut 0.3s ease forwards";
+    }
+    return "fadeIn 0.3s ease forwards";
+  }};
+
+  transition: all 0.2s ease;
+
 
   @keyframes fadeIn {
     from {

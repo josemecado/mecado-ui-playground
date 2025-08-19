@@ -92,7 +92,7 @@ const StreamingTextBubblePlayground: React.FC = () => {
 
           <NavigationMenuItem
             icon={<Home />}
-            text="Geometry"
+            text="Chat"
             isActive={true}
             isCollapsed={false}
             disabled={false}
@@ -105,7 +105,7 @@ const StreamingTextBubblePlayground: React.FC = () => {
           <NavigationMenuItem
             icon={<Home />}
             text="Geometry"
-            isActive={true}
+            isActive={false}
             isCollapsed={false}
             disabled={true}
             tooltip={"No geometry available for this version"}

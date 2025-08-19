@@ -48,7 +48,7 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
   return (
     <MenuSectionContainer $isCollapsed={isCollapsedForLayout}>
       {title && (
-        <SectionHeader isCollapsed={isCollapsedForLayout}>
+        <SectionHeader $isCollapsed={isCollapsedForLayout} $isHidden ={false}>
           {title}
         </SectionHeader>
       )}
@@ -95,15 +95,51 @@ const MenuSectionContainer = styled.div<{ $isCollapsed: boolean }>`
   gap: 8px;
 `;
 
-// Section title area
-const SectionHeader = styled.div<{ isCollapsed?: boolean }>`
+const SectionHeader = styled.div<{
+  $isCollapsed?: boolean;
+  $isHidden?: boolean;
+}>`
   font-size: 12px;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin: 8px 0 4px 0;
+  margin: 16px 0 8px 12px;
+  margin: ${props => props.$isCollapsed ? "16px 0 8px 18px" : "16px 0 8px 12px"};;
+
+  animation: ${(props) => {
+    if (!props.$isHidden) {
+      return "none";
+    }
+
+    if (props.$isCollapsed) {
+      return "fadeOut 0.3s ease forwards";
+    }
+    return "fadeIn 0.3s ease forwards";
+  }};
+
+  transition: all 0.2s ease;
+
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeOut {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
 `;
+
 
 // Sub-menu container
 const SubMenuContainer = styled.div<{
