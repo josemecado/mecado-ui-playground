@@ -39,10 +39,10 @@ const NodeHeader = styled.div<{ $level: number }>`
   background: ${(props) => {
     const colors = [
       "#667eea", // Level 1 - Core (purple)
-      "#f093fb", // Level 2 - Data (pink)
-      "#4facfe", // Level 3 - VTK (blue)
-      "#43e97b", // Level 4 - Selection (green)
-      "#fa709a", // Level 5 - Viz (rose)
+      "#f72585", // Level 2 - Data (pink)
+      "#724cf9", // Level 3 - VTK (blue)
+      "#3da35d", // Level 4 - Selection (green)
+      "#ff8500", // Level 5 - Viz (rose)
       "#30cfd0", // Mode specific (teal)
     ];
     return colors[props.$level - 1] || colors[5];
@@ -86,13 +86,13 @@ const LevelLabel = styled.div`
 
 const MemoizedBadge = styled.div`
   position: absolute;
-  top: -8px;
-  right: -8px;
+  top: 0px;
+  right: 0px;
   background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
   color: #333;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 10px;
+  padding: 4px;
+  border-radius: 10px;
+  font-size: 9px;
   font-weight: 600;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   border: 2px solid white;
@@ -140,14 +140,55 @@ const LegendColor = styled.div<{ $color: string }>`
 `;
 
 // Custom node component
+const NodeDetails = styled.div`
+  padding: 12px;
+  border-top: 1px solid #e0e0e0;
+  background: #f8f9fa;
+`;
+
+const DetailSection = styled.div`
+  margin-bottom: 12px;
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const DetailTitle = styled.div`
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const DetailItem = styled.div`
+  font-size: 11px;
+  color: #333;
+  padding: 2px 0;
+  padding-left: 8px;
+  font-family: "Monaco", "Courier New", monospace;
+`;
+
+const ExpandIcon = styled.div`
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: white;
+  font-size: 12px;
+`;
+
 const CustomNode: React.FC<any> = ({ data }) => {
   return (
     <>
       <Handle type="target" position={Position.Top} />
-      <NodeContainer $level={data.level}>
+      <NodeContainer $level={data.level} style={{ cursor: "pointer" }}>
         {data.isMemoized && <MemoizedBadge>MEMOIZED</MemoizedBadge>}
-        <NodeHeader $level={data.level}>
+        <NodeHeader $level={data.level} style={{ position: "relative" }}>
           LEVEL {data.level}
+          <ExpandIcon>{data.expanded ? "▼" : "▶"}</ExpandIcon>
         </NodeHeader>
         <NodeBody>
           <NodeTitle>{data.label}</NodeTitle>
@@ -155,6 +196,35 @@ const CustomNode: React.FC<any> = ({ data }) => {
             <NodeDescription>{data.description}</NodeDescription>
           )}
         </NodeBody>
+        {data.expanded && data.details && (
+          <NodeDetails>
+            <DetailSection>
+              <DetailTitle>Dependencies:</DetailTitle>
+              {data.details.dependencies.map((dep: string, idx: number) => (
+                <DetailItem key={idx}>• {dep}</DetailItem>
+              ))}
+            </DetailSection>
+            <DetailSection>
+              <DetailTitle>Returns:</DetailTitle>
+              {data.details.returns.map((ret: string, idx: number) => (
+                <DetailItem key={idx}>→ {ret}</DetailItem>
+              ))}
+            </DetailSection>
+            <DetailSection>
+              <DetailTitle>Depends On (Upstream):</DetailTitle>
+              {data.details.upstream.map((up: string, idx: number) => (
+                <DetailItem key={idx}>↑ {up}</DetailItem>
+              ))}
+            </DetailSection>
+
+            <DetailSection>
+              <DetailTitle>Used By (Downstream):</DetailTitle>
+              {data.details.downstream.map((down: string, idx: number) => (
+                <DetailItem key={idx}>↓ {down}</DetailItem>
+              ))}
+            </DetailSection>
+          </NodeDetails>
+        )}
       </NodeContainer>
       <Handle type="source" position={Position.Bottom} />
     </>
@@ -166,119 +236,358 @@ const HookArchitectureVisualizer: React.FC = () => {
 
   // Define nodes for each hook
   const [nodes, setNodes] = useState<Node[]>([
-    // LEVEL 1: Core Context
+    // LEVEL 1: Core Context (y: 50)
     {
       id: "projectContext",
       type: "custom",
-      position: { x: 400, y: 50 },
+      position: { x: 500, y: 50 },
       data: {
         label: "useProjectContextViewModel",
         description: "Files, project ID, loading state",
         level: 1,
+        expanded: false,
+        details: {
+          dependencies: ["None (Root Hook)"],
+          returns: [
+            "projectID: string",
+            "version: number",
+            "files: { facesFile, edgesFile, bodiesFile }",
+            "geometryInfo: GeometryJson",
+            "folderName: string",
+            "isLoading: boolean",
+            "error: string | null",
+            "isReady: boolean",
+            "reload: () => void",
+          ],
+          upstream: ["None (Root)"],
+          downstream: [
+            "geometryData",
+            "inference",
+            "handCalcInstances",
+            "pinnedHandCalcs",
+            "keyboard",
+            "vtkViewer",
+            "rightSidebar",
+            "bottomButtons",
+          ],
+        },
       },
     },
 
-    // LEVEL 2: Data Processing
+    // LEVEL 2: Data Processing (y: 200)
     {
       id: "geometryData",
       type: "custom",
-      position: { x: 200, y: 200 },
+      position: { x: 300, y: 200 },
       data: {
         label: "useGeometryDataViewModel",
         description: "PolyData, lookup tables",
         level: 2,
+        expanded: false,
+        details: {
+          dependencies: [
+            "files: projectContext.files",
+            "isReady: projectContext.isReady",
+          ],
+          returns: [
+            "polyData: { faces, edges, bodies }",
+            "lookupTables.faceIdToCells: Map",
+            "lookupTables.edgeIdToCells: Map",
+            "lookupTables.bodyIdToCells: Map",
+            "lookupTables.cellToFaceId: Map",
+            "lookupTables.cellToEdgeId: Map",
+            "lookupTables.cellToBodyId: Map",
+            "mappings: { stepToMechanical, stepToDiscovery }",
+            "isProcessed: boolean",
+          ],
+          upstream: ["projectContext"],
+          downstream: ["vtkRenderer", "selectionViz"],
+        },
       },
     },
     {
       id: "inference",
       type: "custom",
-      position: { x: 600, y: 200 },
+      position: { x: 700, y: 200 },
       data: {
         label: "useInferenceViewModel",
         description: "ML inference, labeling",
         level: 2,
+        expanded: false,
+        details: {
+          dependencies: [
+            "projectId: projectContext.projectID",
+            "version: projectContext.version",
+          ],
+          returns: [
+            "inferenceMapping: InferenceMapping | null",
+            "isInferenceReady: boolean",
+            "isRunning: boolean",
+            "runInference: () => Promise<void>",
+            "checkStatus: () => Promise<void>",
+          ],
+          upstream: ["projectContext"],
+          downstream: ["vtkViewer", "bottomButtons"],
+        },
       },
     },
 
-    // LEVEL 3: VTK Rendering
+    // LEVEL 3: VTK Rendering & Selection State (y: 350)
     {
       id: "vtkRenderer",
       type: "custom",
-      position: { x: 200, y: 350 },
+      position: { x: 300, y: 350 },
       data: {
         label: "useVTKRendererViewModel",
         description: "VTK scene, actors, renderer",
         level: 3,
+        expanded: false,
+        details: {
+          dependencies: [
+            "container: vtkContainerRef",
+            "polyData: geometryData.polyData",
+            "isReady: geometryData.isProcessed",
+          ],
+          returns: [
+            "getRenderer: () => vtkRenderer",
+            "getRenderWindow: () => vtkRenderWindow",
+            "getActors: () => { face, edge, body }",
+            "getPicker: () => vtkCellPicker",
+            "triggerRender: () => void",
+            "resetCamera: () => void",
+            "isInitialized: boolean",
+          ],
+          upstream: ["geometryData"],
+          downstream: ["selectionViz"],
+        },
       },
     },
-
-    // LEVEL 4: Selection Management
     {
       id: "selectionState",
       type: "custom",
-      position: { x: 500, y: 350 },
+      position: { x: 700, y: 350 },
       data: {
         label: "useSelectionStateViewModel",
         description: "Pure selection state",
         level: 4,
+        expanded: false,
+        details: {
+          dependencies: ["None (Pure State)"],
+          returns: [
+            "getSelections: () => { faces: Set, edges: Set, bodies: Set }",
+            "hoveredId: number | null",
+            "mode: 'face' | 'edge' | 'body'",
+            "toggleSelection: (type, id) => void",
+            "clearAll: () => void",
+            "setMode: (mode) => void",
+            "setHovered: (id) => void",
+            "selectionCount: number",
+            "loadSelections: (selections) => void",
+          ],
+          upstream: ["None (Pure State)"],
+          downstream: [
+            "selectionViz",
+            "handCalcInstances",
+            "vtkViewer",
+            "keyboard",
+          ],
+        },
       },
     },
 
-    // LEVEL 5: Visualization Layer
+    // LEVEL 5: Visualization Bridge (y: 500)
     {
       id: "selectionViz",
       type: "custom",
-      position: { x: 350, y: 500 },
+      position: { x: 500, y: 500 },
       data: {
         label: "useSelectionVisualizationViewModel",
         description: "Bridges selection to VTK",
         level: 5,
+        expanded: false,
+        details: {
+          dependencies: [
+            "getRenderer: vtkRenderer.getRenderer",
+            "getRenderWindow: vtkRenderer.getRenderWindow",
+            "getActors: vtkRenderer.getActors",
+            "getPicker: vtkRenderer.getPicker",
+            "lookupTables: geometryData.lookupTables",
+            "selections: selectionState.getSelections",
+            "hoveredId: selectionState.hoveredId",
+            "mode: selectionState.mode",
+            "onHover: selectionState.setHovered",
+            "onSelect: selectionState.toggleSelection",
+            "triggerRender: vtkRenderer.triggerRender",
+          ],
+          returns: [
+            "handleMouseMove: (event) => void",
+            "handleClick: (event) => void",
+            "updateDisplay: () => void",
+          ],
+          upstream: ["vtkRenderer", "geometryData", "selectionState"],
+          downstream: ["None (consumed by effects)"],
+        },
       },
     },
 
-    // Mode-specific hooks
+    // LEVEL 6: Mode-specific hooks (y: 650)
     {
       id: "handCalcInstances",
       type: "custom",
-      position: { x: 650, y: 500 },
+      position: { x: 100, y: 650 },
       data: {
         label: "useHandCalcInstancesViewModel",
         description: "HandCalc equations",
         level: 6,
+        expanded: false,
+        details: {
+          dependencies: [
+            "projectId: projectContext.projectID",
+            "version: projectContext.version",
+            "enabled: sidebarMode === 'handcalc'",
+            "selections: selectionState.getSelections()",
+            "onSelectionLoad: selectionState.loadSelections",
+          ],
+          returns: [
+            "instances: HandCalcInstance[]",
+            "selectedIndex: number",
+            "isCreating: boolean",
+            "pendingInstanceData: {...} | null",
+            "createInstance: (data) => void",
+            "deleteInstance: (id) => void",
+            "navigate: (direction) => void",
+            "selectInstance: (index) => void",
+            "confirmName: () => void",
+            "cancelCreation: () => void",
+            "markForDeletion: () => void",
+            "clearDeletionMark: () => void",
+            "saveSelection: () => void",
+            "newInstanceName: string",
+            "setNewInstanceName: (name) => void",
+            "shouldFocusInput: boolean",
+          ],
+          upstream: ["projectContext", "selectionState"],
+          downstream: [
+            "connectionGraph",
+            "leftSidebar",
+            "rightSidebar",
+            "keyboard",
+            "bottomButtons",
+          ],
+        },
       },
     },
     {
       id: "connectionGraph",
       type: "custom",
-      position: { x: 850, y: 500 },
+      position: { x: 400, y: 650 },
       data: {
         label: "useConnectionGraphViewModel",
         description: "Variable connections",
         level: 6,
-      },
-    },
-    {
-      id: "feaNavigation",
-      type: "custom",
-      position: { x: 650, y: 650 },
-      data: {
-        label: "useFEANavigationViewModel",
-        description: "FEA headings/subheadings",
-        level: 6,
+        expanded: false,
+        details: {
+          dependencies: [
+            "instances: handCalcInstances.instances",
+            "enabled: sidebarMode === 'handcalc'",
+          ],
+          returns: [
+            "connections: HandCalcInstanceVariableConnection[]",
+            "selectedVariable: { instanceId, variableSymbol } | null",
+            "selectionMode: boolean",
+            "handleVariableClick: (instanceId, variableSymbol) => void",
+            "deleteConnection: (connectionId) => void",
+            "deleteVariable: (connectionId, instanceId, variableSymbol) => void",
+            "clearSelection: () => void",
+          ],
+          upstream: ["handCalcInstances"],
+          downstream: ["leftSidebar", "keyboard"],
+        },
       },
     },
     {
       id: "keyboard",
       type: "custom",
-      position: { x: 450, y: 650 },
+      position: { x: 700, y: 650 },
       data: {
         label: "useKeyboardNavigationViewModel",
         description: "Keyboard orchestration",
         level: 6,
+        expanded: false,
+        details: {
+          dependencies: [
+            "mode: sidebarMode",
+            "filesReady: projectContext.isReady",
+            "handlers.handCalc: handCalcInstances methods",
+            "handlers.connections: connectionGraph methods",
+            "handlers.toggleMode: setSidebarMode",
+            "handlers.toggleSelectionMode: selectionState.setMode",
+            "handlers.clearSelections: selectionState.clearAll",
+          ],
+          returns: [
+            "Automatically sets up keyboard listeners",
+            "Routes keyboard events to appropriate handlers",
+          ],
+          upstream: [
+            "projectContext",
+            "handCalcInstances",
+            "connectionGraph",
+            "selectionState",
+          ],
+          downstream: ["None (event system)"],
+        },
+      },
+    },
+    {
+      id: "pinnedHandCalcs",
+      type: "custom",
+      position: { x: 1000, y: 650 },
+      data: {
+        label: "usePinnedHandCalcsViewModel",
+        description: "Pinned equation templates",
+        level: 6,
+        expanded: false,
+        details: {
+          dependencies: [
+            "projectId: projectContext.projectID",
+            "version: projectContext.version",
+            "selectedInstanceParentId: handCalcInstances...parentHandCalcId",
+          ],
+          returns: [
+            "pinnedEquations: HandCalc[]",
+            "createInstanceFromPinned: (pinnedId) => void",
+            "isLoading: boolean",
+            "pendingInstanceData: {...} | null",
+          ],
+          upstream: ["projectContext", "handCalcInstances"],
+          downstream: ["rightSidebar"],
+        },
+      },
+    },
+    {
+      id: "rightSidebarState",
+      type: "custom",
+      position: { x: 1300, y: 650 },
+      data: {
+        label: "useRightSidebarViewModel",
+        description: "Right sidebar UI state",
+        level: 6,
+        expanded: false,
+        details: {
+          dependencies: ["None (Pure UI State)"],
+          returns: [
+            "isCollapsed: boolean",
+            "toggle: () => void",
+            "collapse: () => void",
+            "expand: () => void",
+          ],
+          upstream: ["None (Pure State)"],
+          downstream: ["rightSidebar", "CollapsedSidebarButton"],
+        },
       },
     },
 
-    // UI Components (memoized)
+    // LEVEL 7: UI Components (memoized) (y: 800)
     {
       id: "leftSidebar",
       type: "custom",
@@ -288,28 +597,108 @@ const HookArchitectureVisualizer: React.FC = () => {
         description: "HandCalc/FEA UI",
         level: 6,
         isMemoized: true,
+        expanded: false,
+        details: {
+          dependencies: [
+            "handCalcInstances.instances",
+            "handCalcInstances.selectedIndex",
+            "handCalcInstances.newInstanceName",
+            "connectionGraph.connections",
+            "connectionGraph.selectedVariable",
+            "connectionGraph.selectionMode",
+          ],
+          returns: ["Memoized JSX Component"],
+          upstream: ["handCalcInstances", "connectionGraph"],
+          downstream: ["Main UI Render"],
+        },
       },
     },
     {
       id: "vtkViewer",
       type: "custom",
-      position: { x: 350, y: 800 },
+      position: { x: 400, y: 800 },
       data: {
         label: "VTK Viewer",
         description: "3D viewport",
         level: 6,
         isMemoized: true,
+        expanded: false,
+        details: {
+          dependencies: [
+            "vtkContainerRef",
+            "projectContext.isLoading",
+            "projectContext.error",
+            "projectContext.geometryInfo",
+            "selectionState.mode",
+            "selectionState.hoveredId",
+            "selectionState.selectionCount",
+            "handCalcInstances.instances.length",
+            "sidebarMode",
+            "inference.inferenceMapping",
+          ],
+          returns: ["Memoized VTKViewer Component"],
+          upstream: [
+            "projectContext",
+            "selectionState",
+            "handCalcInstances",
+            "inference",
+          ],
+          downstream: ["Main UI Render"],
+        },
       },
     },
     {
       id: "rightSidebar",
       type: "custom",
-      position: { x: 600, y: 800 },
+      position: { x: 700, y: 800 },
       data: {
         label: "Right Sidebar",
         description: "Pinned equations",
         level: 6,
         isMemoized: true,
+        expanded: false,
+        details: {
+          dependencies: [
+            "rightSidebarState.isCollapsed",
+            "projectContext.projectID",
+            "projectContext.version",
+            "handCalcInstances.instances",
+            "handCalcInstances.selectedIndex",
+            "pinnedHandCalcs.pendingInstanceData",
+          ],
+          returns: ["Memoized HandCalcRightSidebar Component"],
+          upstream: [
+            "rightSidebarState",
+            "projectContext",
+            "handCalcInstances",
+            "pinnedHandCalcs",
+          ],
+          downstream: ["Main UI Render"],
+        },
+      },
+    },
+    {
+      id: "bottomButtons",
+      type: "custom",
+      position: { x: 1000, y: 800 },
+      data: {
+        label: "Bottom Buttons",
+        description: "Inference & Navigation",
+        level: 6,
+        isMemoized: true,
+        expanded: false,
+        details: {
+          dependencies: [
+            "inference.isRunning",
+            "inference.isInferenceReady",
+            "theme",
+            "sidebarMode",
+            "handCalcInstances.saveSelection",
+          ],
+          returns: ["Memoized ButtonsContainer Component"],
+          upstream: ["inference", "handCalcInstances"],
+          downstream: ["Main UI Render"],
+        },
       },
     },
   ]);
@@ -489,6 +878,23 @@ const HookArchitectureVisualizer: React.FC = () => {
     []
   );
 
+  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (n.id === node.id) {
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              expanded: !n.data.expanded,
+            },
+          };
+        }
+        return n;
+      })
+    );
+  }, []);
+
   return (
     <VisualizerContainer>
       <ReactFlow
@@ -496,6 +902,7 @@ const HookArchitectureVisualizer: React.FC = () => {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onNodeClick={onNodeClick}
         nodeTypes={nodeTypes}
         fitView
         attributionPosition="bottom-left"
