@@ -51,7 +51,6 @@ const NodeHeader = styled.div<{ $level: number }>`
   color: white;
   font-size: 12px;
   font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.5px;
 `;
 
@@ -908,7 +907,6 @@ const HookArchitectureVisualizer: React.FC = () => {
         attributionPosition="bottom-left"
       >
         <Background />
-        <Controls />
         <MiniMap />
 
         {/* Level labels */}
