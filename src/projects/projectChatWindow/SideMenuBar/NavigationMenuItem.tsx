@@ -26,7 +26,7 @@ export const NavigationMenuItem: React.FC<NavigationMenuItemProps> = ({
   const tooltipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navItemRef = useRef<HTMLButtonElement>(null);
 
-  const TOOLTIP_DELAY = 1000; // 1 second delay
+  const TOOLTIP_DELAY = 500; // 1 second delay
 
   const { theme } = useTheme();
 
