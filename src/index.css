@@ -10,7 +10,7 @@
   /* Dark Theme Colors */
   --theme-darkBgPrimary: #191919;
   --theme-darkBgSecondary: #202020;
-  --theme-darkBgTertiary: #252525;
+  --theme-darkBgTertiary: #2f3033;
 
   --theme-darkShadowBackground: #202020;
 
@@ -33,7 +33,7 @@
   /* Light Theme Colors */
   --theme-lightBgPrimary: #eef0f1;
   --theme-lightBgSecondary: #fff;
-  --theme-lightBgTertiary: #f4f4f6;
+  --theme-lightBgTertiary: #eeeeee;
 
   --theme-lightShadowBackground: #f4f4f6;
 
@@ -49,7 +49,7 @@
 
   --theme-lightBorderBg: #e5e7eb;
 
-  --theme-lightHoverBg: #f4f4f6;
+  --theme-lightHoverBg: #ebebeb;
 
   --theme-lightError: #ef4444;
 

@@ -1,383 +1,371 @@
-// ProjectGeometryViewer.tsx - REFACTORED ARCHITECTURE
+// ProjectGeometryViewer.tsx - REFACTORED WITH BETTER SEPARATION OF CONCERNS
 const ProjectGeometryViewer: React.FC = () => {
- // Core refs that don't trigger re-renders
- const vtkContainerRef = useRef<HTMLDivElement>(null);
- 
- // ==================== LEVEL 1: Core Context ====================
- // Manages project files, loading, and metadata
- const projectContext = useProjectContextViewModel();
- // Returns: {
- //   projectID: string,
- //   version: number,
- //   files: { facesFile, edgesFile, bodiesFile },
- //   geometryInfo: GeometryJson,
- //   folderName: string,
- //   isLoading: boolean,
- //   error: string | null,
- //   isReady: boolean,
- //   reload: () => void
- // }
+  // Core refs that don't trigger re-renders
+  const vtkContainerRef = useRef<HTMLDivElement>(null);
+  
+  // ==================== LEVEL 1: Core Context ====================
+  // Pure project metadata and file management
+  const projectFiles = useProjectFilesHook();
+  // Returns: {
+  //   projectID: string,
+  //   version: number,
+  //   files: { facesFile, edgesFile, bodiesFile },
+  //   geometryInfo: GeometryJson,
+  //   folderName: string,
+  //   isLoading: boolean,
+  //   error: string | null,
+  //   isReady: boolean,
+  //   reload: () => void
+  // }
 
- // ==================== LEVEL 2: Data Processing ====================
- // Processes geometry files into VTK-ready data
- const geometryData = useGeometryDataViewModel({
-   files: projectContext.files,
-   isReady: projectContext.isReady
- });
- // Returns: {
- //   polyData: { faces, edges, bodies },
- //   lookupTables: {
- //     faceIdToCells, edgeIdToCells, bodyIdToCells,
- //     cellToFaceId, cellToEdgeId, cellToBodyId
- //   },
- //   mappings: { stepToMechanical, stepToDiscovery },
- //   isProcessed: boolean
- // }
+  // ==================== LEVEL 2A: Raw Data Processing ====================
+  // Processes raw geometry files into VTK polyData (no lookup logic)
+  const polyDataProcessing = usePolyDataProcessingHook({
+    files: projectFiles.files,
+    isReady: projectFiles.isReady
+  });
+  // Returns: {
+  //   polyData: { faces, edges, bodies },
+  //   isProcessed: boolean,
+  //   processingError: string | null
+  // }
 
- // Inference system (parallel to geometry data)
- const inference = useInferenceViewModel({
-   projectId: projectContext.projectID,
-   version: projectContext.version
- });
- // Returns: {
- //   inferenceMapping: InferenceMapping | null,
- //   isInferenceReady: boolean,
- //   isRunning: boolean,
- //   runInference: () => Promise<void>,
- //   checkStatus: () => Promise<void>
- // }
+  // Handles ID-to-cell lookup tables (separate concern)
+  const lookupTables = useLookupTablesHook({
+    polyData: polyDataProcessing.polyData,
+    isReady: polyDataProcessing.isProcessed
+  });
+  // Returns: {
+  //   getCellsForFace: (faceId: number) => number[],
+  //   getCellsForEdge: (edgeId: number) => number[],
+  //   getCellsForBody: (bodyId: number) => number[],
+  //   getFaceIdForCell: (cellId: number) => number | null,
+  //   getEdgeIdForCell: (cellId: number) => number | null,
+  //   getBodyIdForCell: (cellId: number) => number | null,
+  //   isTablesReady: boolean
+  // }
 
- // ==================== LEVEL 3: VTK Rendering ====================
- // Manages VTK scene and actors (no React state for VTK objects!)
- const vtkRenderer = useVTKRendererViewModel({
-   container: vtkContainerRef,
-   polyData: geometryData.polyData,
-   isReady: geometryData.isProcessed
- });
- // Returns: {
- //   getRenderer: () => vtkRenderer,
- //   getRenderWindow: () => vtkRenderWindow,
- //   getActors: () => { face, edge, body },
- //   getPicker: () => vtkCellPicker,
- //   triggerRender: () => void,
-   //   resetCamera: () => void,
- //   isInitialized: boolean
- // }
+  // Handles STEP to mechanical/discovery mappings (separate concern)
+  const geometryMappings = useGeometryMappingsHook({
+    geometryInfo: projectFiles.geometryInfo,
+    isReady: projectFiles.isReady
+  });
+  // Returns: {
+  //   getStepToMechanical: (stepId: string) => string | null,
+  //   getStepToDiscovery: (stepId: string) => string | null,
+  //   getMechanicalToStep: (mechId: string) => string | null,
+  //   getDiscoveryToStep: (discId: string) => string | null,
+  //   isMappingsReady: boolean
+  // }
 
- // ==================== LEVEL 4: Selection Management ====================
- // Pure state management for selections (decoupled from visualization)
- const selectionState = useSelectionStateViewModel();
- // Returns: {
- //   getSelections: () => { faces: Set, edges: Set, bodies: Set },
- //   hoveredId: number | null,
- //   mode: 'face' | 'edge' | 'body',
- //   toggleSelection: (type, id) => void,
- //   clearAll: () => void,
- //   setMode: (mode) => void,
- //   setHovered: (id) => void,
- //   selectionCount: number, // For UI display only
- //   loadSelections: (selections) => void
- // }
+  // ==================== LEVEL 2B: ML Inference ====================
+  // Pure ML inference management
+  const inferenceEngine = useInferenceEngineHook({
+    projectId: projectFiles.projectID,
+    version: projectFiles.version
+  });
+  // Returns: {
+  //   runInference: () => Promise<void>,
+  //   checkStatus: () => Promise<void>,
+  //   isRunning: boolean,
+  //   isComplete: boolean,
+  //   error: string | null
+  // }
 
- // ==================== LEVEL 5: Visualization Layer ====================
- // Bridges selection state with VTK rendering
- const selectionViz = useSelectionVisualizationViewModel({
-   getRenderer: vtkRenderer.getRenderer,
-   getRenderWindow: vtkRenderer.getRenderWindow,
-   getActors: vtkRenderer.getActors,
-   getPicker: vtkRenderer.getPicker,
-   lookupTables: geometryData.lookupTables,
-   selections: selectionState.getSelections,
-   hoveredId: selectionState.hoveredId,
-   mode: selectionState.mode,
-   onHover: selectionState.setHovered,
-   onSelect: selectionState.toggleSelection,
-   triggerRender: vtkRenderer.triggerRender
- });
- // Returns: {
- //   handleMouseMove: (event) => void,
- //   handleClick: (event) => void,
- //   updateDisplay: () => void
- // }
+  // Handles inference results and labeling
+  const inferenceResults = useInferenceResultsHook({
+    projectId: projectFiles.projectID,
+    version: projectFiles.version,
+    isInferenceComplete: inferenceEngine.isComplete
+  });
+  // Returns: {
+  //   getElementLabels: (elementId: number) => string[],
+  //   getBestLabel: (elementId: number) => string | null,
+  //   getConfidenceScore: (elementId: number, label: string) => number,
+  //   isResultsReady: boolean
+  // }
 
- // ==================== HAND CALC MODE ====================
- const handCalcInstances = useHandCalcInstancesViewModel({
-   projectId: projectContext.projectID,
-   version: projectContext.version,
-   enabled: sidebarMode === 'handcalc',
-   selections: selectionState.getSelections(),
-   onSelectionLoad: selectionState.loadSelections
- });
- // Returns: {
- //   instances: HandCalcInstance[],
- //   selectedIndex: number,
- //   isCreating: boolean,
- //   pendingInstanceData: {...} | null,
- //   createInstance: (data) => void,
- //   deleteInstance: (id) => void,
- //   navigate: (direction: 'next' | 'prev') => void,
- //   selectInstance: (index) => void,
- //   confirmName: () => void,
- //   cancelCreation: () => void,
- //   markForDeletion: () => void,
- //   clearDeletionMark: () => void,
- //   saveSelection: () => void,
- //   newInstanceName: string,
- //   setNewInstanceName: (name) => void,
- //   shouldFocusInput: boolean
- // }
+  // ==================== LEVEL 3: VTK Rendering ====================
+  // Complete VTK management (scene, actors, rendering)
+  const vtkRenderer = useVTKRendererHook({
+    container: vtkContainerRef,
+    polyData: polyDataProcessing.polyData,
+    isReady: polyDataProcessing.isProcessed
+  });
+  // Returns: {
+  //   // VTK Objects (lazy evaluation)
+  //   getRenderer: () => vtkRenderer,
+  //   getRenderWindow: () => vtkRenderWindow,
+  //   getPicker: () => vtkCellPicker,
+  //   getFaceActor: () => vtkActor,
+  //   getEdgeActor: () => vtkActor,
+  //   getBodyActor: () => vtkActor,
+  //   
+  //   // VTK Operations
+  //   triggerRender: () => void,
+  //   resetCamera: () => void,
+  //   updateActorVisibility: (type: 'face'|'edge'|'body', visible: boolean) => void,
+  //   updateActorColor: (type: 'face'|'edge'|'body', color: [number,number,number]) => void,
+  //   
+  //   // State
+  //   isInitialized: boolean,
+  //   areActorsReady: boolean
+  // }
 
- const connectionGraph = useConnectionGraphViewModel({
-   instances: handCalcInstances.instances,
-   enabled: sidebarMode === 'handcalc'
- });
- // Returns: {
- //   connections: HandCalcInstanceVariableConnection[],
- //   selectedVariable: { instanceId, variableSymbol } | null,
- //   selectionMode: boolean,
- //   handleVariableClick: (instanceId, variableSymbol) => void,
- //   deleteConnection: (connectionId) => void,
- //   deleteVariable: (connectionId, instanceId, variableSymbol) => void,
- //   clearSelection: () => void
- // }
+  // ==================== LEVEL 4: Selection State Management ====================
+  // Pure selection state (no visualization logic)
+  const selectionState = useSelectionStateHook();
+  // Returns: {
+  //   getSelectedFaces: () => Set<number>,
+  //   getSelectedEdges: () => Set<number>,
+  //   getSelectedBodies: () => Set<number>,
+  //   getHoveredId: () => number | null,
+  //   getSelectionMode: () => 'face' | 'edge' | 'body',
+  //   toggleFaceSelection: (faceId: number) => void,
+  //   toggleEdgeSelection: (edgeId: number) => void,
+  //   toggleBodySelection: (bodyId: number) => void,
+  //   setHovered: (id: number | null) => void,
+  //   setSelectionMode: (mode: 'face' | 'edge' | 'body') => void,
+  //   clearAllSelections: () => void,
+  //   loadSelections: (selections: SelectionData) => void,
+  //   getSelectionCount: () => number
+  // }
 
- // Create instance from pinned equations
- const pinnedHandCalcs = usePinnedHandCalcsViewModel({
-   projectId: projectContext.projectID,
-   version: projectContext.version,
-   selectedInstanceParentId: handCalcInstances.instances[handCalcInstances.selectedIndex]?.parentHandCalcId
- });
- // Returns: {
- //   pinnedEquations: HandCalc[],
- //   createInstanceFromPinned: (pinnedId) => void,
- //   isLoading: boolean
- // }
+  // Manages selection persistence
+  const selectionPersistence = useSelectionPersistenceHook({
+    projectId: projectFiles.projectID,
+    version: projectFiles.version,
+    getSelections: () => ({
+      faces: selectionState.getSelectedFaces(),
+      edges: selectionState.getSelectedEdges(),
+      bodies: selectionState.getSelectedBodies()
+    }),
+    onSelectionsLoaded: selectionState.loadSelections
+  });
+  // Returns: {
+  //   saveSelections: () => Promise<void>,
+  //   loadSelections: () => Promise<void>,
+  //   autoSave: boolean,
+  //   setAutoSave: (enabled: boolean) => void
+  // }
 
+  // ==================== LEVEL 5: Selection Visualization ====================
+  // Handles visual feedback for selections (uses methods, not raw data)
+  const selectionVisualization = useSelectionVisualizationHook({
+    // VTK methods
+    getRenderer: vtkRenderer.getRenderer,
+    getRenderWindow: vtkRenderer.getRenderWindow,
+    getFaceActor: vtkRenderer.getFaceActor,
+    getEdgeActor: vtkRenderer.getEdgeActor,
+    getBodyActor: vtkRenderer.getBodyActor,
+    updateActorColor: vtkRenderer.updateActorColor,
+    triggerRender: vtkRenderer.triggerRender,
+    
+    // Lookup methods (not raw tables!)
+    getCellsForFace: lookupTables.getCellsForFace,
+    getCellsForEdge: lookupTables.getCellsForEdge,
+    getCellsForBody: lookupTables.getCellsForBody,
+    
+    // Selection methods
+    getSelectedFaces: selectionState.getSelectedFaces,
+    getSelectedEdges: selectionState.getSelectedEdges,
+    getSelectedBodies: selectionState.getSelectedBodies,
+    getHoveredId: selectionState.getHoveredId,
+    getSelectionMode: selectionState.getSelectionMode
+  });
+  // Returns: {
+  //   updateSelectionDisplay: () => void,
+  //   updateHoverDisplay: () => void
+  // }
 
- // ==================== UI STATE ====================
- const rightSidebar = useRightSidebarViewModel();
- // Returns: {
- //   isCollapsed: boolean,
- //   toggle: () => void,
- //   collapse: () => void,
- //   expand: () => void
- // }
+  // ==================== LEVEL 6: Interaction Handling ====================
+  // Handles mouse/keyboard input (calls methods from other hooks)
+  const interactionHandlers = useInteractionHandlersHook({
+    // VTK methods
+    getPicker: vtkRenderer.getPicker,
+    getRenderer: vtkRenderer.getRenderer,
+    
+    // Lookup methods
+    getFaceIdForCell: lookupTables.getFaceIdForCell,
+    getEdgeIdForCell: lookupTables.getEdgeIdForCell,  
+    getBodyIdForCell: lookupTables.getBodyIdForCell,
+    
+    // Selection methods
+    toggleFaceSelection: selectionState.toggleFaceSelection,
+    toggleEdgeSelection: selectionState.toggleEdgeSelection,
+    toggleBodySelection: selectionState.toggleBodySelection,
+    setHovered: selectionState.setHovered,
+    getSelectionMode: selectionState.getSelectionMode,
+    
+    // Visualization methods
+    updateSelectionDisplay: selectionVisualization.updateSelectionDisplay,
+    updateHoverDisplay: selectionVisualization.updateHoverDisplay
+  });
+  // Returns: {
+  //   handleMouseMove: (event: MouseEvent) => void,
+  //   handleClick: (event: MouseEvent) => void,
+  //   handleKeyPress: (event: KeyboardEvent) => void
+  // }
 
- // ==================== MEMOIZED COMPONENTS ====================
- // Left sidebar - only re-renders when its specific data changes
- const leftSidebar = useMemo(() => (
-   <MathJaxContext config={jaxConfig}>
-     {sidebarMode === 'handcalc' ? (
-       <HandCalcLeftSidebar
-         handCalcs={handCalcInstances.instances}
-         selectedHandCalcIndex={handCalcInstances.selectedIndex}
-         newHandCalcName={handCalcInstances.newInstanceName}
-         setNewHandCalcName={handCalcInstances.setNewInstanceName}
-         confirmHandCalcName={handCalcInstances.confirmName}
-         onHandCalcClick={handCalcInstances.selectInstance}
-         shouldFocusInput={handCalcInstances.shouldFocusInput}
-         connectionState={{
-           connections: connectionGraph.connections,
-           selectedVariable: connectionGraph.selectedVariable,
-           selectionMode: connectionGraph.selectionMode
-         }}
-         onVariableClick={connectionGraph.handleVariableClick}
-         onConnectionDelete={connectionGraph.deleteConnection}
-         onVariableDelete={connectionGraph.deleteVariable}
-         isCreatingInstance={handCalcInstances.isCreating}
-         pendingInstanceData={handCalcInstances.pendingInstanceData}
-       />
-     ) : (
-       <FEALeftSidebar
-         headings={feaNavigation.headings}
-         navState={feaNavigation.navState}
-         newSubheadingName={feaNavigation.newSubheadingName}
-         setNewSubheadingName={feaNavigation.setNewSubheadingName}
-         confirmSubheadingName={feaNavigation.confirmSubheadingName}
-         folderName={projectContext.folderName}
-         facesFileName={projectContext.files.facesFile?.name}
-         edgesFileName={projectContext.files.edgesFile?.name}
-         onHeadingClick={feaNavigation.navigateToHeading}
-         onSubheadingClick={feaNavigation.navigateToSubheading}
-       />
-     )}
-   </MathJaxContext>
- ), [
-   sidebarMode,
-   handCalcInstances.instances,
-   handCalcInstances.selectedIndex,
-   handCalcInstances.newInstanceName,
-   handCalcInstances.isCreating,
-   handCalcInstances.pendingInstanceData,
-   connectionGraph.connections,
-   connectionGraph.selectedVariable,
-   connectionGraph.selectionMode,
-   feaNavigation.headings,
-   feaNavigation.navState,
-   feaNavigation.newSubheadingName
- ]);
+  // ==================== LEVEL 7A: HandCalc Mode ====================
+  // Pure HandCalc instance management
+  const handCalcInstances = useHandCalcInstancesHook({
+    projectId: projectFiles.projectID,
+    version: projectFiles.version,
+    enabled: sidebarMode === 'handcalc'
+  });
+  // Returns: {
+  //   getInstances: () => HandCalcInstance[],
+  //   getSelectedIndex: () => number,
+  //   getSelectedInstance: () => HandCalcInstance | null,
+  //   createInstance: (data: HandCalcData) => void,
+  //   deleteInstance: (id: string) => void,
+  //   selectInstance: (index: number) => void,
+  //   navigateNext: () => void,
+  //   navigatePrev: () => void,
+  //   isCreating: boolean,
+  //   pendingData: HandCalcData | null
+  // }
 
- // VTK Viewer - only re-renders when display-relevant props change
- const vtkViewer = useMemo(() => (
-   <VTKViewer
-     vtkContainerRef={vtkContainerRef}
-     isLoading={projectContext.isLoading}
-     error={projectContext.error}
-     viewerState={{
-       mode: selectionState.mode,
-       hoveredId: selectionState.hoveredId,
-       selectedFaces: selectionState.getSelections().faces,
-       selectedEdges: selectionState.getSelections().edges,
-       selectedBodies: selectionState.getSelections().bodies
-     }}
-     navState={feaNavigation.navState}
-     onModeToggle={() => selectionState.setMode(
-       selectionState.mode === 'face' ? 'edge' : 
-       selectionState.mode === 'edge' ? 'body' : 'face'
-     )}
-     handCalcsCount={handCalcInstances.instances.length}
-     sidebarMode={sidebarMode}
-     inferenceMapping={inference.inferenceMapping}
-     getElementLabels={getElementLabels}
-     getBestLabel={getBestLabel}
-     getConfidenceColor={getConfidenceColor}
-     geometryData={projectContext.geometryInfo}
-   />
- ), [
-   projectContext.isLoading,
-   projectContext.error,
-   projectContext.geometryInfo,
-   selectionState.mode,
-   selectionState.hoveredId,
-   selectionState.selectionCount, // This triggers re-render on selection change
-   feaNavigation.navState,
-   handCalcInstances.instances.length,
-   sidebarMode,
-   inference.inferenceMapping
- ]);
+  // Manages connections between HandCalc variables
+  const handCalcConnections = useHandCalcConnectionsHook({
+    getInstances: handCalcInstances.getInstances,
+    enabled: sidebarMode === 'handcalc'
+  });
+  // Returns: {
+  //   getConnections: () => VariableConnection[],
+  //   createConnection: (from: VariableRef, to: VariableRef) => void,
+  //   deleteConnection: (connectionId: string) => void,
+  //   getConnectionsForVariable: (instanceId: string, variable: string) => VariableConnection[],
+  //   isInSelectionMode: boolean,
+  //   setSelectionMode: (enabled: boolean) => void
+  // }
 
- // Right sidebar - memoized separately
- const rightSidebarContent = useMemo(() => (
-   !rightSidebar.isCollapsed && (
-     <MathJaxContext config={jaxConfig}>
-       <RightSidebarContainer>
-         <HandCalcRightSidebar
-           projectId={projectContext.projectID}
-           projectVersion={projectContext.version}
-           selectedInstanceParentId={
-             handCalcInstances.instances[handCalcInstances.selectedIndex]?.parentHandCalcId
-           }
-           handCalcs={handCalcInstances.instances}
-           onCreateInstance={async (pinnedId) => {
-             await pinnedHandCalcs.createInstanceFromPinned(pinnedId);
-             handCalcInstances.createInstance(pinnedHandCalcs.pendingInstanceData);
-           }}
-           onCollapse={rightSidebar.collapse}
-         />
-       </RightSidebarContainer>
-     </MathJaxContext>
-   )
- ), [
-   rightSidebar.isCollapsed,
-   projectContext.projectID,
-   projectContext.version,
-   handCalcInstances.instances,
-   handCalcInstances.selectedIndex,
-   pinnedHandCalcs.pendingInstanceData
- ]);
+  // Links HandCalc instances with geometry selections
+  const handCalcGeometryLink = useHandCalcGeometryLinkHook({
+    getSelectedInstance: handCalcInstances.getSelectedInstance,
+    
+    // Selection methods (not raw data)
+    getSelectedFaces: selectionState.getSelectedFaces,
+    getSelectedEdges: selectionState.getSelectedEdges,
+    getSelectedBodies: selectionState.getSelectedBodies,
+    loadSelections: selectionState.loadSelections,
+    
+    // Persistence methods
+    saveSelections: selectionPersistence.saveSelections,
+    loadSelections: selectionPersistence.loadSelections
+  });
+  // Returns: {
+  //   linkCurrentSelection: () => void,
+  //   loadInstanceSelection: (instanceId: string) => void,
+  //   hasLinkedSelection: (instanceId: string) => boolean
+  // }
 
- // Bottom buttons - rarely change
- const bottomButtons = useMemo(() => (
-   <ButtonsContainer>
-     <StyledButton
-       onClick={inference.runInference}
-       disabled={inference.isRunning}
-       $backgroundColor="var(--primary-action)"
-       $theme={theme}
-     >
-       {inference.isRunning
-         ? "Running Inference..."
-         : inference.isInferenceReady
-         ? "Re-run Inference"
-         : "Run Inference"}
-     </StyledButton>
+  // ==================== LEVEL 7B: UI State Management ====================
+  // Pure UI state hooks
+  const leftSidebarState = useLeftSidebarStateHook({
+    mode: sidebarMode,
+    // HandCalc methods
+    getInstances: handCalcInstances.getInstances,
+    getSelectedIndex: handCalcInstances.getSelectedIndex,
+    selectInstance: handCalcInstances.selectInstance,
+    // Connection methods
+    getConnections: handCalcConnections.getConnections,
+    isInSelectionMode: handCalcConnections.isInSelectionMode
+  });
+  // Returns: {
+  //   getSidebarData: () => SidebarData,
+  //   handleInstanceClick: (index: number) => void,
+  //   handleVariableClick: (instanceId: string, variable: string) => void,
+  //   isInputFocused: boolean
+  // }
 
-     <StyledButton
-       onClick={() => {
-         // Save current state before navigating
-         if (sidebarMode === 'handcalc') {
-           handCalcInstances.saveSelection();
-         } else {
-           feaNavigation.saveSelection();
-         }
-         navigation.navigateToChat();
-       }}
-       $theme={theme}
-     >
-       Chat viewer :)
-     </StyledButton>
+  const rightSidebarState = useRightSidebarStateHook();
+  // Returns: {
+  //   isCollapsed: boolean,
+  //   toggle: () => void,
+  //   collapse: () => void,
+  //   expand: () => void
+  // }
 
-     <ThemeToggleButton />
-   </ButtonsContainer>
- ), [
-   inference.isRunning,
-   inference.isInferenceReady,
-   theme,
-   sidebarMode
- ]);
+  // ==================== EFFECTS SETUP ====================
+  // Wire up interaction handlers to VTK
+  useEffect(() => {
+    if (!vtkRenderer.isInitialized) return;
 
- // ==================== EFFECTS ====================
- // VTK event handlers setup
- useEffect(() => {
-   if (!vtkRenderer.isInitialized) return;
+    const renderer = vtkRenderer.getRenderer();
+    if (!renderer) return;
 
-   const renderer = vtkRenderer.getRenderer();
-   if (!renderer) return;
+    const interactor = renderer.getInteractor();
+    if (interactor) {
+      // Note: We're calling methods, not passing raw data
+      interactor.onMouseMove(interactionHandlers.handleMouseMove);
+      interactor.onLeftButtonPress(interactionHandlers.handleClick);
+    }
 
-   // Set up mouse handlers
-   const interactor = renderer.getInteractor();
-   if (interactor) {
-     interactor.onMouseMove(selectionViz.handleMouseMove);
-     interactor.onLeftButtonPress(selectionViz.handleClick);
-   }
+    return () => {
+      // Cleanup
+    };
+  }, [vtkRenderer.isInitialized, interactionHandlers.handleMouseMove, interactionHandlers.handleClick]);
 
-   return () => {
-     // Cleanup if needed
-   };
- }, [vtkRenderer.isInitialized, selectionViz.handleMouseMove, selectionViz.handleClick]);
+  // Auto-save when connections change
+  useEffect(() => {
+    if (projectFiles.folderName && sidebarMode === 'handcalc') {
+      selectionPersistence.saveSelections();
+    }
+  }, [handCalcConnections.getConnections()]);
 
- // Auto-save connections when they change
- useEffect(() => {
-   if (projectContext.folderName && sidebarMode === 'handcalc') {
-     handCalcInstances.saveSelection();
-   }
- }, [connectionGraph.connections]);
+  // ==================== MEMOIZED COMPONENTS ====================
+  const leftSidebar = useMemo(() => (
+    <LeftSidebar
+      sidebarData={leftSidebarState.getSidebarData()}
+      onInstanceClick={leftSidebarState.handleInstanceClick}
+      onVariableClick={leftSidebarState.handleVariableClick}
+      isInputFocused={leftSidebarState.isInputFocused}
+    />
+  ), [
+    leftSidebarState.getSidebarData(), // This handles all internal dependencies
+    leftSidebarState.isInputFocused
+  ]);
 
- // ==================== LOADING STATE ====================
- if (projectContext.isLoading || !projectContext.isReady) {
-   return <div>Loading...</div>;
- }
+  const vtkViewer = useMemo(() => (
+    <VTKViewer
+      vtkContainerRef={vtkContainerRef}
+      isLoading={projectFiles.isLoading}
+      error={projectFiles.error}
+      selectionCount={selectionState.getSelectionCount()}
+      selectionMode={selectionState.getSelectionMode()}
+      hoveredId={selectionState.getHoveredId()}
+    />
+  ), [
+    projectFiles.isLoading,
+    projectFiles.error,
+    selectionState.getSelectionCount(),
+    selectionState.getSelectionMode(),
+    selectionState.getHoveredId()
+  ]);
 
- // ==================== MAIN RENDER ====================
- return (
-   <MainContainer>
-     <LeftSidebarContainer>
-       {leftSidebar}
-       {bottomButtons}
-     </LeftSidebarContainer>
+  // ==================== LOADING STATE ====================
+  if (projectFiles.isLoading || !projectFiles.isReady) {
+    return <div>Loading...</div>;
+  }
 
-     {vtkViewer}
+  // ==================== MAIN RENDER ====================
+  return (
+    <MainContainer>
+      <LeftSidebarContainer>
+        {leftSidebar}
+      </LeftSidebarContainer>
 
-     <CollapsedSidebarButton
-       $isCollapsed={rightSidebar.isCollapsed}
-       onClick={rightSidebar.toggle}
-     >
-       <Pin size={16} />
-     </CollapsedSidebarButton>
+      {vtkViewer}
 
-     {rightSidebarContent}
-   </MainContainer>
- );
+      <RightSidebarContainer 
+        $isCollapsed={rightSidebarState.isCollapsed}
+      >
+        {/* Right sidebar content */}
+      </RightSidebarContainer>
+    </MainContainer>
+  );
 };
 
 export default ProjectGeometryViewer;

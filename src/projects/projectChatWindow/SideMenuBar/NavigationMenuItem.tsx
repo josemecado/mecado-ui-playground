@@ -159,7 +159,7 @@ const NavItem = styled.button<{
   /* Background and colors */
   background: ${(props) => {
     if (props.$disabled) return "transparent";
-    if (props.$theme === "dark") return "var(--hover-bg)";
+    if (props.$theme === "dark") return "var(--bg-tertiary)";
     if (props.$isActive) return "var(--primary-alternate)";
     return "transparent";
   }};
@@ -171,11 +171,16 @@ const NavItem = styled.button<{
     return "var(--text-muted, #1f2937)";
   }};
 
-  opacity: ${(props) => (props.$disabled ? 0.5 : 1)};
+  /* opacity: ${(props) => (props.$disabled ? 0.5 : 1)}; */
 
   /* Hover effects */
   &:hover {
-    background: var(--hover-bg);
+    background: ${(props) => {
+      if (props.$theme === "light" && props.$isActive) return "var(--primary-alternate)";
+      if (props.$isActive) return "var(--bg-tertiary)";
+
+      return "var(--hover-bg)";
+  }};
 
     transform: ${(props) => (props.$disabled ? "none" : "translateX(2px)")};
   }
