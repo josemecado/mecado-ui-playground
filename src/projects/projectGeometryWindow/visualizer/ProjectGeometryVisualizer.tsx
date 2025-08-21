@@ -86,7 +86,7 @@ const MethodItem = styled.div<{ $type: "exposes" | "calls" }>`
   font-size: 9px;
   /* font-family: "Monaco", "Courier New", monospace; */
   padding: 2px 0;
-  color: ${(props) => (props.$type === "exposes" ? "#059669" : "#dc2626")};
+  color: ${(props) => (props.$type === "exposes" ? "#059669" : "var(--error)")};
 
   &::before {
     content: "${(props) => (props.$type === "exposes" ? "→" : "←")}";
@@ -171,22 +171,22 @@ const CustomNode: React.FC<any> = ({ data }) => {
 
           {data.expanded && (
             <MethodsList>
-              {data.exposes && data.exposes.length > 0 && (
+              {data.calls && data.calls.length > 0 && (
                 <>
-                  <SectionTitle>Exposes (Methods/Data):</SectionTitle>
-                  {data.exposes.map((method: string, idx: number) => (
-                    <MethodItem key={idx} $type="exposes">
+                  <SectionTitle>Calls (From Other Hooks):</SectionTitle>
+                  {data.calls.map((method: string, idx: number) => (
+                    <MethodItem key={idx} $type="calls">
                       {method}
                     </MethodItem>
                   ))}
                 </>
               )}
 
-              {data.calls && data.calls.length > 0 && (
+              {data.exposes && data.exposes.length > 0 && (
                 <>
-                  <SectionTitle>Calls (From Other Hooks):</SectionTitle>
-                  {data.calls.map((method: string, idx: number) => (
-                    <MethodItem key={idx} $type="calls">
+                  <SectionTitle>Exposes (Methods/Data):</SectionTitle>
+                  {data.exposes.map((method: string, idx: number) => (
+                    <MethodItem key={idx} $type="exposes">
                       {method}
                     </MethodItem>
                   ))}
@@ -425,13 +425,13 @@ const MethodCallArchitecture: React.FC = () => {
       },
     },
 
-    // LEVEL 4: Selection Controller - Simplified orchestrator
+    // LEVEL 4: Selection Visualizer - Simplified orchestrator
     {
-      id: "selectionController",
+      id: "selectionVisualizer",
       type: "custom",
       position: { x: 800, y: 460 },
       data: {
-        label: "selectionController",
+        label: "selectionVisualization",
         description: "Orchestrates selection state → visual updates",
         level: 4,
         expanded: false,
@@ -481,8 +481,8 @@ const MethodCallArchitecture: React.FC = () => {
           "selectionState.toggleBodySelection()",
           "selectionState.setHovered()",
           "selectionState.getSelectionMode()",
-          "selectionController.updateSelectionVisuals()",
-          "selectionController.updateHoverVisuals()",
+          "selectionVisualizer.updateSelectionVisuals()",
+          "selectionVisualizer.updateHoverVisuals()",
         ],
         expanded: false,
       },
@@ -563,7 +563,7 @@ const MethodCallArchitecture: React.FC = () => {
       },
     },
 
-    // LEVEL 7: UI State Management
+    // // LEVEL 7: UI State Management
     {
       id: "leftSidebarState",
       type: "custom",
@@ -760,10 +760,10 @@ const MethodCallArchitecture: React.FC = () => {
 
     // Method calls between hooks (red, dashed)
 
-    // Selection controller calls VTK and lookup methods
+    // Selection Visualizer calls VTK and lookup methods
     {
       id: "m1",
-      source: "selectionController",
+      source: "selectionVisualizer",
       target: "vtkRenderer",
       label: "highlightCells()",
       markerEnd: { type: MarkerType.ArrowClosed },
@@ -771,7 +771,7 @@ const MethodCallArchitecture: React.FC = () => {
     },
     {
       id: "m2",
-      source: "selectionController",
+      source: "selectionVisualizer",
       target: "lookupTables",
       label: "getCellsForFace()",
       markerEnd: { type: MarkerType.ArrowClosed },
@@ -779,7 +779,7 @@ const MethodCallArchitecture: React.FC = () => {
     },
     {
       id: "m3",
-      source: "selectionController",
+      source: "selectionVisualizer",
       target: "selectionState",
       label: "getSelectedFaces()",
       markerEnd: { type: MarkerType.ArrowClosed },
@@ -814,7 +814,7 @@ const MethodCallArchitecture: React.FC = () => {
     {
       id: "m7",
       source: "interactionHandlers",
-      target: "selectionController",
+      target: "selectionVisualizer",
       label: "updateSelectionVisuals()",
       markerEnd: { type: MarkerType.ArrowClosed },
       style: { stroke: "#dc2626", strokeDasharray: "5 5" },
@@ -1043,7 +1043,7 @@ const MethodCallArchitecture: React.FC = () => {
             knowledge
           </li>
           <li>
-            <strong>Simplified Controllers:</strong> Just orchestrate method
+            <strong>Simplified Visualizers:</strong> Just orchestrate method
             calls, no complex logic
           </li>
           <li>
