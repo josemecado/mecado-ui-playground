@@ -9,7 +9,7 @@ import LevelArchitectureVisualizer from "../projects/projectGeometryWindow/visua
 export default function ProjectChatWindow() {
   return (
     <Container>
-      {/* <SideMenu /> */}
+      <SideMenu />
       {/* <ChatForm /> */}
       {/* <StreamingTextBubblePlayground /> */}
       <HookArchitectureVisualizer />

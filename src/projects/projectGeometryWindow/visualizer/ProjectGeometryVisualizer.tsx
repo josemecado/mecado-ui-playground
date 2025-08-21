@@ -17,6 +17,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import styled from "styled-components";
 
+// Keep all the styled components as-is...
 const NodeContainer = styled.div<{
   $level: number;
   $type: "hook" | "component";
@@ -41,13 +42,14 @@ const NodeHeader = styled.div<{ $level: number; $type: "hook" | "component" }>`
     const colors = [
       "#667eea", // Level 1 - Core
       "#f72585", // Level 2 - Data Processing
-      "#724cf9", // Level 3 - VTK
-      "#3da35d", // Level 4 - Selection
-      "#ff8500", // Level 5 - Visualization
-      "#30cfd0", // Level 6 - Interaction
-      "#e91e63", // Level 7 - Mode/UI
+      "#724cf9", // Level 3 - Selection
+      "#3da35d", // Level 4 - VTK
+      "#ff8500", // Level 5 - Interaction
+      "#30cfd0", // Level 6 - Persistence
+      "#e91e63", // Level 7 - HandCalc
+      "#ffd60a", // Level 8 - UI Controllers
     ];
-    return colors[props.$level - 1] || colors[6];
+    return colors[props.$level - 1] || colors[7];
   }};
   padding: 6px 8px;
   color: var(--text-primary);
@@ -84,7 +86,6 @@ const MethodsList = styled.div`
 
 const MethodItem = styled.div<{ $type: "exposes" | "calls" }>`
   font-size: 9px;
-  /* font-family: "Monaco", "Courier New", monospace; */
   padding: 2px 0;
   color: ${(props) => (props.$type === "exposes" ? "#059669" : "var(--error)")};
 
@@ -115,17 +116,19 @@ const LevelLabel = styled.div`
   opacity: 0.3;
 `;
 
-const Legend = styled.div`
+const Legend = styled.div<{ $collapsed?: boolean }>`
   position: absolute;
   bottom: 20px;
   left: 20px;
   background: var(--bg-secondary);
   color: var(--text-primary);
-  padding: 16px;
+  padding: ${(props) => (props.$collapsed ? "12px" : "16px")};
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   z-index: 1000;
-  max-width: 300px;
+  max-width: ${(props) => (props.$collapsed ? "150px" : "300px")};
+  cursor: pointer;
+  transition: all 0.3s ease;
 `;
 
 const LegendItem = styled.div`
@@ -159,7 +162,10 @@ const LegendColor = styled.div<{ $color: string }>`
 const CustomNode: React.FC<any> = ({ data }) => {
   return (
     <>
-      <Handle type="target" position={Position.Top} />
+      {/* Add handles on all sides for flexible routing */}
+      <Handle type="target" position={Position.Top} id="top" />
+      <Handle type="target" position={Position.Left} id="left" />
+
       <NodeContainer $level={data.level} $type={data.type || "hook"}>
         <NodeHeader $level={data.level} $type={data.type || "hook"}>
           {data.type === "component" ? "COMPONENT" : `LEVEL ${data.level}`}
@@ -171,37 +177,83 @@ const CustomNode: React.FC<any> = ({ data }) => {
 
           {data.expanded && (
             <MethodsList>
-              {data.calls && data.calls.length > 0 && (
+              {/* Dependencies Section */}
+              {data.dependencies && data.dependencies.length > 0 && (
                 <>
-                  <SectionTitle>Calls (From Other Hooks):</SectionTitle>
-                  {data.calls.map((method: string, idx: number) => (
+                  <SectionTitle>Dependencies:</SectionTitle>
+                  {data.dependencies.map((dep: string, idx: number) => (
                     <MethodItem key={idx} $type="calls">
-                      {method}
+                      {dep}
                     </MethodItem>
                   ))}
                 </>
               )}
 
-              {data.exposes && data.exposes.length > 0 && (
+              {/* Exposed Methods with Callers */}
+              {data.methods && data.methods.length > 0 && (
                 <>
-                  <SectionTitle>Exposes (Methods/Data):</SectionTitle>
-                  {data.exposes.map((method: string, idx: number) => (
-                    <MethodItem key={idx} $type="exposes">
-                      {method}
-                    </MethodItem>
+                  <SectionTitle>Exposed Methods:</SectionTitle>
+                  {data.methods.map((method: any, idx: number) => (
+                    <div key={idx} style={{ marginBottom: "4px" }}>
+                      <MethodItem $type="exposes">{method.name}</MethodItem>
+                      {method.calledBy && method.calledBy.length > 0 && (
+                        <div
+                          style={{
+                            marginLeft: "12px",
+                            fontSize: "8px",
+                            color: "var(--text-muted)",
+                          }}
+                        >
+                          ← {method.calledBy.join(", ")}
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </>
+              )}
+
+              {/* Connected Hooks Summary */}
+              {data.connections && (
+                <div
+                  style={{
+                    marginTop: "8px",
+                    paddingTop: "8px",
+                    borderTop: "1px solid var(--bg-tertiary)",
+                  }}
+                >
+                  <SectionTitle>Connections:</SectionTitle>
+                  {data.connections.upstream &&
+                    data.connections.upstream.length > 0 && (
+                      <div
+                        style={{ fontSize: "9px", color: "var(--text-muted)" }}
+                      >
+                        ↑ Upstream: {data.connections.upstream.join(", ")}
+                      </div>
+                    )}
+                  {data.connections.downstream &&
+                    data.connections.downstream.length > 0 && (
+                      <div
+                        style={{ fontSize: "9px", color: "var(--text-muted)" }}
+                      >
+                        ↓ Downstream: {data.connections.downstream.join(", ")}
+                      </div>
+                    )}
+                </div>
               )}
             </MethodsList>
           )}
         </NodeBody>
       </NodeContainer>
-      <Handle type="source" position={Position.Bottom} />
+
+      <Handle type="source" position={Position.Bottom} id="bottom" />
+      <Handle type="source" position={Position.Right} id="right" />
     </>
   );
 };
 
 const MethodCallArchitecture: React.FC = () => {
+  const [legendCollapsed, setLegendCollapsed] = useState(false);
+  const [insightsCollapsed, setInsightsCollapsed] = useState(false);
   const nodeTypes = useMemo(() => ({ custom: CustomNode }), []);
 
   const [nodes, setNodes] = useState<Node[]>([
@@ -215,19 +267,45 @@ const MethodCallArchitecture: React.FC = () => {
         description: "Project metadata & file management",
         level: 1,
         expanded: false,
-        exposes: [
-          "projectID: string",
-          "files: { facesFile, edgesFile, bodiesFile }",
-          "geometryInfo: GeometryJson",
-          "isReady: boolean",
-          "reload: () => void",
+        dependencies: [],
+        methods: [
+          {
+            name: "projectID",
+            calledBy: [
+              "mlInference",
+              "selectionPersistence",
+              "handCalcInstances",
+            ],
+          },
+          {
+            name: "version",
+            calledBy: [
+              "mlInference",
+              "selectionPersistence",
+              "handCalcInstances",
+            ],
+          },
+          { name: "files", calledBy: ["polyDataProcessing"] },
+          { name: "geometryInfo", calledBy: ["geometryMappings"] },
+          {
+            name: "isReady",
+            calledBy: ["polyDataProcessing", "geometryMappings"],
+          },
         ],
-        calls: [],
-        expanded: false,
+        connections: {
+          upstream: [],
+          downstream: [
+            "polyDataProcessing",
+            "geometryMappings",
+            "mlInference",
+            "selectionPersistence",
+            "handCalcInstances",
+          ],
+        },
       },
     },
 
-    // LEVEL 2A: Data Processing - Split into focused hooks
+    // LEVEL 2: Data Processing
     {
       id: "polyDataProcessing",
       type: "custom",
@@ -237,13 +315,15 @@ const MethodCallArchitecture: React.FC = () => {
         description: "Raw geometry → VTK polyData",
         level: 2,
         expanded: false,
-        exposes: [
-          "polyData: { faces, edges, bodies }",
-          "isProcessed: boolean",
-          "processingError: string | null",
+        dependencies: ["projectFiles.files", "projectFiles.isReady"],
+        methods: [
+          { name: "polyData", calledBy: ["lookupTables", "vtkRenderer"] },
+          { name: "isProcessed", calledBy: ["lookupTables", "vtkRenderer"] },
         ],
-        calls: ["projectFiles.files", "projectFiles.isReady"],
-        expanded: false,
+        connections: {
+          upstream: ["projectFiles"],
+          downstream: ["lookupTables", "vtkRenderer"],
+        },
       },
     },
 
@@ -253,23 +333,26 @@ const MethodCallArchitecture: React.FC = () => {
       position: { x: 500, y: 180 },
       data: {
         label: "lookupTables",
-        description: "ID ↔ Cell mapping methods (no raw data exposure)",
+        description: "ID ↔ Cell mapping (for VTK picking)",
         level: 2,
         expanded: false,
-        exposes: [
-          "getCellsForFace: (id) => number[]",
-          "getCellsForEdge: (id) => number[]",
-          "getCellsForBody: (id) => number[]",
-          "getFaceIdForCell: (id) => number | null",
-          "getEdgeIdForCell: (id) => number | null",
-          "getBodyIdForCell: (id) => number | null",
-          "isTablesReady: boolean",
-        ],
-        calls: [
+        dependencies: [
           "polyDataProcessing.polyData",
           "polyDataProcessing.isProcessed",
         ],
-        expanded: false,
+        methods: [
+          { name: "getCellsForFace", calledBy: ["vtkRenderer"] },
+          { name: "getCellsForEdge", calledBy: ["vtkRenderer"] },
+          { name: "getCellsForBody", calledBy: ["vtkRenderer"] },
+          { name: "getFaceIdForCell", calledBy: ["vtkRenderer"] },
+          { name: "getEdgeIdForCell", calledBy: ["vtkRenderer"] },
+          { name: "getBodyIdForCell", calledBy: ["vtkRenderer"] },
+          { name: "isTablesReady", calledBy: ["vtkRenderer"] },
+        ],
+        connections: {
+          upstream: ["polyDataProcessing"],
+          downstream: ["vtkRenderer"],
+        },
       },
     },
 
@@ -279,413 +362,414 @@ const MethodCallArchitecture: React.FC = () => {
       position: { x: 800, y: 180 },
       data: {
         label: "geometryMappings",
-        description: "STEP ↔ Mechanical/Discovery mappings",
+        description: "STEP ↔ Ansys ID mappings (debug logging)",
         level: 2,
         expanded: false,
-        exposes: [
-          "getStepToMechanical: (id) => string | null",
-          "getStepToDiscovery: (id) => string | null",
-          "getMechanicalToStep: (id) => string | null",
-          "getDiscoveryToStep: (id) => string | null",
-          "isMappingsReady: boolean",
+        dependencies: ["projectFiles.geometryInfo"],
+        methods: [
+          { name: "loadMappings", calledBy: ["main component effect"] },
+          { name: "toMechanicalId", calledBy: ["selectionState"] },
+          { name: "toDiscoveryId", calledBy: ["selectionState"] },
+          {
+            name: "isMappingsReady",
+            calledBy: ["selectionState", "main component"],
+          },
         ],
-        calls: ["projectFiles.geometryInfo", "projectFiles.isReady"],
-        expanded: false,
+        connections: {
+          upstream: ["projectFiles"],
+          downstream: ["selectionState"],
+        },
       },
     },
 
-    // LEVEL 2B: ML Inference - Split into execution & results
     {
-      id: "inferenceEngine",
+      id: "mlInference",
       type: "custom",
       position: { x: 1100, y: 180 },
       data: {
-        label: "inferenceEngine",
-        description: "ML inference execution",
+        label: "mlInference",
+        description: "ML inference execution & results",
         level: 2,
         expanded: false,
-        exposes: [
-          "runInference: () => Promise<void>",
-          "checkStatus: () => Promise<void>",
-          "isRunning: boolean",
-          "isComplete: boolean",
-          "error: string | null",
+        dependencies: ["projectFiles.projectID", "projectFiles.version"],
+        methods: [
+          { name: "runInference", calledBy: ["UI buttons"] },
+          { name: "isRunning", calledBy: ["UI components"] },
+          { name: "isReady", calledBy: ["UI components"] },
+          { name: "getElementLabels", calledBy: ["VTKViewer component"] },
+          { name: "getBestLabel", calledBy: ["VTKViewer component"] },
         ],
-        calls: ["projectFiles.projectID", "projectFiles.version"],
-        expanded: false,
+        connections: {
+          upstream: ["projectFiles"],
+          downstream: ["UI components"],
+        },
       },
     },
 
-    {
-      id: "inferenceResults",
-      type: "custom",
-      position: { x: 1400, y: 180 },
-      data: {
-        label: "inferenceResults",
-        description: "ML results & labeling methods",
-        level: 2,
-        expanded: false,
-        exposes: [
-          "getElementLabels: (id) => string[]",
-          "getBestLabel: (id) => string | null",
-          "getConfidenceScore: (id, label) => number",
-          "isResultsReady: boolean",
-        ],
-        calls: [
-          "projectFiles.projectID",
-          "projectFiles.version",
-          "inferenceEngine.isComplete",
-        ],
-        expanded: false,
-      },
-    },
-
-    // LEVEL 3: VTK Rendering - Consolidated with high-level methods
-    {
-      id: "vtkRenderer",
-      type: "custom",
-      position: { x: 500, y: 320 },
-      data: {
-        label: "vtkRenderer",
-        description: "Complete VTK management with high-level selection API",
-        level: 3,
-        expanded: false,
-        exposes: [
-          "highlightCells: (cellIds, color) => void",
-          "clearHighlights: (type?) => void",
-          "setHoverHighlight: (cellIds, color?) => void",
-          "pickCellAtCoordinate: (x, y) => number | null",
-          "updateVisibility: (type, visible) => void",
-          "resetCamera: () => void",
-          "triggerRender: () => void",
-          "getRenderer: () => vtkRenderer",
-          "isInitialized: boolean",
-        ],
-        calls: [
-          "polyDataProcessing.polyData",
-          "polyDataProcessing.isProcessed",
-        ],
-        expanded: false,
-      },
-    },
-
-    // LEVEL 4: Selection State Management - Clean separation
+    // LEVEL 3: Selection State
     {
       id: "selectionState",
       type: "custom",
-      position: { x: 200, y: 460 },
+      position: { x: 350, y: 320 },
       data: {
         label: "selectionState",
-        description: "Pure selection state (no VTK knowledge)",
-        level: 4,
+        description: "Single source of truth for selections",
+        level: 3,
         expanded: false,
-        exposes: [
-          "getSelectedFaces: () => Set<number>",
-          "getSelectedEdges: () => Set<number>",
-          "getSelectedBodies: () => Set<number>",
-          "getHoveredId: () => number | null",
-          "getSelectionMode: () => 'face'|'edge'|'body'",
-          "toggleFaceSelection: (id) => void",
-          "toggleEdgeSelection: (id) => void",
-          "toggleBodySelection: (id) => void",
-          "setHovered: (id) => void",
-          "setSelectionMode: (mode) => void",
-          "clearAllSelections: () => void",
-          "getSelectionCount: () => number",
+        dependencies: [],
+        methods: [
+          {
+            name: "selectedFaces",
+            calledBy: ["vtkRenderer", "selectionPersistence"],
+          },
+          {
+            name: "selectedEdges",
+            calledBy: ["vtkRenderer", "selectionPersistence"],
+          },
+          {
+            name: "selectedBodies",
+            calledBy: ["vtkRenderer", "selectionPersistence"],
+          },
+          { name: "hoveredElement", calledBy: ["vtkRenderer", "VTKViewer"] },
+          {
+            name: "mode",
+            calledBy: ["vtkRenderer", "interactionManager", "VTKViewer"],
+          },
+          { name: "onElementClick", calledBy: ["interactionManager"] },
+          { name: "onElementHover", calledBy: ["interactionManager"] },
+          { name: "onModeChange", calledBy: ["interactionManager"] },
+          { name: "onClearAll", calledBy: ["interactionManager"] },
+          {
+            name: "loadSnapshot",
+            calledBy: ["selectionPersistence", "handCalcSelectionSync"],
+          },
+          {
+            name: "getSnapshot",
+            calledBy: ["selectionPersistence", "handCalcSelectionSync"],
+          },
         ],
-        calls: [],
-        expanded: false,
+        connections: {
+          upstream: [],
+          downstream: [
+            "vtkRenderer",
+            "interactionManager",
+            "selectionPersistence",
+            "handCalcSelectionSync",
+          ],
+        },
       },
     },
 
+    // LEVEL 4: VTK Renderer
+    {
+      id: "vtkRenderer",
+      type: "custom",
+      position: { x: 700, y: 420 },
+      data: {
+        label: "vtkRenderer",
+        description: "Fully autonomous VTK management",
+        level: 4,
+        expanded: false,
+        dependencies: [
+          "vtkContainerRef",
+          "polyDataProcessing.polyData",
+          "lookupTables (all methods)",
+          "selectionState.selectedFaces",
+          "selectionState.selectedEdges",
+          "selectionState.selectedBodies",
+          "selectionState.hoveredElement",
+          "selectionState.mode",
+        ],
+        methods: [
+          { name: "getElementAt", calledBy: ["interactionManager"] },
+          { name: "resetCamera", calledBy: ["UI buttons"] },
+          {
+            name: "isInitialized",
+            calledBy: ["main component", "interactionManager"],
+          },
+        ],
+        connections: {
+          upstream: ["polyDataProcessing", "lookupTables", "selectionState"],
+          downstream: ["interactionManager"],
+        },
+      },
+    },
+
+    // LEVEL 5: Interaction Manager
+    {
+      id: "interactionManager",
+      type: "custom",
+      position: { x: 500, y: 560 },
+      data: {
+        label: "interactionManager",
+        description: "User input → selection events",
+        level: 5,
+        expanded: false,
+        dependencies: [
+          "vtkRenderer.getElementAt",
+          "vtkRenderer.isInitialized",
+          "selectionState.onElementClick",
+          "selectionState.onElementHover",
+          "selectionState.onModeChange",
+          "selectionState.onClearAll",
+          "selectionState.mode",
+          "sidebarMode",
+          "isSelectionEnabled()",
+        ],
+        methods: [
+          { name: "handleMouseMove", calledBy: ["DOM event listener"] },
+          { name: "handleClick", calledBy: ["DOM event listener"] },
+          { name: "handleKeyPress", calledBy: ["DOM event listener"] },
+        ],
+        connections: {
+          upstream: ["vtkRenderer", "selectionState"],
+          downstream: ["DOM events"],
+        },
+      },
+    },
+
+    // LEVEL 6: Persistence
     {
       id: "selectionPersistence",
       type: "custom",
-      position: { x: 600, y: 460 },
+      position: { x: 200, y: 700 },
       data: {
         label: "selectionPersistence",
-        description: "Save/load selections to/from storage",
-        level: 4,
+        description: "Save/load selections",
+        level: 6,
         expanded: false,
-        exposes: [
-          "saveSelections: () => Promise<void>",
-          "loadSelections: () => Promise<void>",
-          "autoSave: boolean",
-          "setAutoSave: (enabled) => void",
-        ],
-        calls: [
+        dependencies: [
           "projectFiles.projectID",
           "projectFiles.version",
-          "selectionState.getSelectedFaces()",
-          "selectionState.getSelectedEdges()",
-          "selectionState.getSelectedBodies()",
-          "selectionState.loadSelections()",
+          "selectionState.getSnapshot",
+          "selectionState.loadSnapshot",
         ],
-        expanded: false,
+        methods: [
+          {
+            name: "save",
+            calledBy: ["auto-save effect", "handCalcSelectionSync"],
+          },
+          { name: "load", calledBy: ["handCalcSelectionSync"] },
+        ],
+        connections: {
+          upstream: ["projectFiles", "selectionState"],
+          downstream: ["handCalcSelectionSync"],
+        },
       },
     },
 
-    // LEVEL 4: Selection Visualizer - Simplified orchestrator
-    {
-      id: "selectionVisualizer",
-      type: "custom",
-      position: { x: 800, y: 460 },
-      data: {
-        label: "selectionVisualization",
-        description: "Orchestrates selection state → visual updates",
-        level: 4,
-        expanded: false,
-        exposes: [
-          "updateSelectionVisuals: () => void",
-          "updateHoverVisuals: () => void",
-          "refreshAllVisuals: () => void",
-        ],
-        calls: [
-          "vtkRenderer.highlightCells()",
-          "vtkRenderer.clearHighlights()",
-          "vtkRenderer.setHoverHighlight()",
-          "lookupTables.getCellsForFace()",
-          "lookupTables.getCellsForEdge()",
-          "lookupTables.getCellsForBody()",
-          "selectionState.getSelectedFaces()",
-          "selectionState.getSelectedEdges()",
-          "selectionState.getSelectedBodies()",
-          "selectionState.getHoveredId()",
-        ],
-        expanded: false,
-      },
-    },
-
-    // LEVEL 5: Interaction Handling - Uses high-level methods only
-    {
-      id: "interactionHandlers",
-      type: "custom",
-      position: { x: 500, y: 600 },
-      data: {
-        label: "interactionHandlers",
-        description: "Mouse/keyboard → actions (no raw VTK objects)",
-        level: 5,
-        expanded: false,
-        exposes: [
-          "handleMouseMove: (event) => void",
-          "handleClick: (event) => void",
-          "handleKeyPress: (event) => void",
-        ],
-        calls: [
-          "vtkRenderer.pickCellAtCoordinate()",
-          "lookupTables.getFaceIdForCell()",
-          "lookupTables.getEdgeIdForCell()",
-          "lookupTables.getBodyIdForCell()",
-          "selectionState.toggleFaceSelection()",
-          "selectionState.toggleEdgeSelection()",
-          "selectionState.toggleBodySelection()",
-          "selectionState.setHovered()",
-          "selectionState.getSelectionMode()",
-          "selectionVisualizer.updateSelectionVisuals()",
-          "selectionVisualizer.updateHoverVisuals()",
-        ],
-        expanded: false,
-      },
-    },
-
-    // LEVEL 6: HandCalc Mode - Better separation
+    // LEVEL 7: HandCalc Mode
     {
       id: "handCalcInstances",
       type: "custom",
-      position: { x: 100, y: 740 },
+      position: { x: 500, y: 700 },
       data: {
         label: "handCalcInstances",
-        description: "Pure HandCalc instance management",
-        level: 6,
+        description: "HandCalc instance management",
+        level: 7,
         expanded: false,
-        exposes: [
-          "getInstances: () => HandCalcInstance[]",
-          "getSelectedIndex: () => number",
-          "getSelectedInstance: () => HandCalcInstance | null",
-          "createInstance: (data) => void",
-          "deleteInstance: (id) => void",
-          "selectInstance: (index) => void",
-          "navigateNext: () => void",
-          "navigatePrev: () => void",
-          "isCreating: boolean",
+        dependencies: ["projectFiles.projectID", "projectFiles.version"],
+        methods: [
+          {
+            name: "instances",
+            calledBy: ["handCalcConnections", "leftSidebarController"],
+          },
+          { name: "selectedInstance", calledBy: ["handCalcSelectionSync"] },
+          {
+            name: "selectedIndex",
+            calledBy: ["handCalcSelectionSync", "leftSidebarController"],
+          },
+          { name: "select", calledBy: ["leftSidebarController"] },
         ],
-        calls: ["projectFiles.projectID", "projectFiles.version"],
-        expanded: false,
+        connections: {
+          upstream: ["projectFiles"],
+          downstream: [
+            "handCalcConnections",
+            "handCalcSelectionSync",
+            "leftSidebarController",
+          ],
+        },
       },
     },
 
     {
       id: "handCalcConnections",
       type: "custom",
-      position: { x: 400, y: 740 },
+      position: { x: 800, y: 700 },
       data: {
         label: "handCalcConnections",
-        description: "Variable connections between instances",
-        level: 6,
-        expanded: false,
-        exposes: [
-          "getConnections: () => VariableConnection[]",
-          "createConnection: (from, to) => void",
-          "deleteConnection: (id) => void",
-          "getConnectionsForVariable: (instanceId, variable) => Connection[]",
-          "isInSelectionMode: boolean",
-          "setSelectionMode: (enabled) => void",
-        ],
-        calls: ["handCalcInstances.getInstances()"],
-        expanded: false,
-      },
-    },
-
-    {
-      id: "handCalcGeometryLink",
-      type: "custom",
-      position: { x: 700, y: 740 },
-      data: {
-        label: "handCalcGeometryLink",
-        description: "Links HandCalc instances ↔ geometry selections",
-        level: 6,
-        expanded: false,
-        exposes: [
-          "linkCurrentSelection: () => void",
-          "loadInstanceSelection: (instanceId) => void",
-          "hasLinkedSelection: (instanceId) => boolean",
-        ],
-        calls: [
-          "handCalcInstances.getSelectedInstance()",
-          "selectionState.getSelectedFaces()",
-          "selectionState.getSelectedEdges()",
-          "selectionState.getSelectedBodies()",
-          "selectionState.loadSelections()",
-          "selectionPersistence.saveSelections()",
-          "selectionPersistence.loadSelections()",
-        ],
-        expanded: false,
-      },
-    },
-
-    // // LEVEL 7: UI State Management
-    {
-      id: "leftSidebarState",
-      type: "custom",
-      position: { x: 1000, y: 740 },
-      data: {
-        label: "leftSidebarState",
-        description: "Left sidebar UI orchestration",
+        description: "Variable connections",
         level: 7,
         expanded: false,
-        exposes: [
-          "getSidebarData: () => SidebarData",
-          "handleInstanceClick: (index) => void",
-          "handleVariableClick: (instanceId, variable) => void",
-          "isInputFocused: boolean",
+        dependencies: ["handCalcInstances.instances"],
+        methods: [
+          {
+            name: "connections",
+            calledBy: ["leftSidebarController", "auto-save effect"],
+          },
+          { name: "startConnection", calledBy: ["leftSidebarController"] },
+          { name: "completeConnection", calledBy: ["leftSidebarController"] },
         ],
-        calls: [
-          "handCalcInstances.getInstances()",
-          "handCalcInstances.getSelectedIndex()",
-          "handCalcInstances.selectInstance()",
-          "handCalcConnections.getConnections()",
-          "handCalcConnections.isInSelectionMode()",
-        ],
-        expanded: false,
+        connections: {
+          upstream: ["handCalcInstances"],
+          downstream: ["leftSidebarController"],
+        },
       },
     },
 
     {
-      id: "rightSidebarState",
+      id: "handCalcSelectionSync",
       type: "custom",
-      position: { x: 1300, y: 740 },
+      position: { x: 1100, y: 700 },
       data: {
-        label: "rightSidebarState",
-        description: "Right sidebar UI state",
+        label: "handCalcSelectionSync",
+        description: "Links instances ↔ selections",
         level: 7,
         expanded: false,
-        exposes: [
-          "isCollapsed: boolean",
-          "toggle: () => void",
-          "collapse: () => void",
-          "expand: () => void",
+        dependencies: [
+          "handCalcInstances.selectedInstance",
+          "handCalcInstances.selectedIndex",
+          "selectionState.getSnapshot",
+          "selectionState.loadSnapshot",
+          "selectionPersistence.save",
         ],
-        calls: [],
-        expanded: false,
+        methods: [
+          { name: "syncToInstance", calledBy: ["handCalc navigation"] },
+          { name: "loadFromInstance", calledBy: ["handCalc navigation"] },
+        ],
+        connections: {
+          upstream: [
+            "handCalcInstances",
+            "selectionState",
+            "selectionPersistence",
+          ],
+          downstream: [],
+        },
       },
     },
 
-    // COMPONENTS - Memoized UI components
+    // LEVEL 8: UI Controllers
+    {
+      id: "leftSidebarController",
+      type: "custom",
+      position: { x: 300, y: 840 },
+      data: {
+        label: "leftSidebarController",
+        description: "Left sidebar orchestration",
+        level: 8,
+        expanded: false,
+        dependencies: [
+          "sidebarMode",
+          "handCalcInstances.instances",
+          "handCalcInstances.selectedIndex",
+          "handCalcConnections.connections",
+          "handCalcInstances.select",
+          "handCalcConnections.startConnection",
+          "handCalcConnections.completeConnection",
+        ],
+        methods: [
+          { name: "data", calledBy: ["LeftSidebar component"] },
+          { name: "handlers", calledBy: ["LeftSidebar component"] },
+        ],
+        connections: {
+          upstream: ["handCalcInstances", "handCalcConnections"],
+          downstream: ["LeftSidebar"],
+        },
+      },
+    },
+
+    {
+      id: "rightSidebarController",
+      type: "custom",
+      position: { x: 700, y: 840 },
+      data: {
+        label: "rightSidebarController",
+        description: "Right sidebar state",
+        level: 8,
+        expanded: false,
+        dependencies: ["projectFiles.projectID", "projectFiles.version"],
+        methods: [
+          { name: "isCollapsed", calledBy: ["RightSidebar component"] },
+          { name: "data", calledBy: ["RightSidebar component"] },
+        ],
+        connections: {
+          upstream: ["projectFiles"],
+          downstream: ["RightSidebar"],
+        },
+      },
+    },
+
+    // Components
     {
       id: "leftSidebar",
       type: "custom",
-      position: { x: 200, y: 880 },
+      position: { x: 200, y: 980 },
       data: {
         label: "LeftSidebar",
-        description: "Memoized HandCalc/FEA sidebar",
+        description: "HandCalc/FEA sidebar UI",
         type: "component",
-        level: 8,
+        level: 9,
         expanded: false,
-        exposes: ["JSX.Element (memoized)"],
-        calls: [
-          "leftSidebarState.getSidebarData()",
-          "leftSidebarState.handleInstanceClick()",
-          "leftSidebarState.handleVariableClick()",
-          "leftSidebarState.isInputFocused",
-        ],
-        expanded: false,
+        dependencies: ["leftSidebarController"],
+        methods: [],
+        connections: {
+          upstream: ["leftSidebarController"],
+          downstream: [],
+        },
       },
     },
 
     {
       id: "vtkViewer",
       type: "custom",
-      position: { x: 600, y: 880 },
+      position: { x: 500, y: 980 },
       data: {
         label: "VTKViewer",
-        description: "Memoized 3D viewport component",
+        description: "3D viewport component",
         type: "component",
-        level: 8,
+        level: 9,
         expanded: false,
-        exposes: ["JSX.Element (memoized)"],
-        calls: [
+        dependencies: [
+          "vtkContainerRef",
           "projectFiles.isLoading",
           "projectFiles.error",
-          "selectionState.getSelectionCount()",
-          "selectionState.getSelectionMode()",
-          "selectionState.getHoveredId()",
+          "selectionState (count, mode, hoveredId)",
         ],
-        expanded: false,
+        methods: [],
+        connections: {
+          upstream: ["projectFiles", "selectionState"],
+          downstream: [],
+        },
       },
     },
 
     {
       id: "rightSidebar",
       type: "custom",
-      position: { x: 1000, y: 880 },
+      position: { x: 800, y: 980 },
       data: {
         label: "RightSidebar",
-        description: "Memoized pinned equations sidebar",
+        description: "Pinned equations sidebar",
         type: "component",
-        level: 8,
+        level: 9,
         expanded: false,
-        exposes: ["JSX.Element (memoized)"],
-        calls: [
-          "rightSidebarState.isCollapsed",
-          "projectFiles.projectID",
-          "projectFiles.version",
-          "handCalcInstances.getInstances()",
-          "handCalcInstances.getSelectedIndex()",
-        ],
-        expanded: false,
+        dependencies: ["rightSidebarController"],
+        methods: [],
+        connections: {
+          upstream: ["rightSidebarController"],
+          downstream: [],
+        },
       },
     },
   ]);
 
   const [edges, setEdges] = useState<Edge[]>([
-    // Level 1 → Level 2: Data dependencies (blue, animated)
+    // Data flow edges (blue) - vertical connections between levels
     {
       id: "e1",
       source: "projectFiles",
       target: "polyDataProcessing",
       animated: true,
-      label: "files",
-      markerEnd: { type: MarkerType.ArrowClosed },
       style: { stroke: "#3b82f6" },
     },
     {
@@ -693,240 +777,146 @@ const MethodCallArchitecture: React.FC = () => {
       source: "projectFiles",
       target: "geometryMappings",
       animated: true,
-      label: "geometryInfo",
-      markerEnd: { type: MarkerType.ArrowClosed },
       style: { stroke: "#3b82f6" },
     },
     {
       id: "e3",
       source: "projectFiles",
-      target: "inferenceEngine",
+      target: "mlInference",
       animated: true,
-      label: "projectID",
-      markerEnd: { type: MarkerType.ArrowClosed },
       style: { stroke: "#3b82f6" },
     },
-    {
-      id: "e4",
-      source: "projectFiles",
-      target: "inferenceResults",
-      animated: true,
-      label: "projectID",
-      markerEnd: { type: MarkerType.ArrowClosed },
-      style: { stroke: "#3b82f6" },
-    },
-
-    // Level 2A internal dependencies
     {
       id: "e5",
       source: "polyDataProcessing",
-      target: "lookupTables",
+      target: "vtkRenderer",
       animated: true,
-      label: "polyData",
-      markerEnd: { type: MarkerType.ArrowClosed },
       style: { stroke: "#3b82f6" },
     },
     {
       id: "e6",
-      source: "inferenceEngine",
-      target: "inferenceResults",
-      animated: true,
-      label: "isComplete",
-      markerEnd: { type: MarkerType.ArrowClosed },
-      style: { stroke: "#3b82f6" },
-    },
-
-    // Level 2 → Level 3: VTK data flow
-    {
-      id: "e7",
-      source: "polyDataProcessing",
+      source: "lookupTables",
       target: "vtkRenderer",
       animated: true,
-      label: "polyData",
-      markerEnd: { type: MarkerType.ArrowClosed },
       style: { stroke: "#3b82f6" },
     },
 
-    // Level 3 → Level 4: Selection orchestration data flow
+
+    // Same-level connections (using side handles)
+    {
+      id: "e4",
+      source: "polyDataProcessing",
+      sourceHandle: "right",
+      target: "lookupTables",
+      targetHandle: "left",
+      animated: true,
+      style: { stroke: "#3b82f6" },
+    },
     {
       id: "e8",
-      source: "projectFiles",
-      target: "selectionPersistence",
+      source: "selectionState",
+      sourceHandle: "right",
+      target: "vtkRenderer",
+      targetHandle: "left",
       animated: true,
-      label: "projectID",
-      markerEnd: { type: MarkerType.ArrowClosed },
+      style: { stroke: "#3b82f6" },
+    },
+    {
+      id: "e9",
+      source: "handCalcInstances",
+      sourceHandle: "right",
+      target: "handCalcConnections",
+      targetHandle: "left",
+      style: { stroke: "#3b82f6" },
+    },
+    {
+      id: "e10",
+      source: "handCalcConnections",
+      sourceHandle: "right",
+      target: "handCalcSelectionSync",
+      targetHandle: "left",
       style: { stroke: "#3b82f6" },
     },
 
-    // Method calls between hooks (red, dashed)
-
-    // Selection Visualizer calls VTK and lookup methods
+    // Method call edges (red, dashed)
     {
       id: "m1",
-      source: "selectionVisualizer",
+      source: "interactionManager",
       target: "vtkRenderer",
-      label: "highlightCells()",
-      markerEnd: { type: MarkerType.ArrowClosed },
+      label: "getElementAt",
       style: { stroke: "#dc2626", strokeDasharray: "5 5" },
     },
     {
       id: "m2",
-      source: "selectionVisualizer",
-      target: "lookupTables",
-      label: "getCellsForFace()",
-      markerEnd: { type: MarkerType.ArrowClosed },
+      source: "interactionManager",
+      target: "selectionState",
+      label: "event handlers",
       style: { stroke: "#dc2626", strokeDasharray: "5 5" },
     },
     {
       id: "m3",
-      source: "selectionVisualizer",
+      source: "selectionPersistence",
+      sourceHandle: "right",
       target: "selectionState",
-      label: "getSelectedFaces()",
-      markerEnd: { type: MarkerType.ArrowClosed },
+      targetHandle: "left",
+      label: "snapshot",
       style: { stroke: "#dc2626", strokeDasharray: "5 5" },
     },
-
-    // Interaction handlers call multiple hooks
     {
       id: "m4",
-      source: "interactionHandlers",
-      target: "vtkRenderer",
-      label: "pickCellAtCoordinate()",
-      markerEnd: { type: MarkerType.ArrowClosed },
+      source: "handCalcSelectionSync",
+      target: "selectionState",
+      label: "snapshot",
       style: { stroke: "#dc2626", strokeDasharray: "5 5" },
     },
     {
       id: "m5",
-      source: "interactionHandlers",
-      target: "lookupTables",
-      label: "getFaceIdForCell()",
-      markerEnd: { type: MarkerType.ArrowClosed },
-      style: { stroke: "#dc2626", strokeDasharray: "5 5" },
-    },
-    {
-      id: "m6",
-      source: "interactionHandlers",
-      target: "selectionState",
-      label: "toggleFaceSelection()",
-      markerEnd: { type: MarkerType.ArrowClosed },
+      source: "handCalcSelectionSync",
+      target: "selectionPersistence",
+      label: "save",
       style: { stroke: "#dc2626", strokeDasharray: "5 5" },
     },
     {
       id: "m7",
-      source: "interactionHandlers",
-      target: "selectionVisualizer",
-      label: "updateSelectionVisuals()",
-      markerEnd: { type: MarkerType.ArrowClosed },
+      source: "leftSidebarController",
+      target: "handCalcInstances",
       style: { stroke: "#dc2626", strokeDasharray: "5 5" },
     },
-
-    // Selection persistence calls selection state
     {
       id: "m8",
-      source: "selectionPersistence",
-      target: "selectionState",
-      label: "getSelectedFaces()",
-      markerEnd: { type: MarkerType.ArrowClosed },
-      style: { stroke: "#dc2626", strokeDasharray: "5 5" },
-    },
-
-    // HandCalc geometry link calls selection methods
-    {
-      id: "m9",
-      source: "handCalcGeometryLink",
-      target: "selectionState",
-      label: "getSelectedFaces()",
-      markerEnd: { type: MarkerType.ArrowClosed },
-      style: { stroke: "#dc2626", strokeDasharray: "5 5" },
-    },
-    {
-      id: "m10",
-      source: "handCalcGeometryLink",
-      target: "selectionPersistence",
-      label: "saveSelections()",
-      markerEnd: { type: MarkerType.ArrowClosed },
-      style: { stroke: "#dc2626", strokeDasharray: "5 5" },
-    },
-    {
-      id: "m11",
-      source: "handCalcGeometryLink",
-      target: "handCalcInstances",
-      label: "getSelectedInstance()",
-      markerEnd: { type: MarkerType.ArrowClosed },
-      style: { stroke: "#dc2626", strokeDasharray: "5 5" },
-    },
-
-    // HandCalc connections call instances
-    {
-      id: "m12",
-      source: "handCalcConnections",
-      target: "handCalcInstances",
-      label: "getInstances()",
-      markerEnd: { type: MarkerType.ArrowClosed },
-      style: { stroke: "#dc2626", strokeDasharray: "5 5" },
-    },
-
-    // UI state hooks call domain hooks
-    {
-      id: "m13",
-      source: "leftSidebarState",
-      target: "handCalcInstances",
-      label: "getInstances()",
-      markerEnd: { type: MarkerType.ArrowClosed },
-      style: { stroke: "#dc2626", strokeDasharray: "5 5" },
-    },
-    {
-      id: "m14",
-      source: "leftSidebarState",
+      source: "leftSidebarController",
       target: "handCalcConnections",
-      label: "getConnections()",
-      markerEnd: { type: MarkerType.ArrowClosed },
       style: { stroke: "#dc2626", strokeDasharray: "5 5" },
     },
 
-    // Component prop dependencies (gold, thick)
+    // Component prop edges (gold)
     {
       id: "c1",
-      source: "leftSidebarState",
+      source: "leftSidebarController",
       target: "leftSidebar",
-      label: "getSidebarData()",
-      markerEnd: { type: MarkerType.ArrowClosed },
       style: { stroke: "#f59e0b", strokeWidth: 2 },
     },
     {
       id: "c2",
       source: "selectionState",
       target: "vtkViewer",
-      label: "getSelectionCount()",
-      markerEnd: { type: MarkerType.ArrowClosed },
       style: { stroke: "#f59e0b", strokeWidth: 2 },
     },
     {
       id: "c3",
       source: "projectFiles",
       target: "vtkViewer",
-      label: "isLoading",
-      markerEnd: { type: MarkerType.ArrowClosed },
       style: { stroke: "#f59e0b", strokeWidth: 2 },
     },
     {
       id: "c4",
-      source: "rightSidebarState",
+      source: "rightSidebarController",
       target: "rightSidebar",
-      label: "isCollapsed",
-      markerEnd: { type: MarkerType.ArrowClosed },
-      style: { stroke: "#f59e0b", strokeWidth: 2 },
-    },
-    {
-      id: "c5",
-      source: "handCalcInstances",
-      target: "rightSidebar",
-      label: "getInstances()",
-      markerEnd: { type: MarkerType.ArrowClosed },
       style: { stroke: "#f59e0b", strokeWidth: 2 },
     },
   ]);
 
+  // Rest of the component code remains the same...
   const onNodesChange = useCallback(
     (changes: NodeChange[]) =>
       setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -966,99 +956,100 @@ const MethodCallArchitecture: React.FC = () => {
         attributionPosition="bottom-left"
       >
         <Background gap={25} />
-        <Controls />
-        <MiniMap />
-        {/* 
-        <LevelLabel style={{ top: 50 }}>Level 1: Core Project Data</LevelLabel>
+        {/* <Controls /> */}
+        {/* <MiniMap /> */}
+
+        {/* Level Labels */}
+        {/* <LevelLabel style={{ top: 50 }}>Level 1: Core Project Data</LevelLabel>
         <LevelLabel style={{ top: 180 }}>Level 2: Data Processing & ML</LevelLabel>
-        <LevelLabel style={{ top: 320 }}>Level 3: VTK Rendering (High-Level API)</LevelLabel>
-        <LevelLabel style={{ top: 460 }}>Level 4: Selection Orchestration</LevelLabel>
-        <LevelLabel style={{ top: 600 }}>Level 5: Interaction Handling</LevelLabel>
-        <LevelLabel style={{ top: 740 }}>Level 6-7: HandCalc & UI State</LevelLabel>
-        <LevelLabel style={{ top: 880 }}>Memoized Components</LevelLabel> */}
+        <LevelLabel style={{ top: 320 }}>Level 3-4: Selection & VTK</LevelLabel>
+        <LevelLabel style={{ top: 460 }}>Level 5: Interaction</LevelLabel>
+        <LevelLabel style={{ top: 600 }}>Level 6-7: Persistence & HandCalc</LevelLabel>
+        <LevelLabel style={{ top: 740 }}>Level 8: UI Controllers</LevelLabel>
+        <LevelLabel style={{ top: 880 }}>React Components</LevelLabel> */}
       </ReactFlow>
 
-      <Legend>
-        <h4 style={{ margin: "0 0 12px 0" }}>Architecture Legend</h4>
-        <LegendItem>
-          <div
-            style={{
-              width: "24px",
-              height: "4px",
-              backgroundColor: "#3b82f6",
-              marginRight: "10px",
-            }}
-          ></div>
-          Data Dependencies (blue, animated)
-        </LegendItem>
-        <LegendItem>
-          <div
-            style={{
-              width: "24px",
-              height: "2px",
-              backgroundColor: "#dc2626",
-              marginRight: "10px",
-              borderStyle: "dashed",
-              borderWidth: "1px 0",
-            }}
-          ></div>
-          Method Calls (red, dashed)
-        </LegendItem>
-        <LegendItem>
-          <div
-            style={{
-              width: "24px",
-              height: "4px",
-              backgroundColor: "#f59e0b",
-              marginRight: "10px",
-            }}
-          ></div>
-          Component Props (gold, thick)
-        </LegendItem>
-        <LegendItem>
-          <LegendColor $color="#f59e0b" />
-          Memoized React Components
-        </LegendItem>
-        <hr style={{ margin: "12px 0 8px 0" }} />
-        <div style={{ fontSize: "10px", opacity: 0.8 }}>
-          <strong>Key Insight:</strong> Hooks expose methods, not raw data.
-          <br />
-          This prevents multiple references and improves encapsulation.
-        </div>
+      <Legend
+        $collapsed={legendCollapsed}
+        onClick={() => setLegendCollapsed(!legendCollapsed)}
+      >
+        <h4 style={{ margin: legendCollapsed ? "0" : "0 0 12px 0" }}>
+          {legendCollapsed ? "Legend ▶" : "Architecture Legend"}
+        </h4>
+        {!legendCollapsed && (
+          <>
+            <LegendItem>
+              <div
+                style={{
+                  width: "24px",
+                  height: "4px",
+                  backgroundColor: "#3b82f6",
+                  marginRight: "10px",
+                }}
+              ></div>
+              Data Dependencies (blue)
+            </LegendItem>
+            <LegendItem>
+              <div
+                style={{
+                  width: "24px",
+                  height: "2px",
+                  backgroundColor: "#dc2626",
+                  marginRight: "10px",
+                  borderStyle: "dashed",
+                  borderWidth: "1px 0",
+                }}
+              ></div>
+              Method Calls (red, dashed)
+            </LegendItem>
+            <LegendItem>
+              <div
+                style={{
+                  width: "24px",
+                  height: "4px",
+                  backgroundColor: "#f59e0b",
+                  marginRight: "10px",
+                }}
+              ></div>
+              Component Props (gold)
+            </LegendItem>
+            <hr style={{ margin: "12px 0 8px 0" }} />
+            <div style={{ fontSize: "10px", opacity: 0.8 }}>
+              <strong>Click nodes to expand</strong> and see dependencies,
+              methods, and connections
+            </div>
+          </>
+        )}
       </Legend>
 
-      <KeyInsights>
-        <h3>Improved Architecture Benefits</h3>
-        <InsightsList>
-          <li>
-            <strong>High-Level VTK API:</strong> vtkRenderer.highlightCells() vs
-            raw VTK objects
-          </li>
-          <li>
-            <strong>Method-Only Interfaces:</strong>{" "}
-            lookupTables.getCellsForFace() hides internal Maps
-          </li>
-          <li>
-            <strong>Clean Separation:</strong> Selection state has zero VTK
-            knowledge
-          </li>
-          <li>
-            <strong>Simplified Visualizers:</strong> Just orchestrate method
-            calls, no complex logic
-          </li>
-          <li>
-            <strong>Perfect Encapsulation:</strong> Each hook's internals are
-            completely hidden
-          </li>
-          <li>
-            <strong>Easy Testing:</strong> Mock methods, not complex data
-            structures
-          </li>
-          <li>
-            <strong>Reusable Logic:</strong> Selection state works without VTK,
-            HandCalc, or UI
-          </li>
-        </InsightsList>
+      <KeyInsights
+        $collapsed={insightsCollapsed}
+        onClick={() => setInsightsCollapsed(!insightsCollapsed)}
+      >
+        <h3>{insightsCollapsed ? "Insights ▶" : "Simplified Architecture"}</h3>
+        {!insightsCollapsed && (
+          <InsightsList>
+            <li>
+              <strong>Event-Driven:</strong> Interactions trigger events, not
+              direct manipulation
+            </li>
+            <li>
+              <strong>Autonomous VTK:</strong> Watches state and auto-updates
+              visualization
+            </li>
+            <li>
+              <strong>Single Selection State:</strong> One source of truth for
+              all selections
+            </li>
+            <li>
+              <strong>Clean Interfaces:</strong> Simple data types (coordinates,
+              IDs, flags)
+            </li>
+            <li>
+              <strong>No Circular Dependencies:</strong> Clear one-way data flow
+            </li>
+          </InsightsList>
+        )}
       </KeyInsights>
     </Container>
   );
@@ -1071,19 +1062,22 @@ const Container = styled.div`
   background: var(--theme-darkBgPrimary);
 `;
 
-const KeyInsights = styled.div`
+// Update the KeyInsights styled component
+const KeyInsights = styled.div<{ $collapsed?: boolean }>`
   position: absolute;
   top: 20px;
   right: 20px;
   background: var(--bg-secondary);
-  padding: 16px;
+  padding: ${(props) => (props.$collapsed ? "12px" : "16px")};
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   z-index: 1000;
-  max-width: 280px;
+  max-width: ${(props) => (props.$collapsed ? "150px" : "280px")};
+  cursor: pointer;
+  transition: all 0.3s ease;
 
   h3 {
-    margin: 0 0 12px 0;
+    margin: 0 0 ${(props) => (props.$collapsed ? "0" : "12px")} 0;
     color: var(--text-primary);
     font-size: 14px;
   }

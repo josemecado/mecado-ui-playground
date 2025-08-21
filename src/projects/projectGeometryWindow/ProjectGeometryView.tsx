@@ -1,10 +1,9 @@
-// ProjectGeometryViewer.tsx - REFACTORED WITH BETTER SEPARATION OF CONCERNS
+// ProjectGeometryViewer.tsx - SIMPLIFIED ARCHITECTURE
 const ProjectGeometryViewer: React.FC = () => {
   // Core refs that don't trigger re-renders
   const vtkContainerRef = useRef<HTMLDivElement>(null);
   
   // ==================== LEVEL 1: Core Context ====================
-  // Pure project metadata and file management
   const projectFiles = useProjectFilesHook();
   // Returns: {
   //   projectID: string,
@@ -12,14 +11,13 @@ const ProjectGeometryViewer: React.FC = () => {
   //   files: { facesFile, edgesFile, bodiesFile },
   //   geometryInfo: GeometryJson,
   //   folderName: string,
-  //   isLoading: boolean,
+  //   isLoading: boolean,32
   //   error: string | null,
   //   isReady: boolean,
   //   reload: () => void
   // }
 
-  // ==================== LEVEL 2A: Raw Data Processing ====================
-  // Processes raw geometry files into VTK polyData (no lookup logic)
+  // ==================== LEVEL 2: Data Processing ====================
   const polyDataProcessing = usePolyDataProcessingHook({
     files: projectFiles.files,
     isReady: projectFiles.isReady
@@ -30,7 +28,6 @@ const ProjectGeometryViewer: React.FC = () => {
   //   processingError: string | null
   // }
 
-  // Handles ID-to-cell lookup tables (separate concern)
   const lookupTables = useLookupTablesHook({
     polyData: polyDataProcessing.polyData,
     isReady: polyDataProcessing.isProcessed
@@ -45,305 +42,222 @@ const ProjectGeometryViewer: React.FC = () => {
   //   isTablesReady: boolean
   // }
 
-  // Handles STEP to mechanical/discovery mappings (separate concern)
   const geometryMappings = useGeometryMappingsHook({
     geometryInfo: projectFiles.geometryInfo,
-    isReady: projectFiles.isReady
   });
   // Returns: {
-  //   getStepToMechanical: (stepId: string) => string | null,
-  //   getStepToDiscovery: (stepId: string) => string | null,
-  //   getMechanicalToStep: (mechId: string) => string | null,
-  //   getDiscoveryToStep: (discId: string) => string | null,
-  //   isMappingsReady: boolean
+  //   isMappingsReady: boolean,
+  //   loadMappings: () => Promise<void>,
+  //   toMechanicalId: (stepType: 'face'|'edge'|'body', stepId: number) => string | null,
+  //   toDiscoveryId: (stepType: 'face'|'edge'|'body', stepId: number) => string | null,
   // }
 
-  // ==================== LEVEL 2B: ML Inference ====================
-  // Pure ML inference management
-  const inferenceEngine = useInferenceEngineHook({
+  const mlInference = useMLInferenceHook({
     projectId: projectFiles.projectID,
     version: projectFiles.version
   });
   // Returns: {
   //   runInference: () => Promise<void>,
-  //   checkStatus: () => Promise<void>,
   //   isRunning: boolean,
-  //   isComplete: boolean,
-  //   error: string | null
-  // }
-
-  // Handles inference results and labeling
-  const inferenceResults = useInferenceResultsHook({
-    projectId: projectFiles.projectID,
-    version: projectFiles.version,
-    isInferenceComplete: inferenceEngine.isComplete
-  });
-  // Returns: {
+  //   isReady: boolean,
   //   getElementLabels: (elementId: number) => string[],
   //   getBestLabel: (elementId: number) => string | null,
   //   getConfidenceScore: (elementId: number, label: string) => number,
-  //   isResultsReady: boolean
   // }
 
-  // ==================== LEVEL 3: VTK Rendering ====================
-  // Complete VTK management (scene, actors, rendering)
+  // ==================== LEVEL 3: Selection State (Single Source of Truth) ====================
+  const selectionState = useSelectionStateHook({
+
+  });
+  // Returns: {
+  //   // Current state
+  //   selectedFaces: Set<number>,
+  //   selectedEdges: Set<number>,
+  //   selectedBodies: Set<number>,
+  //   hoveredElement: { id: number, type: 'face'|'edge'|'body' } | null,
+  //   mode: 'face' | 'edge' | 'body',
+  //   
+  //   // Event handlers (these update state and log if mappings available)
+  //   onElementClick: (element: { id: number, type: 'face'|'edge'|'body' }) => void,
+  //   onElementHover: (element: { id: number, type: 'face'|'edge'|'body' } | null) => void,
+  //   onModeChange: (mode: 'face'|'edge'|'body') => void,
+  //   onClearAll: () => void,
+  //   
+  //   // Bulk operations
+  //   loadSnapshot: (snapshot: SelectionSnapshot) => void,
+  //   getSnapshot: () => SelectionSnapshot,
+  // }
+
+  // ==================== LEVEL 4: VTK Renderer (Fully Autonomous) ====================
   const vtkRenderer = useVTKRendererHook({
     container: vtkContainerRef,
     polyData: polyDataProcessing.polyData,
-    isReady: polyDataProcessing.isProcessed
+    lookupTables: lookupTables, // Needs these for picking
+    isReady: polyDataProcessing.isProcessed && lookupTables.isTablesReady,
+    
+    // Selection state to visualize
+    selectedFaces: selectionState.selectedFaces,
+    selectedEdges: selectionState.selectedEdges,
+    selectedBodies: selectionState.selectedBodies,
+    hoveredElement: selectionState.hoveredElement,
+    displayMode: selectionState.mode,
   });
   // Returns: {
-  //   // VTK Objects (lazy evaluation)
-  //   getRenderer: () => vtkRenderer,
-  //   getRenderWindow: () => vtkRenderWindow,
-  //   getPicker: () => vtkCellPicker,
-  //   getFaceActor: () => vtkActor,
-  //   getEdgeActor: () => vtkActor,
-  //   getBodyActor: () => vtkActor,
+  //   // Query what's at a position
+  //   getElementAt: (x: number, y: number) => { id: number, type: 'face'|'edge'|'body' } | null,
   //   
-  //   // VTK Operations
-  //   triggerRender: () => void,
+  //   // Camera
   //   resetCamera: () => void,
-  //   updateActorVisibility: (type: 'face'|'edge'|'body', visible: boolean) => void,
-  //   updateActorColor: (type: 'face'|'edge'|'body', color: [number,number,number]) => void,
   //   
   //   // State
   //   isInitialized: boolean,
-  //   areActorsReady: boolean
   // }
+  // Note: This hook internally:
+  // - Creates and manages all VTK objects
+  // - Automatically updates highlights when selection props change
+  // - Handles all rendering internally
+  // - No external control needed!
 
-  // ==================== LEVEL 4: Selection State Management ====================
-  // Pure selection state (no visualization logic)
-  const selectionState = useSelectionStateHook();
+  // ==================== LEVEL 5: Interaction Manager ====================
+  const interactionManager = useInteractionManagerHook({
+    // Query function from VTK
+    getElementAt: vtkRenderer.getElementAt,
+    isVtkReady: vtkRenderer.isInitialized,
+    
+    // Selection handlers
+    onElementClick: selectionState.onElementClick,
+    onElementHover: selectionState.onElementHover,
+    onModeChange: selectionState.onModeChange,
+    onClearAll: selectionState.onClearAll,
+    
+    // App state for determining if interactions are enabled
+    currentMode: selectionState.mode,
+    appMode: sidebarMode,
+    isSelectionEnabled: () => {
+      if (sidebarMode === 'fea') return navState?.isInSubheading || false;
+      if (sidebarMode === 'handcalc') return handCalcInstances.instances.length > 0;
+      return false;
+    }
+  });
   // Returns: {
-  //   getSelectedFaces: () => Set<number>,
-  //   getSelectedEdges: () => Set<number>,
-  //   getSelectedBodies: () => Set<number>,
-  //   getHoveredId: () => number | null,
-  //   getSelectionMode: () => 'face' | 'edge' | 'body',
-  //   toggleFaceSelection: (faceId: number) => void,
-  //   toggleEdgeSelection: (edgeId: number) => void,
-  //   toggleBodySelection: (bodyId: number) => void,
-  //   setHovered: (id: number | null) => void,
-  //   setSelectionMode: (mode: 'face' | 'edge' | 'body') => void,
-  //   clearAllSelections: () => void,
-  //   loadSelections: (selections: SelectionData) => void,
-  //   getSelectionCount: () => number
+  //   // Simple event handlers to wire up
+  //   handleMouseMove: (event: MouseEvent) => void,
+  //   handleClick: (event: MouseEvent) => void,
+  //   handleKeyPress: (event: KeyboardEvent) => void,
   // }
+  // Note: This hook internally:
+  // - Converts mouse coordinates to VTK coordinates
+  // - Queries VTK for what's under cursor
+  // - Calls appropriate selection handlers
+  // - Handles keyboard shortcuts
 
-  // Manages selection persistence
+  // ==================== LEVEL 6: Persistence ====================
   const selectionPersistence = useSelectionPersistenceHook({
     projectId: projectFiles.projectID,
     version: projectFiles.version,
-    getSelections: () => ({
-      faces: selectionState.getSelectedFaces(),
-      edges: selectionState.getSelectedEdges(),
-      bodies: selectionState.getSelectedBodies()
-    }),
-    onSelectionsLoaded: selectionState.loadSelections
+    getSnapshot: selectionState.getSnapshot,
+    loadSnapshot: selectionState.loadSnapshot,
   });
   // Returns: {
-  //   saveSelections: () => Promise<void>,
-  //   loadSelections: () => Promise<void>,
-  //   autoSave: boolean,
-  //   setAutoSave: (enabled: boolean) => void
+  //   save: () => Promise<void>,
+  //   load: () => Promise<void>,
   // }
 
-  // ==================== LEVEL 5: Selection Visualization ====================
-  // Handles visual feedback for selections (uses methods, not raw data)
-  const selectionVisualization = useSelectionVisualizationHook({
-    // VTK methods
-    getRenderer: vtkRenderer.getRenderer,
-    getRenderWindow: vtkRenderer.getRenderWindow,
-    getFaceActor: vtkRenderer.getFaceActor,
-    getEdgeActor: vtkRenderer.getEdgeActor,
-    getBodyActor: vtkRenderer.getBodyActor,
-    updateActorColor: vtkRenderer.updateActorColor,
-    triggerRender: vtkRenderer.triggerRender,
-    
-    // Lookup methods (not raw tables!)
-    getCellsForFace: lookupTables.getCellsForFace,
-    getCellsForEdge: lookupTables.getCellsForEdge,
-    getCellsForBody: lookupTables.getCellsForBody,
-    
-    // Selection methods
-    getSelectedFaces: selectionState.getSelectedFaces,
-    getSelectedEdges: selectionState.getSelectedEdges,
-    getSelectedBodies: selectionState.getSelectedBodies,
-    getHoveredId: selectionState.getHoveredId,
-    getSelectionMode: selectionState.getSelectionMode
-  });
-  // Returns: {
-  //   updateSelectionDisplay: () => void,
-  //   updateHoverDisplay: () => void
-  // }
-
-  // ==================== LEVEL 6: Interaction Handling ====================
-  // Handles mouse/keyboard input (calls methods from other hooks)
-  const interactionHandlers = useInteractionHandlersHook({
-    // VTK methods
-    getPicker: vtkRenderer.getPicker,
-    getRenderer: vtkRenderer.getRenderer,
-    
-    // Lookup methods
-    getFaceIdForCell: lookupTables.getFaceIdForCell,
-    getEdgeIdForCell: lookupTables.getEdgeIdForCell,  
-    getBodyIdForCell: lookupTables.getBodyIdForCell,
-    
-    // Selection methods
-    toggleFaceSelection: selectionState.toggleFaceSelection,
-    toggleEdgeSelection: selectionState.toggleEdgeSelection,
-    toggleBodySelection: selectionState.toggleBodySelection,
-    setHovered: selectionState.setHovered,
-    getSelectionMode: selectionState.getSelectionMode,
-    
-    // Visualization methods
-    updateSelectionDisplay: selectionVisualization.updateSelectionDisplay,
-    updateHoverDisplay: selectionVisualization.updateHoverDisplay
-  });
-  // Returns: {
-  //   handleMouseMove: (event: MouseEvent) => void,
-  //   handleClick: (event: MouseEvent) => void,
-  //   handleKeyPress: (event: KeyboardEvent) => void
-  // }
-
-  // ==================== LEVEL 7A: HandCalc Mode ====================
-  // Pure HandCalc instance management
+  // ==================== LEVEL 7: HandCalc Mode ====================
   const handCalcInstances = useHandCalcInstancesHook({
     projectId: projectFiles.projectID,
     version: projectFiles.version,
     enabled: sidebarMode === 'handcalc'
   });
   // Returns: {
-  //   getInstances: () => HandCalcInstance[],
-  //   getSelectedIndex: () => number,
-  //   getSelectedInstance: () => HandCalcInstance | null,
-  //   createInstance: (data: HandCalcData) => void,
-  //   deleteInstance: (id: string) => void,
-  //   selectInstance: (index: number) => void,
+  //   instances: HandCalcInstance[],
+  //   selectedIndex: number,
+  //   selectedInstance: HandCalcInstance | null,
+  //   create: (data: HandCalcData) => void,
+  //   delete: (id: string) => void,
+  //   select: (index: number) => void,
   //   navigateNext: () => void,
   //   navigatePrev: () => void,
-  //   isCreating: boolean,
-  //   pendingData: HandCalcData | null
   // }
 
-  // Manages connections between HandCalc variables
   const handCalcConnections = useHandCalcConnectionsHook({
-    getInstances: handCalcInstances.getInstances,
+    instances: handCalcInstances.instances,
     enabled: sidebarMode === 'handcalc'
   });
   // Returns: {
-  //   getConnections: () => VariableConnection[],
-  //   createConnection: (from: VariableRef, to: VariableRef) => void,
+  //   connections: VariableConnection[],
+  //   connectionState: 'idle' | 'selecting_first' | 'selecting_second',
+  //   startConnection: (variable: VariableRef) => void,
+  //   completeConnection: (variable: VariableRef) => void,
+  //   cancelConnection: () => void,
   //   deleteConnection: (connectionId: string) => void,
-  //   getConnectionsForVariable: (instanceId: string, variable: string) => VariableConnection[],
-  //   isInSelectionMode: boolean,
-  //   setSelectionMode: (enabled: boolean) => void
   // }
 
-  // Links HandCalc instances with geometry selections
-  const handCalcGeometryLink = useHandCalcGeometryLinkHook({
-    getSelectedInstance: handCalcInstances.getSelectedInstance,
-    
-    // Selection methods (not raw data)
-    getSelectedFaces: selectionState.getSelectedFaces,
-    getSelectedEdges: selectionState.getSelectedEdges,
-    getSelectedBodies: selectionState.getSelectedBodies,
-    loadSelections: selectionState.loadSelections,
-    
-    // Persistence methods
-    saveSelections: selectionPersistence.saveSelections,
-    loadSelections: selectionPersistence.loadSelections
+  const handCalcSelectionSync = useHandCalcSelectionSyncHook({
+    selectedInstance: handCalcInstances.selectedInstance,
+    selectedIndex: handCalcInstances.selectedIndex,
+    getSnapshot: selectionState.getSnapshot,
+    loadSnapshot: selectionState.loadSnapshot,
+    save: selectionPersistence.save,
   });
   // Returns: {
-  //   linkCurrentSelection: () => void,
-  //   loadInstanceSelection: (instanceId: string) => void,
-  //   hasLinkedSelection: (instanceId: string) => boolean
+  //   syncToInstance: () => void,
+  //   loadFromInstance: (instanceId: string) => void,
   // }
 
-  // ==================== LEVEL 7B: UI State Management ====================
-  // Pure UI state hooks
-  const leftSidebarState = useLeftSidebarStateHook({
+  // ==================== LEVEL 8: UI Controllers ====================
+  const leftSidebarController = useLeftSidebarControllerHook({
     mode: sidebarMode,
-    // HandCalc methods
-    getInstances: handCalcInstances.getInstances,
-    getSelectedIndex: handCalcInstances.getSelectedIndex,
-    selectInstance: handCalcInstances.selectInstance,
-    // Connection methods
-    getConnections: handCalcConnections.getConnections,
-    isInSelectionMode: handCalcConnections.isInSelectionMode
+    instances: handCalcInstances.instances,
+    selectedIndex: handCalcInstances.selectedIndex,
+    connections: handCalcConnections.connections,
+    selectInstance: handCalcInstances.select,
+    startConnection: handCalcConnections.startConnection,
+    completeConnection: handCalcConnections.completeConnection,
   });
-  // Returns: {
-  //   getSidebarData: () => SidebarData,
-  //   handleInstanceClick: (index: number) => void,
-  //   handleVariableClick: (instanceId: string, variable: string) => void,
-  //   isInputFocused: boolean
-  // }
 
-  const rightSidebarState = useRightSidebarStateHook();
-  // Returns: {
-  //   isCollapsed: boolean,
-  //   toggle: () => void,
-  //   collapse: () => void,
-  //   expand: () => void
-  // }
+  const rightSidebarController = useRightSidebarControllerHook({
+    projectId: projectFiles.projectID,
+    version: projectFiles.version,
+  });
 
-  // ==================== EFFECTS SETUP ====================
-  // Wire up interaction handlers to VTK
+  // ==================== WIRE UP INTERACTIONS ====================
   useEffect(() => {
     if (!vtkRenderer.isInitialized) return;
 
-    const renderer = vtkRenderer.getRenderer();
-    if (!renderer) return;
+    const container = vtkContainerRef.current;
+    if (!container) return;
 
-    const interactor = renderer.getInteractor();
-    if (interactor) {
-      // Note: We're calling methods, not passing raw data
-      interactor.onMouseMove(interactionHandlers.handleMouseMove);
-      interactor.onLeftButtonPress(interactionHandlers.handleClick);
-    }
+    // Add event listeners
+    container.addEventListener('mousemove', interactionManager.handleMouseMove);
+    container.addEventListener('click', interactionManager.handleClick);
+    document.addEventListener('keydown', interactionManager.handleKeyPress);
 
     return () => {
-      // Cleanup
+      container.removeEventListener('mousemove', interactionManager.handleMouseMove);
+      container.removeEventListener('click', interactionManager.handleClick);
+      document.removeEventListener('keydown', interactionManager.handleKeyPress);
     };
-  }, [vtkRenderer.isInitialized, interactionHandlers.handleMouseMove, interactionHandlers.handleClick]);
+  }, [vtkRenderer.isInitialized, interactionManager]);
 
-  // Auto-save when connections change
+  // ==================== AUTO-SAVE ====================
   useEffect(() => {
-    if (projectFiles.folderName && sidebarMode === 'handcalc') {
-      selectionPersistence.saveSelections();
+    if (projectFiles.folderName) {
+      selectionPersistence.save();
     }
-  }, [handCalcConnections.getConnections()]);
-
-  // ==================== MEMOIZED COMPONENTS ====================
-  const leftSidebar = useMemo(() => (
-    <LeftSidebar
-      sidebarData={leftSidebarState.getSidebarData()}
-      onInstanceClick={leftSidebarState.handleInstanceClick}
-      onVariableClick={leftSidebarState.handleVariableClick}
-      isInputFocused={leftSidebarState.isInputFocused}
-    />
-  ), [
-    leftSidebarState.getSidebarData(), // This handles all internal dependencies
-    leftSidebarState.isInputFocused
+  }, [
+    selectionState.selectedFaces,
+    selectionState.selectedEdges,
+    selectionState.selectedBodies,
+    handCalcConnections.connections
   ]);
 
-  const vtkViewer = useMemo(() => (
-    <VTKViewer
-      vtkContainerRef={vtkContainerRef}
-      isLoading={projectFiles.isLoading}
-      error={projectFiles.error}
-      selectionCount={selectionState.getSelectionCount()}
-      selectionMode={selectionState.getSelectionMode()}
-      hoveredId={selectionState.getHoveredId()}
-    />
-  ), [
-    projectFiles.isLoading,
-    projectFiles.error,
-    selectionState.getSelectionCount(),
-    selectionState.getSelectionMode(),
-    selectionState.getHoveredId()
-  ]);
+  // ==================== LOAD MAPPINGS ====================
+  useEffect(() => {
+    if (projectFiles.isReady && !geometryMappings.isMappingsReady) {
+      geometryMappings.loadMappings();
+    }
+  }, [projectFiles.isReady]);
 
   // ==================== LOADING STATE ====================
   if (projectFiles.isLoading || !projectFiles.isReady) {
@@ -354,18 +268,25 @@ const ProjectGeometryViewer: React.FC = () => {
   return (
     <MainContainer>
       <LeftSidebarContainer>
-        {leftSidebar}
+        <LeftSidebar {...leftSidebarController} />
       </LeftSidebarContainer>
 
-      {vtkViewer}
+      <VTKViewer
+        ref={vtkContainerRef}
+        isLoading={projectFiles.isLoading}
+        error={projectFiles.error}
+        selectionCount={
+          selectionState.selectedFaces.size +
+          selectionState.selectedEdges.size +
+          selectionState.selectedBodies.size
+        }
+        mode={selectionState.mode}
+        hoveredId={selectionState.hoveredElement?.id || null}
+      />
 
-      <RightSidebarContainer 
-        $isCollapsed={rightSidebarState.isCollapsed}
-      >
-        {/* Right sidebar content */}
+      <RightSidebarContainer $isCollapsed={rightSidebarController.isCollapsed}>
+        <RightSidebar {...rightSidebarController} />
       </RightSidebarContainer>
     </MainContainer>
   );
 };
-
-export default ProjectGeometryViewer;
