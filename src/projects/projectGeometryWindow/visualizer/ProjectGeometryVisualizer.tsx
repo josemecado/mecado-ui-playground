@@ -25,7 +25,7 @@ const NodeContainer = styled.div<{
   background: var(--bg-secondary);
   border-radius: 8px;
   overflow: hidden;
-  min-width: 240px;
+  min-width: 150px;
   transition: all 0.2s ease;
   position: relative;
   border: 1px solid var(--border-bg);
@@ -309,7 +309,7 @@ const MethodCallArchitecture: React.FC = () => {
     {
       id: "polyDataProcessing",
       type: "custom",
-      position: { x: 200, y: 180 },
+      position: { x: 150, y: 180 },
       data: {
         label: "polyDataProcessing",
         description: "Raw geometry → VTK polyData",
@@ -330,7 +330,7 @@ const MethodCallArchitecture: React.FC = () => {
     {
       id: "lookupTables",
       type: "custom",
-      position: { x: 500, y: 180 },
+      position: { x: 375, y: 180 },
       data: {
         label: "lookupTables",
         description: "ID ↔ Cell mapping (for VTK picking)",
@@ -359,10 +359,10 @@ const MethodCallArchitecture: React.FC = () => {
     {
       id: "geometryMappings",
       type: "custom",
-      position: { x: 800, y: 180 },
+      position: { x: 625, y: 180 },
       data: {
         label: "geometryMappings",
-        description: "STEP ↔ Ansys ID mappings (debug logging)",
+        description: "STEP ↔ Ansys ID mappings",
         level: 2,
         expanded: false,
         dependencies: ["projectFiles.geometryInfo"],
@@ -377,7 +377,7 @@ const MethodCallArchitecture: React.FC = () => {
         ],
         connections: {
           upstream: ["projectFiles"],
-          downstream: ["selectionState"],
+          downstream: [],
         },
       },
     },
@@ -385,7 +385,7 @@ const MethodCallArchitecture: React.FC = () => {
     {
       id: "mlInference",
       type: "custom",
-      position: { x: 1100, y: 180 },
+      position: { x: 850, y: 180 },
       data: {
         label: "mlInference",
         description: "ML inference execution & results",
@@ -499,7 +499,7 @@ const MethodCallArchitecture: React.FC = () => {
     {
       id: "interactionManager",
       type: "custom",
-      position: { x: 500, y: 560 },
+      position: { x: 350, y: 520 },
       data: {
         label: "interactionManager",
         description: "User input → selection events",
@@ -532,7 +532,7 @@ const MethodCallArchitecture: React.FC = () => {
     {
       id: "selectionPersistence",
       type: "custom",
-      position: { x: 200, y: 700 },
+      position: { x: 700, y: 620 },
       data: {
         label: "selectionPersistence",
         description: "Save/load selections",
@@ -562,7 +562,7 @@ const MethodCallArchitecture: React.FC = () => {
     {
       id: "handCalcInstances",
       type: "custom",
-      position: { x: 500, y: 700 },
+      position: { x: 200, y: 750 },
       data: {
         label: "handCalcInstances",
         description: "HandCalc instance management",
@@ -595,7 +595,7 @@ const MethodCallArchitecture: React.FC = () => {
     {
       id: "handCalcConnections",
       type: "custom",
-      position: { x: 800, y: 700 },
+      position: { x: 500, y: 750 },
       data: {
         label: "handCalcConnections",
         description: "Variable connections",
@@ -620,7 +620,7 @@ const MethodCallArchitecture: React.FC = () => {
     {
       id: "handCalcSelectionSync",
       type: "custom",
-      position: { x: 1100, y: 700 },
+      position: { x: 800, y: 750 },
       data: {
         label: "handCalcSelectionSync",
         description: "Links instances ↔ selections",
@@ -652,7 +652,7 @@ const MethodCallArchitecture: React.FC = () => {
     {
       id: "leftSidebarController",
       type: "custom",
-      position: { x: 300, y: 840 },
+      position: { x: 300, y: 880 },
       data: {
         label: "leftSidebarController",
         description: "Left sidebar orchestration",
@@ -681,7 +681,7 @@ const MethodCallArchitecture: React.FC = () => {
     {
       id: "rightSidebarController",
       type: "custom",
-      position: { x: 700, y: 840 },
+      position: { x: 700, y: 880 },
       data: {
         label: "rightSidebarController",
         description: "Right sidebar state",
@@ -703,7 +703,7 @@ const MethodCallArchitecture: React.FC = () => {
     {
       id: "leftSidebar",
       type: "custom",
-      position: { x: 200, y: 980 },
+      position: { x: 200, y: 1010 },
       data: {
         label: "LeftSidebar",
         description: "HandCalc/FEA sidebar UI",
@@ -722,7 +722,7 @@ const MethodCallArchitecture: React.FC = () => {
     {
       id: "vtkViewer",
       type: "custom",
-      position: { x: 500, y: 980 },
+      position: { x: 500, y: 1010 },
       data: {
         label: "VTKViewer",
         description: "3D viewport component",
@@ -746,7 +746,7 @@ const MethodCallArchitecture: React.FC = () => {
     {
       id: "rightSidebar",
       type: "custom",
-      position: { x: 800, y: 980 },
+      position: { x: 800, y: 1010 },
       data: {
         label: "RightSidebar",
         description: "Pinned equations sidebar",
