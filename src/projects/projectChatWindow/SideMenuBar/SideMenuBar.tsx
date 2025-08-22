@@ -255,6 +255,7 @@ const ContentContainer = styled.div`
   flex-direction: column;
   flex: 1;
 `;
+
 const HoverTrigger = styled.div`
   position: fixed;
   left: 0;

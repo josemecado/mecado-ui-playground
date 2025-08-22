@@ -1,4 +1,4 @@
-// ProjectGeometryViewer.tsx - SIMPLIFIED ARCHITECTURE
+// ProjectGeometryViewer.tsx - UPDATED ARCHITECTURE WITH FOCUS MANAGEMENT
 const ProjectGeometryViewer: React.FC = () => {
   // Core refs that don't trigger re-renders
   const vtkContainerRef = useRef<HTMLDivElement>(null);
@@ -11,7 +11,7 @@ const ProjectGeometryViewer: React.FC = () => {
   //   files: { facesFile, edgesFile, bodiesFile },
   //   geometryInfo: GeometryJson,
   //   folderName: string,
-  //   isLoading: boolean,32
+  //   isLoading: boolean,
   //   error: string | null,
   //   isReady: boolean,
   //   reload: () => void
@@ -67,13 +67,24 @@ const ProjectGeometryViewer: React.FC = () => {
 
   // ==================== LEVEL 3: Selection State (Single Source of Truth) ====================
   const selectionState = useSelectionStateHook({
-
+    // Optional: provide mapping functions for debug logging
+    debugMappings: geometryMappings.isMappingsReady ? {
+      toMechanicalId: geometryMappings.toMechanicalId,
+      toDiscoveryId: geometryMappings.toDiscoveryId,
+    } : undefined
   });
   // Returns: {
-  //   // Current state
+  //   // Active selections (user clicking)
   //   selectedFaces: Set<number>,
   //   selectedEdges: Set<number>,
   //   selectedBodies: Set<number>,
+  //   
+  //   // Focused geometry (from external source like HandCalc)
+  //   focusedFaces: Set<number>,
+  //   focusedEdges: Set<number>,
+  //   focusedBodies: Set<number>,
+  //   
+  //   // Hover state
   //   hoveredElement: { id: number, type: 'face'|'edge'|'body' } | null,
   //   mode: 'face' | 'edge' | 'body',
   //   
@@ -82,6 +93,10 @@ const ProjectGeometryViewer: React.FC = () => {
   //   onElementHover: (element: { id: number, type: 'face'|'edge'|'body' } | null) => void,
   //   onModeChange: (mode: 'face'|'edge'|'body') => void,
   //   onClearAll: () => void,
+  //   
+  //   // Focus management (NEW)
+  //   setFocusedGeometry: (selections: { faces: number[], edges: number[], bodies: number[] }) => void,
+  //   clearFocusedGeometry: () => void,
   //   
   //   // Bulk operations
   //   loadSnapshot: (snapshot: SelectionSnapshot) => void,
@@ -95,10 +110,16 @@ const ProjectGeometryViewer: React.FC = () => {
     lookupTables: lookupTables, // Needs these for picking
     isReady: polyDataProcessing.isProcessed && lookupTables.isTablesReady,
     
-    // Selection state to visualize
+    // Active selections (user clicking) - rendered in SELECTION_COLOR
     selectedFaces: selectionState.selectedFaces,
     selectedEdges: selectionState.selectedEdges,
     selectedBodies: selectionState.selectedBodies,
+    
+    // Focused geometry (from external source) - rendered in FOCUS_COLOR
+    focusedFaces: selectionState.focusedFaces,
+    focusedEdges: selectionState.focusedEdges,
+    focusedBodies: selectionState.focusedBodies,
+    
     hoveredElement: selectionState.hoveredElement,
     displayMode: selectionState.mode,
   });
@@ -114,9 +135,10 @@ const ProjectGeometryViewer: React.FC = () => {
   // }
   // Note: This hook internally:
   // - Creates and manages all VTK objects
-  // - Automatically updates highlights when selection props change
+  // - Automatically updates highlights when selection OR focus props change
+  // - Renders selected geometry in SELECTION_COLOR (e.g., blue)
+  // - Renders focused geometry in FOCUS_COLOR (e.g., yellow/gold)
   // - Handles all rendering internally
-  // - No external control needed!
 
   // ==================== LEVEL 5: Interaction Manager ====================
   const interactionManager = useInteractionManagerHook({
@@ -145,22 +167,26 @@ const ProjectGeometryViewer: React.FC = () => {
   //   handleClick: (event: MouseEvent) => void,
   //   handleKeyPress: (event: KeyboardEvent) => void,
   // }
-  // Note: This hook internally:
-  // - Converts mouse coordinates to VTK coordinates
-  // - Queries VTK for what's under cursor
-  // - Calls appropriate selection handlers
-  // - Handles keyboard shortcuts
 
-  // ==================== LEVEL 6: Persistence ====================
-  const selectionPersistence = useSelectionPersistenceHook({
-    projectId: projectFiles.projectID,
-    version: projectFiles.version,
-    getSnapshot: selectionState.getSnapshot,
-    loadSnapshot: selectionState.loadSnapshot,
+  // ==================== LEVEL 6: Generic Geometry Focus Manager ====================
+  // This hook manages focusing on any object that implements GeometrySelectable interface
+  const geometryFocusManager = useGeometryFocusManagerHook({
+    setFocusedGeometry: selectionState.setFocusedGeometry,
+    clearFocusedGeometry: selectionState.clearFocusedGeometry,
   });
   // Returns: {
-  //   save: () => Promise<void>,
-  //   load: () => Promise<void>,
+  //   // Focus on any GeometrySelectable object
+  //   focusOn: (selectable: GeometrySelectable | null) => void,
+  //   
+  //   // Get currently focused item
+  //   getFocusedItem: () => GeometrySelectable | null,
+  // }
+  // 
+  // GeometrySelectable interface:
+  // interface GeometrySelectable {
+  //   getSelections(): { faces: number[], edges: number[], bodies: number[] }
+  //   getId?(): string
+  //   getName?(): string
   // }
 
   // ==================== LEVEL 7: HandCalc Mode ====================
@@ -193,18 +219,6 @@ const ProjectGeometryViewer: React.FC = () => {
   //   deleteConnection: (connectionId: string) => void,
   // }
 
-  const handCalcSelectionSync = useHandCalcSelectionSyncHook({
-    selectedInstance: handCalcInstances.selectedInstance,
-    selectedIndex: handCalcInstances.selectedIndex,
-    getSnapshot: selectionState.getSnapshot,
-    loadSnapshot: selectionState.loadSnapshot,
-    save: selectionPersistence.save,
-  });
-  // Returns: {
-  //   syncToInstance: () => void,
-  //   loadFromInstance: (instanceId: string) => void,
-  // }
-
   // ==================== LEVEL 8: UI Controllers ====================
   const leftSidebarController = useLeftSidebarControllerHook({
     mode: sidebarMode,
@@ -220,6 +234,41 @@ const ProjectGeometryViewer: React.FC = () => {
     projectId: projectFiles.projectID,
     version: projectFiles.version,
   });
+
+  // ==================== FOCUS MANAGEMENT - HandCalc Instance Selection ====================
+  // When the selected HandCalc instance changes, update the focused geometry
+  // This creates an adapter that implements GeometrySelectable and passes it to the focus manager
+  useEffect(() => {
+    if (sidebarMode === 'handcalc' && handCalcInstances.selectedInstance) {
+      // Create adapter that wraps HandCalcInstance to implement GeometrySelectable interface
+      const adapter = new HandCalcInstanceAdapter(handCalcInstances.selectedInstance);
+      // Focus manager will call adapter.getSelections() and update focused geometry
+      geometryFocusManager.focusOn(adapter);
+    } else if (sidebarMode === 'handcalc' && !handCalcInstances.selectedInstance) {
+      // No instance selected, clear focus
+      geometryFocusManager.focusOn(null);
+    }
+  }, [
+    handCalcInstances.selectedInstance,
+    sidebarMode,
+    geometryFocusManager.focusOn
+  ]);
+
+  // Clear focus when switching away from handcalc mode
+  useEffect(() => {
+    if (sidebarMode !== 'handcalc') {
+      geometryFocusManager.focusOn(null);
+    }
+  }, [sidebarMode, geometryFocusManager.focusOn]);
+
+  // ==================== FUTURE: Message Selection Example ====================
+  // When implementing message selection, you would add:
+  // useEffect(() => {
+  //   if (selectedMessage && selectedMessage.hasGeometry) {
+  //     const adapter = new MessageAdapter(selectedMessage);
+  //     geometryFocusManager.focusOn(adapter);
+  //   }
+  // }, [selectedMessage]);
 
   // ==================== WIRE UP INTERACTIONS ====================
   useEffect(() => {
@@ -240,24 +289,20 @@ const ProjectGeometryViewer: React.FC = () => {
     };
   }, [vtkRenderer.isInitialized, interactionManager]);
 
-  // ==================== AUTO-SAVE ====================
+  // ==================== AUTO-SAVE (if needed elsewhere) ====================
   useEffect(() => {
-    if (projectFiles.folderName) {
-      selectionPersistence.save();
+    if (projectFiles.folderName && handCalcConnections.connections) {
+      // Save connections or other data as needed
+      // This could call a persistence hook if needed for other purposes
     }
-  }, [
-    selectionState.selectedFaces,
-    selectionState.selectedEdges,
-    selectionState.selectedBodies,
-    handCalcConnections.connections
-  ]);
+  }, [handCalcConnections.connections]);
 
   // ==================== LOAD MAPPINGS ====================
   useEffect(() => {
     if (projectFiles.isReady && !geometryMappings.isMappingsReady) {
       geometryMappings.loadMappings();
     }
-  }, [projectFiles.isReady]);
+  }, [projectFiles.isReady, geometryMappings.isMappingsReady]);
 
   // ==================== LOADING STATE ====================
   if (projectFiles.isLoading || !projectFiles.isReady) {
@@ -280,6 +325,11 @@ const ProjectGeometryViewer: React.FC = () => {
           selectionState.selectedEdges.size +
           selectionState.selectedBodies.size
         }
+        focusCount={
+          selectionState.focusedFaces.size +
+          selectionState.focusedEdges.size +
+          selectionState.focusedBodies.size
+        }
         mode={selectionState.mode}
         hoveredId={selectionState.hoveredElement?.id || null}
       />
@@ -290,3 +340,37 @@ const ProjectGeometryViewer: React.FC = () => {
     </MainContainer>
   );
 };
+
+// ==================== ADAPTER CLASSES ====================
+// These implement the GeometrySelectable interface for different domain objects
+
+class HandCalcInstanceAdapter implements GeometrySelectable {
+  constructor(private instance: HandCalcInstance) {}
+  
+  getSelections() {
+    return {
+      faces: this.instance.selectedFaces || [],
+      edges: this.instance.selectedEdges || [],
+      bodies: this.instance.selectedBodies || []
+    };
+  }
+  
+  getId() { return this.instance.id; }
+  getName() { return this.instance.name; }
+}
+
+// Future: Adapter for messages
+class MessageAdapter implements GeometrySelectable {
+  constructor(private message: ChatMessage) {}
+  
+  getSelections() {
+    return {
+      faces: this.message.associatedFaces || [],
+      edges: this.message.associatedEdges || [],
+      bodies: this.message.associatedBodies || []
+    };
+  }
+  
+  getId() { return this.message.id; }
+  getName() { return `Message: ${this.message.preview}` }
+}
