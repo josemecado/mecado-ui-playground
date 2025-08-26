@@ -10,9 +10,9 @@ export default function ProjectChatWindow() {
   return (
     <Container>
       <SideMenu />
-      {/* <ChatForm /> */}
+      <ChatForm />
       {/* <StreamingTextBubblePlayground /> */}
-      <HookArchitectureVisualizer />
+      {/* <HookArchitectureVisualizer /> */}
       {/* <LevelArchitectureVisualizer /> */}
       {/* <DetailBar /> */}
     </Container>

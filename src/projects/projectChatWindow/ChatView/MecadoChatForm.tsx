@@ -3,6 +3,7 @@ import styled from "styled-components";
 import "./containerStyles.css";
 
 import { ChatInputBubble } from "./ChatInputBubble";
+import ToolCallBubbleShowcase from "./bubbles/ToolBubbleTest";
 
 const ChatForm: React.FC = () => {
   const [selectedSpecialMode, setSelectedSpecialMode] = useState<
@@ -36,12 +37,16 @@ const ChatForm: React.FC = () => {
 
   return (
     <ChatFormContainer className="ChatFormContainer">
-      <InputContainer className="InputContainer">
-        <ChatInputBubble
-          uploadButtonsProps={uploadButtonsProps}
-          submitButtonsProps={submitButtonsProps}
-        />
-      </InputContainer>
+      <MessagesContainer>
+        <ToolCallBubbleShowcase />
+
+        {/* <InputContainer className="InputContainer">
+          <ChatInputBubble
+            uploadButtonsProps={uploadButtonsProps}
+            submitButtonsProps={submitButtonsProps}
+          />
+        </InputContainer> */}
+      </MessagesContainer>
     </ChatFormContainer>
   );
 };
@@ -68,4 +73,16 @@ export const InputContainer = styled.div`
   width: 100%;
   min-width: 200px;
   transition: all 0.3s ease;
+`;
+
+export const MessagesContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  height: 100vh;
+  align-items: center;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  width: 100%;
 `;

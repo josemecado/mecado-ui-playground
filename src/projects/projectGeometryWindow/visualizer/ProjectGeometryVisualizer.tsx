@@ -52,7 +52,7 @@ const NodeHeader = styled.div<{ $level: number; $type: "hook" | "component" }>`
     return colors[props.$level - 1] || colors[7];
   }};
   padding: 6px 8px;
-  color: var(--text-primary);
+  color: white;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.5px;
@@ -929,7 +929,7 @@ const Container = styled.div`
   width: 100%;
   height: 100vh;
   position: relative;
-  background: var(--theme-darkBgPrimary);
+  background: var(--bg-primary);
 `;
 
 // Update the KeyInsights styled component
