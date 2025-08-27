@@ -16,7 +16,6 @@ export interface NodeGeometry {
   placeholder?: string;
 }
 
-// Add edge configuration interface
 export interface EdgeConfig {
   targetId: string;
   label?: string;
@@ -29,31 +28,58 @@ export interface GeoNodeData extends Record<string, unknown> {
   panels: PanelSection[];
   geometry?: NodeGeometry;
   status?: "idle" | "processing" | "complete" | "error";
-  color?: string; // Custom color for status badge
-  edges?: EdgeConfig[]; // Configuration for outgoing edges
+  color?: string;
+  edges?: EdgeConfig[];
   metadata?: Record<string, any>;
+  isEditable?: boolean; // Flag to enable editing mode
 }
 
 export interface GeoNodeProps {
+  id: string; // Need node ID for updates
   data: GeoNodeData;
   selected?: boolean;
 }
 
 // ============= STYLED COMPONENTS =============
+const EditButton = styled.button`
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-bg);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 10px;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  z-index: 999;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+  }
+`;
+
 const NodeContainer = styled.div<{ selected: boolean }>`
+  position: relative;
   border: 2px solid
     ${(props) =>
       props.selected ? "var(--primary-action)" : "var(--border-bg)"};
   border-radius: 12px;
-  width: 600px; // Fixed width instead of min-width
+  width: 600px;
   min-height: 350px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   transition: border-color 0.2s ease;
   background: var(--bg-secondary);
-box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
-
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  
+  &:hover ${EditButton} {
+    opacity: 1;
+  }
 `;
 
 const NodeHeader = styled.div`
@@ -98,7 +124,7 @@ const ContentContainer = styled.div`
 `;
 
 const SidePanel = styled.div`
-  flex: 1; // 1:2 ratio with canvas
+  flex: 1;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border-bg);
   display: flex;
@@ -107,7 +133,7 @@ const SidePanel = styled.div`
 `;
 
 const CanvasArea = styled.div`
-  flex: 2; // 1:2 ratio with side panel
+  flex: 2;
   background: var(--bg-primary);
   display: flex;
   align-items: center;
@@ -160,7 +186,7 @@ const SectionContent = styled.div<{ isExpanded: boolean }>`
   padding: ${(props) => (props.isExpanded ? "10px" : "0")};
   max-height: ${(props) => (props.isExpanded ? "500px" : "0")};
   height: 100%;
-  opacity: ${props => props.isExpanded ? "1" : "0"};;
+  opacity: ${props => props.isExpanded ? "1" : "0"};
   overflow-y: auto;
   transition: all 0.3s ease;
   color: var(--text-primary);
@@ -206,7 +232,7 @@ const NodeLabel = styled.div`
 `;
 
 // ============= COMPONENT =============
-export const GeoNode: React.FC<GeoNodeProps> = ({ data, selected = false }) => {
+export const GeoNode: React.FC<GeoNodeProps> = ({ id, data, selected = false }) => {
   const { title, panels, geometry, geoLabel, status, color } = data;
   const [expandedSection, setExpandedSection] = useState<string | null>(
     panels.length > 0 ? panels[0].id : null
@@ -216,8 +242,17 @@ export const GeoNode: React.FC<GeoNodeProps> = ({ data, selected = false }) => {
     setExpandedSection(expandedSection === sectionId ? null : sectionId);
   };
 
+  const handleEdit = () => {
+    const event = new CustomEvent('editNode', { 
+      detail: { nodeId: id, data } 
+    });
+    window.dispatchEvent(event);
+  };
+
   return (
     <NodeContainer selected={selected}>
+      <EditButton onClick={handleEdit}>Edit</EditButton>
+      
       <Handle
         type="target"
         position={Position.Top}
@@ -232,7 +267,6 @@ export const GeoNode: React.FC<GeoNodeProps> = ({ data, selected = false }) => {
         <NodeTitle>{title}</NodeTitle>
         {status && <StatusBadge status={status} customColor={color}>{status}</StatusBadge>}
       </NodeHeader>
-
 
       <ContentContainer>
         <SidePanel>

@@ -21,7 +21,7 @@ export const mockNodes: Node<GeoNodeData>[] = [
   {
     id: "preprocessing",
     type: "geoNode",
-    position: { x: 100, y: 200 },
+    position: { x: 100, y: 100 },
     data: {
       title: "Preprocessing",
       geoLabel: "STEP Import",
@@ -55,7 +55,7 @@ export const mockNodes: Node<GeoNodeData>[] = [
   {
     id: "meshing",
     type: "geoNode",
-    position: { x: 750, y: 200 },
+    position: { x: 300, y: 700 },
     data: {
       title: "Mesh Generation",
       geoLabel: "Tetrahedral Mesh",
