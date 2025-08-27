@@ -17,12 +17,21 @@ export interface NodeGeometry {
   placeholder?: string;
 }
 
+// Add edge configuration interface
+export interface EdgeConfig {
+  targetId: string;
+  label?: string;
+  animated?: boolean;
+}
+
 export interface GeoNodeData extends Record<string, unknown> {
-  title: string; // Added title prop
-  label?: string; // Made label optional since we have title now
+  title: string;
+  label?: string;
   panels: PanelSection[];
   geometry?: NodeGeometry;
   status?: "idle" | "processing" | "complete" | "error";
+  statusColor?: string; // Custom color for status badge
+  edges?: EdgeConfig[]; // Configuration for outgoing edges
   metadata?: Record<string, any>;
 }
 
@@ -39,12 +48,13 @@ const NodeContainer = styled.div<{ selected: boolean }>`
   border-radius: 12px;
   width: 600px; // Fixed width instead of min-width
   min-height: 350px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   transition: border-color 0.2s ease;
-  background: var(--bg-primary);
+  background: var(--bg-secondary);
+box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+
 `;
 
 const NodeHeader = styled.div`
@@ -63,7 +73,7 @@ const NodeTitle = styled.h3`
   color: var(--text-primary);
 `;
 
-const StatusBadge = styled.span<{ status?: string }>`
+const StatusBadge = styled.span<{ status?: string; customColor?: string }>`
   font-size: 11px;
   padding: 2px 4px;
   border-radius: 4px;
@@ -71,6 +81,7 @@ const StatusBadge = styled.span<{ status?: string }>`
   text-transform: capitalize;
 
   background: ${props => {
+    if (props.customColor) return props.customColor;
     switch(props.status) {
       case 'complete': return 'var(--accent-primary)';
       case 'processing': return 'var(--primary-action)';
@@ -78,7 +89,7 @@ const StatusBadge = styled.span<{ status?: string }>`
       default: return 'var(--bg-tertiary)';
     }
   }};
-  color: ${props => props.status === 'idle' ? 'var(--text-muted)' : 'white'};
+  color: ${props => props.status === 'idle' && !props.customColor ? 'var(--text-muted)' : 'white'};
 `;
 
 const ContentContainer = styled.div`
@@ -149,10 +160,12 @@ const ExpandIcon = styled.span<{ isExpanded: boolean }>`
 const SectionContent = styled.div<{ isExpanded: boolean }>`
   padding: ${(props) => (props.isExpanded ? "10px" : "0")};
   max-height: ${(props) => (props.isExpanded ? "500px" : "0")};
+  height: 100%;
   opacity: ${props => props.isExpanded ? "1" : "0"};;
   overflow-y: auto;
   transition: all 0.3s ease;
   color: var(--text-primary);
+  background: var(--bg-secondary);
 
   &::-webkit-scrollbar {
     width: 4px;
@@ -195,7 +208,7 @@ const NodeLabel = styled.div`
 
 // ============= COMPONENT =============
 export const GeoNode: React.FC<GeoNodeProps> = ({ data, selected = false }) => {
-  const { title, panels, geometry, label, status } = data;
+  const { title, panels, geometry, label, status, statusColor } = data;
   const [expandedSection, setExpandedSection] = useState<string | null>(
     panels.length > 0 ? panels[0].id : null
   );
@@ -218,8 +231,9 @@ export const GeoNode: React.FC<GeoNodeProps> = ({ data, selected = false }) => {
 
       <NodeHeader>
         <NodeTitle>{title}</NodeTitle>
-        {status && <StatusBadge status={status}>{status}</StatusBadge>}
+        {status && <StatusBadge status={status} customColor={statusColor}>{status}</StatusBadge>}
       </NodeHeader>
+
 
       <ContentContainer>
         <SidePanel>
