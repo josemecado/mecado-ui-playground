@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { GeoNodeData, PanelSection } from "./GeoNode";
+import { Trash } from "lucide-react";
 
 interface EditNodeModalProps {
   nodeData?: GeoNodeData;
@@ -27,7 +28,7 @@ const ModalContainer = styled.div`
   min-width: 350px;
   max-height: 70vh;
   background: var(--bg-primary);
-  border-radius: 8px;
+  border-radius: 10px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
@@ -112,7 +113,7 @@ const FormInput = styled.input`
   padding: 8px 12px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-bg);
-  border-radius: 6px;
+  border-radius: 10px;
   color: var(--text-primary);
   font-size: 14px;
 
@@ -129,7 +130,7 @@ const FormTextarea = styled.textarea`
   padding: 8px 12px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-bg);
-  border-radius: 6px;
+  border-radius: 10px;
   color: var(--text-primary);
   font-size: 14px;
   font-family: inherit;
@@ -142,12 +143,19 @@ const FormTextarea = styled.textarea`
   }
 `;
 
+const FormTextContainer = styled.div`
+  width: 100%;
+    display: flex;
+  min-height: 80px;
+  width: 100%;
+`;
+
 const FormSelect = styled.select`
   width: 100%;
   padding: 8px 12px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-bg);
-  border-radius: 6px;
+  border-radius: 10px;
   color: var(--text-primary);
   font-size: 14px;
   cursor: pointer;
@@ -183,7 +191,7 @@ const ColorPreview = styled.div<{ color: string }>`
   height: 36px;
   background: ${(props) => props.color || "var(--bg-tertiary)"};
   border: 1px solid var(--border-bg);
-  border-radius: 6px;
+  border-radius: 10px;
   cursor: pointer;
   position: relative;
 
@@ -201,9 +209,13 @@ const ColorInput = styled.input`
 `;
 
 const PanelSectionContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   background: var(--bg-secondary);
   border: 1px solid var(--border-bg);
-  border-radius: 6px;
+  border-radius: 10px;
   padding: 12px;
   margin-bottom: 12px;
   position: relative;
@@ -212,6 +224,7 @@ const PanelSectionContainer = styled.div`
 const PanelHeader = styled.div`
   display: flex;
   justify-content: space-between;
+  width: 100%;
   align-items: center;
   margin-bottom: 12px;
 `;
@@ -223,9 +236,12 @@ const DeleteButton = styled.button`
   font-size: 14px;
   cursor: pointer;
   padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
 
   &:hover {
     color: var(--error);
+    background: var(--hover-bg);
   }
 `;
 
@@ -234,7 +250,7 @@ const AddButton = styled.button`
   padding: 10px;
   background: transparent;
   border: 1px dashed var(--border-bg);
-  border-radius: 6px;
+  border-radius: 10px;
   color: var(--text-muted);
   font-size: 13px;
   cursor: pointer;
@@ -250,7 +266,7 @@ const AddButton = styled.button`
 const UploadSection = styled.div`
   background: var(--bg-secondary);
   border: 1px dashed var(--border-bg);
-  border-radius: 6px;
+  border-radius: 10px;
   padding: 24px;
   text-align: center;
   cursor: pointer;
@@ -476,16 +492,19 @@ export const EditNodeModal: React.FC<EditNodeModalProps> = ({
                     style={{ marginBottom: 0 }}
                   />
                   <DeleteButton onClick={() => deletePanel(index)}>
-                    ✕
+                    <Trash size={14} />
                   </DeleteButton>
                 </PanelHeader>
-                <FormTextarea
-                  value={panel.labelContent as string}
-                  onChange={(e) =>
-                    updatePanel(index, "labelContent", e.target.value)
-                  }
-                  placeholder="Section content..."
-                />
+
+                <FormTextContainer>
+                  <FormTextarea
+                    value={panel.labelContent as string}
+                    onChange={(e) =>
+                      updatePanel(index, "labelContent", e.target.value)
+                    }
+                    placeholder="Section content..."
+                  />
+                </FormTextContainer>
               </PanelSectionContainer>
             ))}
             <AddButton onClick={addPanel}>+ Add Panel Section</AddButton>
