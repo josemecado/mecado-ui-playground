@@ -6,13 +6,12 @@ import styled from "styled-components";
 export interface PanelSection {
   id: string;
   title: string;
-  content: React.ReactNode;
+  labelContent: React.ReactNode;
   metadata?: Record<string, any>;
 }
 
 export interface NodeGeometry {
   id: string;
-  type: "step" | "stl" | "mesh" | "custom";
   renderContent?: () => React.ReactElement;
   placeholder?: string;
 }
@@ -26,11 +25,11 @@ export interface EdgeConfig {
 
 export interface GeoNodeData extends Record<string, unknown> {
   title: string;
-  label?: string;
+  geoLabel?: string;
   panels: PanelSection[];
   geometry?: NodeGeometry;
   status?: "idle" | "processing" | "complete" | "error";
-  statusColor?: string; // Custom color for status badge
+  color?: string; // Custom color for status badge
   edges?: EdgeConfig[]; // Configuration for outgoing edges
   metadata?: Record<string, any>;
 }
@@ -75,7 +74,7 @@ const NodeTitle = styled.h3`
 
 const StatusBadge = styled.span<{ status?: string; customColor?: string }>`
   font-size: 11px;
-  padding: 2px 4px;
+  padding: 4px;
   border-radius: 4px;
   font-weight: 500;
   text-transform: capitalize;
@@ -83,13 +82,13 @@ const StatusBadge = styled.span<{ status?: string; customColor?: string }>`
   background: ${props => {
     if (props.customColor) return props.customColor;
     switch(props.status) {
-      case 'complete': return 'var(--accent-primary)';
+      case 'complete': return 'var(--bg-secondary)';
       case 'processing': return 'var(--primary-action)';
       case 'error': return 'var(--error)';
       default: return 'var(--bg-tertiary)';
     }
   }};
-  color: ${props => props.status === 'idle' && !props.customColor ? 'var(--text-muted)' : 'white'};
+  color: ${props => props.status === 'complete' && !props.customColor ? 'var(--text-muted)' : 'white'};
 `;
 
 const ContentContainer = styled.div`
@@ -208,7 +207,7 @@ const NodeLabel = styled.div`
 
 // ============= COMPONENT =============
 export const GeoNode: React.FC<GeoNodeProps> = ({ data, selected = false }) => {
-  const { title, panels, geometry, label, status, statusColor } = data;
+  const { title, panels, geometry, geoLabel, status, color } = data;
   const [expandedSection, setExpandedSection] = useState<string | null>(
     panels.length > 0 ? panels[0].id : null
   );
@@ -231,7 +230,7 @@ export const GeoNode: React.FC<GeoNodeProps> = ({ data, selected = false }) => {
 
       <NodeHeader>
         <NodeTitle>{title}</NodeTitle>
-        {status && <StatusBadge status={status} customColor={statusColor}>{status}</StatusBadge>}
+        {status && <StatusBadge status={status} customColor={color}>{status}</StatusBadge>}
       </NodeHeader>
 
 
@@ -254,14 +253,14 @@ export const GeoNode: React.FC<GeoNodeProps> = ({ data, selected = false }) => {
                 </ExpandIcon>
               </SectionHeader>
               <SectionContent isExpanded={expandedSection === panel.id}>
-                {panel.content}
+                {panel.labelContent}
               </SectionContent>
             </SectionContainer>
           ))}
         </SidePanel>
 
         <CanvasArea>
-          {label && <NodeLabel>{label}</NodeLabel>}
+          {geoLabel && <NodeLabel>{geoLabel}</NodeLabel>}
           {geometry?.renderContent ? (
             geometry.renderContent()
           ) : (

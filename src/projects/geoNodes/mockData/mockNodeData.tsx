@@ -24,9 +24,8 @@ export const mockNodes: Node<GeoNodeData>[] = [
     position: { x: 100, y: 200 },
     data: {
       title: "Preprocessing",
-      label: "STEP Import",
+      geoLabel: "STEP Import",
       status: "complete",
-      statusColor: "#4caf50",
       edges: [
         { targetId: "meshing", label: "Clean Geometry", animated: true }
       ],
@@ -34,22 +33,21 @@ export const mockNodes: Node<GeoNodeData>[] = [
         {
           id: "status",
           title: "Status",
-          content: createPreprocessingStatusContent(),
+          labelContent: createPreprocessingStatusContent(),
         },
         {
           id: "results",
           title: "Results",
-          content: createPreprocessingResultsContent(),
+          labelContent: createPreprocessingResultsContent(),
         },
         {
           id: "materials",
           title: "Materials",
-          content: createEmptyMaterialsContent(),
+          labelContent: createEmptyMaterialsContent(),
         },
       ],
       geometry: {
         id: "geo1",
-        type: "step",
         renderContent: createStepGeometry,
       },
     } as GeoNodeData,
@@ -60,30 +58,29 @@ export const mockNodes: Node<GeoNodeData>[] = [
     position: { x: 750, y: 200 },
     data: {
       title: "Mesh Generation",
-      label: "Tetrahedral Mesh",
+      geoLabel: "Tetrahedral Mesh",
       status: "processing",
-      statusColor: "#2196f3",
+      color: "#2196f3",
       edges: [],
       panels: [
         {
           id: "status",
           title: "Status",
-          content: createMeshingStatusContent(),
+          labelContent: createMeshingStatusContent(),
         },
         {
           id: "results",
           title: "Results",
-          content: createMeshingResultsContent(),
+          labelContent: createMeshingResultsContent(),
         },
         {
           id: "materials",
           title: "Materials",
-          content: createMaterialsContent(materials),
+          labelContent: createMaterialsContent(materials),
         },
       ],
       geometry: {
         id: "geo2",
-        type: "mesh",
         renderContent: createMeshGeometry,
       },
     } as GeoNodeData,
