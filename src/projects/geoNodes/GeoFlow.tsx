@@ -15,7 +15,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { GeoNode, GeoNodeData } from "./GeoNode";
-import { mockNodes } from "./mockNodeData";
+import { mockNodes } from "./mockData/mockNodeData";
 
 const nodeTypes = {
   geoNode: GeoNode,
