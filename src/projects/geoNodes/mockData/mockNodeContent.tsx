@@ -1,5 +1,48 @@
-// ============= JSX CONTENT GENERATORS =============
-export const createStatusContent = (status: 'complete' | 'processing', executionTime?: string, estimatedTime?: string, progress?: number) => (
+import React from "react";
+
+// ============= EMPTY GEOMETRY UI =============
+export const createEmptyGeometryUI = () => (
+  <div style={{ 
+    textAlign: "center",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "12px"
+  }}>
+    <svg width="80" height="80" viewBox="0 0 80 80" style={{ opacity: 0.3 }}>
+      <rect
+        x="10"
+        y="10"
+        width="60"
+        height="60"
+        fill="none"
+        stroke="var(--text-muted)"
+        strokeWidth="2"
+        strokeDasharray="5,5"
+        rx="8"
+      />
+      <path
+        d="M 25 40 L 35 50 L 55 30"
+        stroke="var(--text-muted)"
+        strokeWidth="2"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+    <div style={{ 
+      fontSize: "13px", 
+      color: "var(--text-muted)",
+      fontWeight: "500"
+    }}>
+      No Geometry Loaded
+    </div>
+  </div>
+);
+
+// ============= STATUS PANEL CONTENTS =============
+export const createPreprocessingStatusPanel = () => (
   <div style={{ fontSize: "12px" }}>
     <div
       style={{
@@ -9,8 +52,15 @@ export const createStatusContent = (status: 'complete' | 'processing', execution
         borderRadius: "4px",
       }}
     >
-      <div style={{ color: status === 'complete' ? "var(--accent-primary)" : "#2196f3", fontWeight: "600" }}>
-        {status === 'complete' ? '✓ Complete' : '⟳ Processing'}
+      <div style={{ 
+        color: "var(--accent-primary)", 
+        fontWeight: "600",
+        display: "flex",
+        alignItems: "center",
+        gap: "6px"
+      }}>
+        <span>✓</span>
+        <span>Complete</span>
       </div>
       <div
         style={{
@@ -19,34 +69,9 @@ export const createStatusContent = (status: 'complete' | 'processing', execution
           marginTop: "4px",
         }}
       >
-        {status === 'complete' ? `Execution time: ${executionTime}` : `Estimated time: ${estimatedTime}`}
+        Execution time: 3.2s
       </div>
-      {status === 'processing' && progress && (
-        <div
-          style={{
-            marginTop: "8px",
-            background: "var(--bg-secondary)",
-            height: "4px",
-            borderRadius: "2px",
-          }}
-        >
-          <div
-            style={{
-              width: `${progress}%`,
-              background: "#2196f3",
-              height: "100%",
-              borderRadius: "2px",
-            }}
-          />
-        </div>
-      )}
     </div>
-  </div>
-);
-
-export const createPreprocessingStatusContent = () => (
-  <div style={{ fontSize: "12px" }}>
-    {createStatusContent('complete', '3.2s')}
     <div style={{ marginBottom: "8px", color: "var(--text-primary)" }}>
       <strong>Input:</strong> assembly.step (18.4 MB)
     </div>
@@ -59,8 +84,133 @@ export const createPreprocessingStatusContent = () => (
   </div>
 );
 
-export const createPreprocessingResultsContent = () => (
+export const createMeshingStatusPanel = () => (
   <div style={{ fontSize: "12px" }}>
+    <div
+      style={{
+        marginBottom: "12px",
+        padding: "8px",
+        background: "var(--bg-tertiary)",
+        borderRadius: "4px",
+      }}
+    >
+      <div style={{ 
+        color: "#2196f3", 
+        fontWeight: "600",
+        display: "flex",
+        alignItems: "center",
+        gap: "6px"
+      }}>
+        <span>⟳</span>
+        <span>Processing</span>
+      </div>
+      <div
+        style={{
+          fontSize: "11px",
+          color: "var(--text-muted)",
+          marginTop: "4px",
+        }}
+      >
+        Estimated time: 15s remaining
+      </div>
+      <div
+        style={{
+          marginTop: "8px",
+          background: "var(--bg-secondary)",
+          height: "4px",
+          borderRadius: "2px",
+        }}
+      >
+        <div
+          style={{
+            width: "45%",
+            background: "#2196f3",
+            height: "100%",
+            borderRadius: "2px",
+            transition: "width 0.3s ease"
+          }}
+        />
+      </div>
+    </div>
+    <div style={{ marginBottom: "8px", color: "var(--text-primary)" }}>
+      <strong>Method:</strong> Tetrahedral
+    </div>
+    <div style={{ marginBottom: "8px", color: "var(--text-primary)" }}>
+      <strong>Quality:</strong> High (refined)
+    </div>
+    <div style={{ color: "var(--text-primary)" }}>
+      <strong>Target Size:</strong> 2.5mm
+    </div>
+  </div>
+);
+
+// ============= RESULTS PANEL CONTENTS =============
+export const createPreprocessingResultsPanel = () => (
+  <div style={{ fontSize: "12px" }}>
+    <div style={{ marginBottom: "16px" }}>
+      <div style={{ fontWeight: "600", marginBottom: "8px", color: "var(--text-primary)" }}>
+        Performance Metrics
+      </div>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: "8px"
+      }}>
+        <div style={{
+          padding: "8px",
+          background: "var(--bg-tertiary)",
+          borderRadius: "4px",
+        }}>
+          <div style={{ 
+            fontSize: "10px", 
+            color: "var(--text-muted)",
+            marginBottom: "4px"
+          }}>
+            Margin of Safety
+          </div>
+          <div style={{ 
+            fontSize: "16px", 
+            fontWeight: "600",
+            color: "#4CAF50"
+          }}>
+            +12.3%
+          </div>
+          <div style={{ 
+            fontSize: "10px", 
+            color: "var(--text-muted)"
+          }}>
+            vs. baseline
+          </div>
+        </div>
+        <div style={{
+          padding: "8px",
+          background: "var(--bg-tertiary)",
+          borderRadius: "4px",
+        }}>
+          <div style={{ 
+            fontSize: "10px", 
+            color: "var(--text-muted)",
+            marginBottom: "4px"
+          }}>
+            Total Mass
+          </div>
+          <div style={{ 
+            fontSize: "16px", 
+            fontWeight: "600",
+            color: "var(--text-primary)"
+          }}>
+            45.2 kg
+          </div>
+          <div style={{ 
+            fontSize: "10px", 
+            color: "#FF9800"
+          }}>
+            -8.1% reduction
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <div style={{ marginBottom: "12px" }}>
       <div style={{ fontWeight: "600", marginBottom: "4px", color: "var(--text-primary)" }}>
         Geometry Cleanup
@@ -71,6 +221,7 @@ export const createPreprocessingResultsContent = () => (
         <div>• Duplicate vertices: 1,247 merged</div>
       </div>
     </div>
+    
     <div>
       <div style={{ fontWeight: "600", marginBottom: "4px", color: "var(--text-primary)" }}>
         Simplification
@@ -84,23 +235,72 @@ export const createPreprocessingResultsContent = () => (
   </div>
 );
 
-export const createMeshingStatusContent = () => (
+export const createMeshingResultsPanel = () => (
   <div style={{ fontSize: "12px" }}>
-    {createStatusContent('processing', undefined, '15s', 45)}
-    <div style={{ marginBottom: "8px", color: "var(--text-primary)" }}>
-      <strong>Method:</strong> Tetrahedral
+    <div style={{ marginBottom: "16px" }}>
+      <div style={{ fontWeight: "600", marginBottom: "8px", color: "var(--text-primary)" }}>
+        Performance Metrics
+      </div>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: "8px"
+      }}>
+        <div style={{
+          padding: "8px",
+          background: "var(--bg-tertiary)",
+          borderRadius: "4px",
+        }}>
+          <div style={{ 
+            fontSize: "10px", 
+            color: "var(--text-muted)",
+            marginBottom: "4px"
+          }}>
+            Margin of Safety
+          </div>
+          <div style={{ 
+            fontSize: "16px", 
+            fontWeight: "600",
+            color: "#f44336"
+          }}>
+            -3.7%
+          </div>
+          <div style={{ 
+            fontSize: "10px", 
+            color: "var(--text-muted)"
+          }}>
+            vs. baseline
+          </div>
+        </div>
+        <div style={{
+          padding: "8px",
+          background: "var(--bg-tertiary)",
+          borderRadius: "4px",
+        }}>
+          <div style={{ 
+            fontSize: "10px", 
+            color: "var(--text-muted)",
+            marginBottom: "4px"
+          }}>
+            Total Mass
+          </div>
+          <div style={{ 
+            fontSize: "16px", 
+            fontWeight: "600",
+            color: "var(--text-primary)"
+          }}>
+            42.8 kg
+          </div>
+          <div style={{ 
+            fontSize: "10px", 
+            color: "#4CAF50"
+          }}>
+            -12.4% reduction
+          </div>
+        </div>
+      </div>
     </div>
-    <div style={{ marginBottom: "8px", color: "var(--text-primary)" }}>
-      <strong>Quality:</strong> High (refined)
-    </div>
-    <div style={{ color: "var(--text-primary)" }}>
-      <strong>Target Size:</strong> 2.5mm
-    </div>
-  </div>
-);
-
-export const createMeshingResultsContent = () => (
-  <div style={{ fontSize: "12px" }}>
+    
     <div style={{ marginBottom: "12px" }}>
       <div style={{ fontWeight: "600", marginBottom: "4px", color: "var(--text-primary)" }}>
         Mesh Statistics
@@ -111,7 +311,8 @@ export const createMeshingResultsContent = () => (
         <div>• Average size: 2.5mm</div>
       </div>
     </div>
-    <div style={{ marginBottom: "12px" }}>
+    
+    <div>
       <div style={{ fontWeight: "600", marginBottom: "4px", color: "var(--text-primary)" }}>
         Quality Metrics
       </div>
@@ -121,8 +322,10 @@ export const createMeshingResultsContent = () => (
         <div>• Skewness: Pending</div>
       </div>
     </div>
+    
     <div
       style={{
+        marginTop: "12px",
         padding: "8px",
         background: "var(--bg-tertiary)",
         borderRadius: "4px",
@@ -135,110 +338,158 @@ export const createMeshingResultsContent = () => (
   </div>
 );
 
-export const createMaterialsContent = (materials: Array<{name: string, properties: {E: string, v: string, density: string}}>) => (
+// ============= MATERIALS PANEL CONTENTS =============
+export const createPreprocessingMaterialsPanel = () => (
   <div style={{ fontSize: "12px" }}>
-    <div style={{ fontWeight: "600", marginBottom: "8px", color: "var(--text-primary)" }}>
+    <div style={{ 
+      padding: "12px",
+      background: "var(--bg-tertiary)",
+      borderRadius: "4px",
+      textAlign: "center"
+    }}>
+      <div style={{ 
+        fontSize: "11px", 
+        color: "var(--text-muted)",
+        marginBottom: "8px"
+      }}>
+        No materials assigned
+      </div>
+      <div style={{ 
+        color: "var(--text-primary)",
+        fontWeight: "500"
+      }}>
+        Materials will be configured in the next step
+      </div>
+    </div>
+    <div style={{
+      marginTop: "12px",
+      padding: "8px",
+      border: "1px dashed var(--border-bg)",
+      borderRadius: "4px",
+      fontSize: "11px",
+      color: "var(--text-muted)"
+    }}>
+      Tip: Assign materials after mesh generation for optimal results
+    </div>
+  </div>
+);
+
+export const createMeshingMaterialsPanel = () => (
+  <div style={{ fontSize: "12px" }}>
+    <div style={{ fontWeight: "600", marginBottom: "12px", color: "var(--text-primary)" }}>
       Assigned Materials
     </div>
-    {materials.map((material, index) => (
-      <div
-        key={index}
-        style={{
-          marginBottom: index < materials.length - 1 ? "8px" : 0,
-          padding: "8px",
-          background: "var(--bg-tertiary)",
-          borderRadius: "4px",
-        }}
-      >
-        <div style={{ fontWeight: "500", color: "var(--text-primary)" }}>{material.name}</div>
-        <div
-          style={{
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            marginTop: "4px",
-          }}
-        >
-          <div>E: {material.properties.E}</div>
-          <div>ν: {material.properties.v}</div>
-          <div>ρ: {material.properties.density}</div>
+    
+    <div style={{
+      marginBottom: "8px",
+      padding: "10px",
+      background: "var(--bg-tertiary)",
+      borderRadius: "4px",
+      border: "1px solid var(--border-bg)"
+    }}>
+      <div style={{ 
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: "8px"
+      }}>
+        <div style={{ fontWeight: "500", color: "var(--text-primary)" }}>
+          Aluminum 6061-T6
+        </div>
+        <span style={{
+          fontSize: "10px",
+          padding: "2px 6px",
+          background: "var(--primary-action)",
+          color: "white",
+          borderRadius: "3px"
+        }}>
+          Primary
+        </span>
+      </div>
+      <div style={{
+        fontSize: "11px",
+        color: "var(--text-muted)",
+        display: "grid",
+        gridTemplateColumns: "repeat(3, 1fr)",
+        gap: "8px"
+      }}>
+        <div>
+          <div style={{ fontSize: "10px", opacity: 0.7 }}>Young's</div>
+          <div>68.9 GPa</div>
+        </div>
+        <div>
+          <div style={{ fontSize: "10px", opacity: 0.7 }}>Poisson's</div>
+          <div>0.33</div>
+        </div>
+        <div>
+          <div style={{ fontSize: "10px", opacity: 0.7 }}>Density</div>
+          <div>2700 kg/m³</div>
         </div>
       </div>
-    ))}
-  </div>
-);
-
-export const createEmptyMaterialsContent = () => (
-  <div style={{ fontSize: "12px" }}>
-    <div style={{ fontWeight: "600", marginBottom: "8px", color: "var(--text-primary)" }}>
-      Not configured
     </div>
-    <div style={{ color: "var(--text-muted)" }}>
-      Materials will be assigned in the next step
+    
+    <div style={{
+      marginBottom: "8px",
+      padding: "10px",
+      background: "var(--bg-tertiary)",
+      borderRadius: "4px",
+      border: "1px solid var(--border-bg)"
+    }}>
+      <div style={{ 
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: "8px"
+      }}>
+        <div style={{ fontWeight: "500", color: "var(--text-primary)" }}>
+          Steel AISI 304
+        </div>
+        <span style={{
+          fontSize: "10px",
+          padding: "2px 6px",
+          background: "var(--bg-secondary)",
+          color: "var(--text-muted)",
+          borderRadius: "3px",
+          border: "1px solid var(--border-bg)"
+        }}>
+          Secondary
+        </span>
+      </div>
+      <div style={{
+        fontSize: "11px",
+        color: "var(--text-muted)",
+        display: "grid",
+        gridTemplateColumns: "repeat(3, 1fr)",
+        gap: "8px"
+      }}>
+        <div>
+          <div style={{ fontSize: "10px", opacity: 0.7 }}>Young's</div>
+          <div>193 GPa</div>
+        </div>
+        <div>
+          <div style={{ fontSize: "10px", opacity: 0.7 }}>Poisson's</div>
+          <div>0.29</div>
+        </div>
+        <div>
+          <div style={{ fontSize: "10px", opacity: 0.7 }}>Density</div>
+          <div>8000 kg/m³</div>
+        </div>
+      </div>
     </div>
-  </div>
-);
-
-export const createStepGeometry = () => (
-  <div style={{ textAlign: "center" }}>
-    <svg width="120" height="120" viewBox="0 0 120 120">
-      <rect
-        x="20"
-        y="20"
-        width="80"
-        height="80"
-        fill="var(--bg-tertiary)"
-        stroke="var(--accent-primary)"
-        strokeWidth="2"
-        rx="4"
-      />
-      <rect
-        x="30"
-        y="30"
-        width="60"
-        height="60"
-        fill="var(--bg-secondary)"
-        stroke="var(--primary-action)"
-        strokeWidth="1"
-        rx="2"
-      />
-      <circle cx="60" cy="60" r="15" fill="var(--primary-action)" />
-    </svg>
-    <div style={{ fontSize: "14px", color: "var(--text-muted)", marginTop: "8px" }}>
-      Simplified Geometry
-    </div>
-  </div>
-);
-
-export const createMeshGeometry = () => (
-  <div style={{ textAlign: "center" }}>
-    <svg width="120" height="120" viewBox="0 0 120 120">
-      <defs>
-        <pattern
-          id="mesh-pattern"
-          x="0"
-          y="0"
-          width="10"
-          height="10"
-          patternUnits="userSpaceOnUse"
-        >
-          <path
-            d="M 0 0 L 10 0 L 5 8.66 Z"
-            stroke="var(--text-muted)"
-            strokeWidth="0.5"
-            fill="none"
-          />
-        </pattern>
-      </defs>
-      <rect
-        x="10"
-        y="10"
-        width="100"
-        height="100"
-        fill="url(#mesh-pattern)"
-      />
-    </svg>
-    <div style={{ fontSize: "14px", color: "var(--text-muted)", marginTop: "8px" }}>
-      Generating Mesh...
+    
+    <div style={{
+      marginTop: "12px",
+      padding: "8px",
+      background: "var(--bg-primary)",
+      borderRadius: "4px",
+      fontSize: "11px",
+      color: "var(--text-muted)",
+      display: "flex",
+      alignItems: "center",
+      gap: "6px"
+    }}>
+      <span>ℹ️</span>
+      <span>Material assignment: 65% Al, 35% Steel</span>
     </div>
   </div>
 );

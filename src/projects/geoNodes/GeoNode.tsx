@@ -6,12 +6,21 @@ import styled from "styled-components";
 export interface PanelSection {
   id: string;
   title: string;
-  labelContent: React.ReactNode;
+  panelContent: React.ReactNode;
   metadata?: Record<string, any>;
+}
+
+
+export interface GeometryData {
+  facesFile: ArrayBuffer;
+  edgesFile: ArrayBuffer;
+  bodiesFile: ArrayBuffer;
+  fileName?: string;
 }
 
 export interface NodeGeometry {
   id: string;
+  data?: GeometryData; // Store the actual geometry data
   renderContent?: () => React.ReactElement;
   placeholder?: string;
 }
@@ -287,7 +296,7 @@ export const GeoNode: React.FC<GeoNodeProps> = ({ id, data, selected = false }) 
                 </ExpandIcon>
               </SectionHeader>
               <SectionContent isExpanded={expandedSection === panel.id}>
-                {panel.labelContent}
+                {panel.panelContent}
               </SectionContent>
             </SectionContainer>
           ))}

@@ -2,21 +2,18 @@ import React from "react";
 import { Node } from "@xyflow/react";
 import { GeoNodeData } from "../GeoNode";
 
-import { createPreprocessingStatusContent } from "./mockNodeContent";
-import { createPreprocessingResultsContent } from "./mockNodeContent";
-import { createMeshingStatusContent } from "./mockNodeContent";
-import { createMeshingResultsContent } from "./mockNodeContent";
-import { createMaterialsContent } from "./mockNodeContent";
-import { createStepGeometry } from "./mockNodeContent";
-import { createMeshGeometry } from "./mockNodeContent";
-import { createEmptyMaterialsContent } from "./mockNodeContent";
-// ============= MOCK DATA =============
+// Import all the panel content creators
+import {
+  createEmptyGeometryUI,
+  createPreprocessingStatusPanel,
+  createPreprocessingResultsPanel,
+  createPreprocessingMaterialsPanel,
+  createMeshingStatusPanel,
+  createMeshingResultsPanel,
+  createMeshingMaterialsPanel
+} from "./mockNodeContent";
 
-const materials = [
-  { name: "Aluminum 6061-T6", properties: { E: "68.9 GPa", v: "0.33", density: "2700 kg/m³" } },
-  { name: "Steel AISI 304", properties: { E: "193 GPa", v: "0.29", density: "8000 kg/m³" } }
-];
-
+// ============= MOCK NODES DATA =============
 export const mockNodes: Node<GeoNodeData>[] = [
   {
     id: "preprocessing",
@@ -33,22 +30,23 @@ export const mockNodes: Node<GeoNodeData>[] = [
         {
           id: "status",
           title: "Status",
-          labelContent: createPreprocessingStatusContent(),
+          panelContent: createPreprocessingStatusPanel(),
         },
         {
           id: "results",
           title: "Results",
-          labelContent: createPreprocessingResultsContent(),
+          panelContent: createPreprocessingResultsPanel(),
         },
         {
           id: "materials",
           title: "Materials",
-          labelContent: createEmptyMaterialsContent(),
+          panelContent: createPreprocessingMaterialsPanel(),
         },
       ],
       geometry: {
         id: "geo1",
-        renderContent: createStepGeometry,
+        renderContent: createEmptyGeometryUI,
+        placeholder: "Geometry Preview"
       },
     } as GeoNodeData,
   },
@@ -66,22 +64,23 @@ export const mockNodes: Node<GeoNodeData>[] = [
         {
           id: "status",
           title: "Status",
-          labelContent: createMeshingStatusContent(),
+          panelContent: createMeshingStatusPanel(),
         },
         {
           id: "results",
           title: "Results",
-          labelContent: createMeshingResultsContent(),
+          panelContent: createMeshingResultsPanel(),
         },
         {
           id: "materials",
           title: "Materials",
-          labelContent: createMaterialsContent(materials),
+          panelContent: createMeshingMaterialsPanel(),
         },
       ],
       geometry: {
         id: "geo2",
-        renderContent: createMeshGeometry,
+        renderContent: createEmptyGeometryUI,
+        placeholder: "Mesh Preview"
       },
     } as GeoNodeData,
   },

@@ -380,7 +380,7 @@ export const EditNodeModal: React.FC<EditNodeModalProps> = ({
     const newPanel: PanelSection = {
       id: `panel-${Date.now()}`,
       title: "New Section",
-      labelContent: "",
+      panelContent: "",
     };
     updateField("panels", [...formData.panels, newPanel]);
   };
@@ -498,7 +498,7 @@ export const EditNodeModal: React.FC<EditNodeModalProps> = ({
 
                 <FormTextContainer>
                   <FormTextarea
-                    value={panel.labelContent as string}
+                    value={panel.panelContent as string}
                     onChange={(e) =>
                       updatePanel(index, "labelContent", e.target.value)
                     }
