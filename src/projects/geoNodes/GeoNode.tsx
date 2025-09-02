@@ -10,7 +10,6 @@ export interface PanelSection {
   metadata?: Record<string, any>;
 }
 
-
 export interface GeometryData {
   facesFile: ArrayBuffer;
   edgesFile: ArrayBuffer;
@@ -64,7 +63,7 @@ const EditButton = styled.button`
   opacity: 0;
   z-index: 999;
   transition: all 0.2s;
-  
+
   &:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
@@ -79,20 +78,21 @@ const NodeContainer = styled.div<{ selected: boolean }>`
   border-radius: 12px;
   width: 600px;
   min-height: 350px;
+  max-height: 500px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   transition: border-color 0.2s ease;
   background: var(--bg-secondary);
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
-  
+
   &:hover ${EditButton} {
     opacity: 1;
   }
 `;
 
 const NodeHeader = styled.div`
-  padding: 12px 16px;
+  padding: 8px;
   background: var(--bg-tertiary);
   border-bottom: 1px solid var(--border-bg);
   display: flex;
@@ -114,16 +114,23 @@ const StatusBadge = styled.span<{ status?: string; customColor?: string }>`
   font-weight: 500;
   text-transform: capitalize;
 
-  background: ${props => {
+  background: ${(props) => {
     if (props.customColor) return props.customColor;
-    switch(props.status) {
-      case 'complete': return 'var(--bg-secondary)';
-      case 'processing': return 'var(--primary-action)';
-      case 'error': return 'var(--error)';
-      default: return 'var(--bg-tertiary)';
+    switch (props.status) {
+      case "complete":
+        return "var(--bg-secondary)";
+      case "processing":
+        return "var(--primary-action)";
+      case "error":
+        return "var(--error)";
+      default:
+        return "var(--bg-tertiary)";
     }
   }};
-  color: ${props => props.status === 'complete' && !props.customColor ? 'var(--text-muted)' : 'white'};
+  color: ${(props) =>
+    props.status === "complete" && !props.customColor
+      ? "var(--text-muted)"
+      : "white"};
 `;
 
 const ContentContainer = styled.div`
@@ -147,7 +154,7 @@ const CanvasArea = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 12px;
   position: relative;
   overflow: auto;
 `;
@@ -167,7 +174,8 @@ const SectionHeader = styled.button<{ isExpanded: boolean }>`
   justify-content: space-between;
   width: 100%;
   padding: 10px 12px;
-  background: ${props => props.isExpanded ? "var(--bg-tertiary)" : "var(--bg-secondary)"};
+  background: ${(props) =>
+    props.isExpanded ? "var(--bg-tertiary)" : "var(--bg-secondary)"};
   border: none;
   cursor: pointer;
   transition: background 0.2s ease;
@@ -180,7 +188,8 @@ const SectionHeader = styled.button<{ isExpanded: boolean }>`
 const SectionTitle = styled.span<{ isExpanded: boolean }>`
   font-size: 12px;
   font-weight: 600;
-  color: ${props => props.isExpanded ? "var(--text-primary)" : "var(--text-muted)"};
+  color: ${(props) =>
+    props.isExpanded ? "var(--text-primary)" : "var(--text-muted)"};
   text-align: left;
 `;
 
@@ -195,11 +204,13 @@ const SectionContent = styled.div<{ isExpanded: boolean }>`
   padding: ${(props) => (props.isExpanded ? "10px" : "0")};
   max-height: ${(props) => (props.isExpanded ? "500px" : "0")};
   height: 100%;
-  opacity: ${props => props.isExpanded ? "1" : "0"};
+  opacity: ${(props) => (props.isExpanded ? "1" : "0")};
   overflow-y: auto;
   transition: all 0.3s ease;
   color: var(--text-primary);
   background: var(--bg-secondary);
+
+  font-size: 13px;
 
   &::-webkit-scrollbar {
     width: 4px;
@@ -241,7 +252,11 @@ const NodeLabel = styled.div`
 `;
 
 // ============= COMPONENT =============
-export const GeoNode: React.FC<GeoNodeProps> = ({ id, data, selected = false }) => {
+export const GeoNode: React.FC<GeoNodeProps> = ({
+  id,
+  data,
+  selected = false,
+}) => {
   const { title, panels, geometry, geoLabel, status, color } = data;
   const [expandedSection, setExpandedSection] = useState<string | null>(
     panels.length > 0 ? panels[0].id : null
@@ -252,8 +267,8 @@ export const GeoNode: React.FC<GeoNodeProps> = ({ id, data, selected = false }) 
   };
 
   const handleEdit = () => {
-    const event = new CustomEvent('editNode', { 
-      detail: { nodeId: id, data } 
+    const event = new CustomEvent("editNode", {
+      detail: { nodeId: id, data },
     });
     window.dispatchEvent(event);
   };
@@ -261,7 +276,7 @@ export const GeoNode: React.FC<GeoNodeProps> = ({ id, data, selected = false }) 
   return (
     <NodeContainer selected={selected}>
       <EditButton onClick={handleEdit}>Edit</EditButton>
-      
+
       <Handle
         type="target"
         position={Position.Top}
@@ -272,9 +287,15 @@ export const GeoNode: React.FC<GeoNodeProps> = ({ id, data, selected = false }) 
         }}
       />
 
-      <NodeHeader>
+      <NodeHeader className="node-header-drag">
+        {" "}
+        {/* ⬅️ drag handle */}
         <NodeTitle>{title}</NodeTitle>
-        {status && <StatusBadge status={status} customColor={color}>{status}</StatusBadge>}
+        {status && (
+          <StatusBadge status={status} customColor={color}>
+            {status}
+          </StatusBadge>
+        )}
       </NodeHeader>
 
       <ContentContainer>
@@ -304,13 +325,25 @@ export const GeoNode: React.FC<GeoNodeProps> = ({ id, data, selected = false }) 
 
         <CanvasArea>
           {geoLabel && <NodeLabel>{geoLabel}</NodeLabel>}
-          {geometry?.renderContent ? (
-            geometry.renderContent()
-          ) : (
-            <CanvasPlaceholder>
-              {geometry?.placeholder || "Canvas Area"}
-            </CanvasPlaceholder>
-          )}
+
+          {/* ⬅️ Shield React Flow from pointer + wheel while interacting with VTK */}
+          <div
+            className="nodrag nowheel"
+            onPointerDown={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
+            style={{ width: "100%", height: "100%" }}
+          >
+            {geometry?.renderContent ? (
+              <div key={geometry.id} style={{ width: "100%", height: "100%" }}>
+                {geometry.renderContent()}
+              </div>
+            ) : (
+              <CanvasPlaceholder>
+                {geometry?.placeholder || "Canvas Area"}
+              </CanvasPlaceholder>
+            )}
+          </div>
         </CanvasArea>
       </ContentContainer>
 
