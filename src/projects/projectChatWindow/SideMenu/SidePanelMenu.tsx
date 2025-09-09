@@ -12,6 +12,13 @@ import {
 import { Equation } from "../../../reusable-components/models/vulcanModels";
 import styled from "styled-components";
 
+//Added
+import ThemeToggleButton from "../../../reusable-components/ThemeToggleButton";
+import Logo from "../../../assets/mecado-logo.svg";
+import LogoBlack from "../../../assets/mecado-logo-black.svg";
+
+import { useTheme } from "../../../utilities/ThemeContext";
+
 export interface FileItem {
   name: string;
   path: string;
@@ -52,6 +59,9 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
   const [generatedFiles, setGeneratedFiles] = useState<FileItem[]>([]);
   const [readyToVisualize, setReadyToVisualize] = useState<boolean>(false);
 
+  const { theme } = useTheme();
+  const currentLogo = theme === "light" ? LogoBlack : Logo;
+
   // Check geometry visualization readiness
   useEffect(() => {
     const loadViz = () => {
@@ -88,8 +98,9 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
     onToggleCollapse?.();
   };
 
-  const tabs = [
-    { id: "views" as TabType, icon: <Eye />, label: "Views" },
+  const viewTabs = [{ id: "views" as TabType, icon: <Eye />, label: "Views" }];
+
+  const toolTabs = [
     {
       id: "files" as TabType,
       icon: <Paperclip />,
@@ -116,42 +127,32 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
         return (
           <ContentSection>
             <SectionTitle>VIEWS</SectionTitle>
-            <ViewItem
+            <ViewItem 
               $isActive={currentView === "chat"}
               onClick={() => onViewChange?.("chat")}
             >
-              <ViewIcon>
-                <MessageSquare />
-              </ViewIcon>
+              <ViewIcon><MessageSquare /></ViewIcon>
               <ViewText>Chat</ViewText>
             </ViewItem>
-            <ViewItem
+            <ViewItem 
               $isActive={currentView === "geometry"}
               $isDisabled={!readyToVisualize}
               onClick={() => readyToVisualize && onViewChange?.("geometry")}
-              title={
-                !readyToVisualize
-                  ? "No geometry available for this version"
-                  : undefined
-              }
+              title={!readyToVisualize ? "No geometry available for this version" : undefined}
             >
-              <ViewIcon>
-                <Box />
-              </ViewIcon>
+              <ViewIcon><Box /></ViewIcon>
               <ViewText>Geometry</ViewText>
             </ViewItem>
-            <ViewItem
+            <ViewItem 
               $isActive={currentView === "nodes"}
               onClick={() => onViewChange?.("nodes")}
             >
-              <ViewIcon>
-                <GitFork />
-              </ViewIcon>
+              <ViewIcon><GitFork /></ViewIcon>
               <ViewText>Versions</ViewText>
             </ViewItem>
           </ContentSection>
         );
-
+      
       case "files":
         return (
           <ContentSection>
@@ -159,13 +160,8 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
             <ItemList>
               {uploadedFiles.length > 0 ? (
                 uploadedFiles.map((file, index) => (
-                  <FileItem
-                    key={`uploaded-${index}`}
-                    onClick={() => handleOpenFile(file.path)}
-                  >
-                    <FileIcon>
-                      <Paperclip />
-                    </FileIcon>
+                  <FileItem key={`uploaded-${index}`} onClick={() => handleOpenFile(file.path)}>
+                    <FileIcon><Paperclip /></FileIcon>
                     <FileName>{file.name}</FileName>
                   </FileItem>
                 ))
@@ -175,7 +171,7 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
             </ItemList>
           </ContentSection>
         );
-
+      
       case "docs":
         return (
           <ContentSection>
@@ -183,13 +179,8 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
             <ItemList>
               {generatedFiles.length > 0 ? (
                 generatedFiles.map((file, index) => (
-                  <FileItem
-                    key={`generated-${index}`}
-                    onClick={() => handleOpenFile(file.path)}
-                  >
-                    <FileIcon>
-                      <FileText />
-                    </FileIcon>
+                  <FileItem key={`generated-${index}`} onClick={() => handleOpenFile(file.path)}>
+                    <FileIcon><FileText /></FileIcon>
                     <FileName>{file.name}</FileName>
                   </FileItem>
                 ))
@@ -199,15 +190,25 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
             </ItemList>
           </ContentSection>
         );
-
+      
       case "equations":
         return (
           <ContentSection>
             <SectionTitle>PINNED EQUATIONS</SectionTitle>
-            <EmptyState>No pinned equations</EmptyState>
+            {pinnedHandCalcs.length > 0 ? (
+              <PinnedEquations
+                key={pinnedHandCalcs.length}
+                projectId={projectId}
+                projectVersions={projectVersions}
+                projectVersion={projectVersion}
+                unpinEquation={unpinHandCalc}
+              />
+            ) : (
+              <EmptyState>No pinned equations</EmptyState>
+            )}
           </ContentSection>
         );
-
+      
       default:
         return null;
     }
@@ -220,19 +221,38 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
         <IconPanel>
           <IconPanelHeader>
             <CollapseButton onClick={handleToggleCollapse}>
-              <ChevronLeft />
+              <LogoIcon>
+                <img src={currentLogo} alt="Mecado Logo" />
+              </LogoIcon>
             </CollapseButton>
           </IconPanelHeader>
 
+          {/* Views Section */}
+          <HeaderSection>Views</HeaderSection>
           <TabList>
-            {tabs.map((tab) => (
+            {viewTabs.map((tab) => (
               <TabButton
                 key={tab.id}
                 $isActive={activeTab === tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 title={tab.label}
               >
-                <TabIcon>{tab.icon}</TabIcon>
+                <TabIcon $isActive={activeTab === tab.id}>{tab.icon}</TabIcon>
+              </TabButton>
+            ))}
+          </TabList>
+
+          {/* Tools Section */}
+          <HeaderSection>Tools</HeaderSection>
+          <TabList>
+            {toolTabs.map((tab) => (
+              <TabButton
+                key={tab.id}
+                $isActive={activeTab === tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                title={tab.label}
+              >
+                <TabIcon $isActive={activeTab === tab.id}>{tab.icon}</TabIcon>
                 {tab.badge !== undefined && tab.badge > 0 && (
                   <TabBadge>{tab.badge}</TabBadge>
                 )}
@@ -251,6 +271,7 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
 export default SidePanelMenu;
 
 // Styled Components
+// Styled Components
 const Container = styled.div<{ $isCollapsed: boolean }>`
   display: flex;
   flex-direction: column;
@@ -268,63 +289,47 @@ const MainPanel = styled.div`
 `;
 
 const IconPanel = styled.div`
-  width: 80px;
-  min-width: 80px;
-  background-color: var(--bg-primary);
-  border-right: 1px solid var(--border-bg);
   display: flex;
   flex-direction: column;
+  align-items: center;
+  width: 80px;
+  background-color: var(--bg-primary);
 `;
 
 const IconPanelHeader = styled.div`
-  padding: 16px;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  border-bottom: 1px solid var(--border-bg);
+  margin: 8px 0;
+  margin-bottom: 8px;
 `;
 
 const CollapseButton = styled.button`
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 8px;
   transition: all 0.2s ease;
 
-  svg {
-    width: 20px;
-    height: 20px;
-    color: var(--text-muted);
-    transition: transform 0.3s ease;
-  }
-
   &:hover {
     background: var(--hover-bg);
-    svg {
-      color: var(--text-primary);
-    }
   }
 `;
 
 const TabList = styled.div`
   display: flex;
   flex-direction: column;
-  padding: 8px;
-  gap: 4px;
+  gap: 16px;
 `;
 
 const TabButton = styled.button<{ $isActive: boolean }>`
   position: relative;
-  width: 64px;
-  height: 64px;
   border: none;
+  padding: 10px;
   background: ${(props) =>
     props.$isActive ? "var(--primary-alternate)" : "transparent"};
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -335,45 +340,34 @@ const TabButton = styled.button<{ $isActive: boolean }>`
     background: ${(props) =>
       props.$isActive ? "var(--primary-alternate)" : "var(--hover-bg)"};
   }
-
-  &::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 3px;
-    height: ${(props) => (props.$isActive ? "32px" : "0")};
-    background: var(--accent-primary);
-    border-radius: 0 3px 3px 0;
-    transition: height 0.2s ease;
-  }
 `;
 
-const TabIcon = styled.div`
+const TabIcon = styled.div<{ $isActive: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-
   svg {
     width: 24px;
     height: 24px;
-    color: var(--text-primary);
+    color: ${(props) =>
+      props.$isActive ? "var(--text-inverted)" : "var(--text-primary)"};
   }
 `;
 
 const TabBadge = styled.span`
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: -2px;
+  right: -2px;
   background: var(--error);
   color: white;
   font-size: 11px;
   font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 10px;
-  min-width: 18px;
-  height: 18px;
+  width: 10px;
+  height: 10px;
+  padding: 2px;
+
+
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -508,4 +502,28 @@ const EmptyState = styled.div`
   color: var(--text-muted);
   font-size: 14px;
   font-style: italic;
+`;
+
+const LogoIcon = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  width: 48px;
+  flex-shrink: 0;
+
+  img {
+    height: 72px;
+    width: 72px;
+    flex-shrink: 0;
+  }
+`;
+
+const HeaderSection = styled.div`
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 18px 0 12px 0;
 `;
