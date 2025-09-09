@@ -8,7 +8,7 @@ function App() {
     <div className="App">
       <ThemeProvider>
         <Routes>
-          <Route path="/" element={<MecadoTests />} />
+          <Route path="/" element={<ProjectChatWindow />} />
         </Routes>
       </ThemeProvider>
     </div>

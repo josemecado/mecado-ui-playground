@@ -9,10 +9,11 @@
 
   /* Dark Theme Colors */
   --theme-darkBgPrimary: #191919;
-  --theme-darkBgSecondary: #202020;
+  /* --theme-darkBgSecondary: #202020; */
+  --theme-darkBgSecondary: #262626;
   --theme-darkBgTertiary: #2f3033;
 
-  --theme-darkShadowBackground: #202020;
+  --theme-darkShadowBackground: #191919;
 
   --theme-darkPrimaryAction: #5b7aa6;
   --theme-darkPrimaryAlternate: #ffffff;
@@ -24,16 +25,16 @@
   --theme-darkTextMuted: #94a3b8;
   --theme-darkTextInverted: #1a1d21;
 
-  --theme-darkBorderBg: #374151;
+  --theme-darkBorderBg: #3d3f45;
 
   --theme-darkHoverBg: #3d3f45;
 
-  --theme-darkError: #f87171;
+  --theme-darkError: #ef4444;
 
   /* Light Theme Colors */
   --theme-lightBgPrimary: #eef0f1;
   --theme-lightBgSecondary: #fff;
-  --theme-lightBgTertiary: #eeeeee;
+  --theme-lightBgTertiary: #f6f6f6;
 
   --theme-lightShadowBackground: #f4f4f6;
 
@@ -49,7 +50,7 @@
 
   --theme-lightBorderBg: #e5e7eb;
 
-  --theme-lightHoverBg: #ebebeb;
+  --theme-lightHoverBg: #eeeeee;
 
   --theme-lightError: #ef4444;
 

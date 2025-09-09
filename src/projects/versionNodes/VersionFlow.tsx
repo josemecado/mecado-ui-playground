@@ -354,6 +354,7 @@ const VersionFlowVisualization: React.FC = () => {
           activeVersionId={activeVersionId}
           onVersionChange={handleVersionChangeFromSelector}
           onNewVersion={() => setShowAddModal(true)}
+          showPreviewOnHover={true}
         />
       </MiniSelectorWrapper>
 

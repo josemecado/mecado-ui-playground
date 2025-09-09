@@ -5,12 +5,25 @@ import DetailBar from "../projects/projectChatWindow/DetailBar/DetailBar";
 import StreamingTextBubblePlayground from "../reusable-components/StreamingBubbleTest.tsx/StreamingBubblePlayground";
 import HookArchitectureVisualizer from "../projects/projectGeometryWindow/visualizer/ProjectGeometryVisualizer";
 import LevelArchitectureVisualizer from "../projects/projectGeometryWindow/visualizer/LevelArchitectureVisualizer";
+import SidePanelMenu from "../projects/projectChatWindow/SideMenu/SidePanelMenu";
 
 export default function ProjectChatWindow() {
   return (
     <Container>
-      <SideMenu />
-      <ChatForm />
+      {/* <SideMenu /> */}
+      <SidePanelMenu
+        projectId={""}
+        projectVersions={[]}
+        projectVersion={0}
+        uploadedFilesRefreshKey={0}
+        generatedDocsRefreshKey={0}
+        pinnedHandCalcs={[]}
+        isCollapsed={false}
+        onToggleCollapse={() => {}}
+        currentView={"chat"}
+        onViewChange={() => {}}
+      />
+      {/* <ChatForm /> */}
       {/* <StreamingTextBubblePlayground /> */}
       {/* <HookArchitectureVisualizer /> */}
       {/* <LevelArchitectureVisualizer /> */}

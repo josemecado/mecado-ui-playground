@@ -228,6 +228,7 @@ const SidebarContainer = styled.div<{ $collapsed?: boolean }>`
 
   /* width expands temporarily on hover when collapsed */
   width: ${(p) => (p.$collapsed ? "80px" : "250px")};
+  height: 100vh;
   min-width: 80px;
   min-width: ${(props) => (props.$collapsed ? "80px" : "250px")};
   background-color: var(--bg-secondary);
