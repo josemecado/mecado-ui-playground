@@ -8,44 +8,43 @@
   --smallTextColor: #fafafa;
 
   /* Dark Theme Colors */
-  --theme-darkBgPrimary: #191919;
-  /* --theme-darkBgSecondary: #202020; */
+  --theme-darkBgPrimary: #000000;
   --theme-darkBgSecondary: #262626;
   --theme-darkBgTertiary: #2f3033;
 
   --theme-darkShadowBackground: #191919;
 
-  --theme-darkPrimaryAction: #5b7aa6;
+  --theme-darkPrimaryAction: #2f3e4c;
   --theme-darkPrimaryAlternate: #ffffff;
 
-  --theme-darkAccentPrimary: #0265fe;
-  --theme-darkAccentNeutral: #b1bec9;
+  --theme-darkAccentPrimary: #2f3e4c;
+  --theme-darkAccentNeutral: #738491;
 
-  --theme-darkTextPrimary: #f1f5f9;
-  --theme-darkTextMuted: #94a3b8;
+  --theme-darkTextPrimary: #fff;
+  --theme-darkTextMuted: #B1BEC9;
   --theme-darkTextInverted: #1a1d21;
 
-  --theme-darkBorderBg: #3d3f45;
+  --theme-darkBorderBg: #0b0e16;
 
   --theme-darkHoverBg: #3d3f45;
 
   --theme-darkError: #ef4444;
 
   /* Light Theme Colors */
-  --theme-lightBgPrimary: #eef0f1;
+  --theme-lightBgPrimary: #edf0f2;
   --theme-lightBgSecondary: #fff;
-  --theme-lightBgTertiary: #f6f6f6;
+  --theme-lightBgTertiary: #ecf0f3;
 
   --theme-lightShadowBackground: #f4f4f6;
 
-  --theme-lightPrimaryAction: #42526f;
-  --theme-lightPrimaryAlternate: #242b36;
+  --theme-lightPrimaryAction: #2f3e4c;
+  --theme-lightPrimaryAlternate: #000;
 
-  --theme-lightAccentPrimary: #0158ea;
-  --theme-lightAccentNeutral: #b1bec9;
+  --theme-lightAccentPrimary: #d8dfe4;
+  --theme-lightAccentNeutral: #edf0f2;
 
   --theme-lightTextPrimary: #000;
-  --theme-lightTextMuted: #6b7280;
+  --theme-lightTextMuted: #738491;
   --theme-lightTextInverted: #eef0f1;
 
   --theme-lightBorderBg: #e5e7eb;

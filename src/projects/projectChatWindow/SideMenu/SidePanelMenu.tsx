@@ -127,32 +127,48 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
         return (
           <ContentSection>
             <SectionTitle>VIEWS</SectionTitle>
-            <ViewItem 
+            <ViewItem
               $isActive={currentView === "chat"}
+              $theme={theme}
               onClick={() => onViewChange?.("chat")}
             >
-              <ViewIcon><MessageSquare /></ViewIcon>
-              <ViewText>Chat</ViewText>
+              <ViewIcon $isActive={currentView === "chat"}>
+                <MessageSquare />
+              </ViewIcon>
+              <ViewText $isActive={currentView === "chat"}>Chat</ViewText>
             </ViewItem>
-            <ViewItem 
+            <ViewItem
               $isActive={currentView === "geometry"}
               $isDisabled={!readyToVisualize}
+              $theme={theme}
               onClick={() => readyToVisualize && onViewChange?.("geometry")}
-              title={!readyToVisualize ? "No geometry available for this version" : undefined}
+              title={
+                !readyToVisualize
+                  ? "No geometry available for this version"
+                  : undefined
+              }
             >
-              <ViewIcon><Box /></ViewIcon>
-              <ViewText>Geometry</ViewText>
+              <ViewIcon $isActive={currentView === "geometry"}>
+                <Box />
+              </ViewIcon>
+              <ViewText $isActive={currentView === "geometry"}>
+                Geometry
+              </ViewText>
             </ViewItem>
-            <ViewItem 
+            <ViewItem
               $isActive={currentView === "nodes"}
+              $theme={theme}
               onClick={() => onViewChange?.("nodes")}
             >
-              <ViewIcon><GitFork /></ViewIcon>
-              <ViewText>Versions</ViewText>
+              <ViewIcon $isActive={currentView === "nodes"}>
+                <GitFork />
+              </ViewIcon>
+              <ViewText $isActive={currentView === "nodes"}>Versions</ViewText>
             </ViewItem>
+            <ThemeToggleButton />
           </ContentSection>
         );
-      
+
       case "files":
         return (
           <ContentSection>
@@ -160,8 +176,13 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
             <ItemList>
               {uploadedFiles.length > 0 ? (
                 uploadedFiles.map((file, index) => (
-                  <FileItem key={`uploaded-${index}`} onClick={() => handleOpenFile(file.path)}>
-                    <FileIcon><Paperclip /></FileIcon>
+                  <FileItem
+                    key={`uploaded-${index}`}
+                    onClick={() => handleOpenFile(file.path)}
+                  >
+                    <FileIcon>
+                      <Paperclip />
+                    </FileIcon>
                     <FileName>{file.name}</FileName>
                   </FileItem>
                 ))
@@ -171,7 +192,7 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
             </ItemList>
           </ContentSection>
         );
-      
+
       case "docs":
         return (
           <ContentSection>
@@ -179,8 +200,13 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
             <ItemList>
               {generatedFiles.length > 0 ? (
                 generatedFiles.map((file, index) => (
-                  <FileItem key={`generated-${index}`} onClick={() => handleOpenFile(file.path)}>
-                    <FileIcon><FileText /></FileIcon>
+                  <FileItem
+                    key={`generated-${index}`}
+                    onClick={() => handleOpenFile(file.path)}
+                  >
+                    <FileIcon>
+                      <FileText />
+                    </FileIcon>
                     <FileName>{file.name}</FileName>
                   </FileItem>
                 ))
@@ -190,7 +216,7 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
             </ItemList>
           </ContentSection>
         );
-      
+
       case "equations":
         return (
           <ContentSection>
@@ -208,7 +234,7 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
             )}
           </ContentSection>
         );
-      
+
       default:
         return null;
     }
@@ -218,7 +244,7 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
     <Container $isCollapsed={isCollapsed}>
       <MainPanel>
         {/* Left Icon Panel */}
-        <IconPanel>
+        <IconPanel $isCollapsed={isCollapsed}>
           <IconPanelHeader>
             <CollapseButton onClick={handleToggleCollapse}>
               <LogoIcon>
@@ -234,6 +260,7 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
               <TabButton
                 key={tab.id}
                 $isActive={activeTab === tab.id}
+                $theme={theme}
                 onClick={() => setActiveTab(tab.id)}
                 title={tab.label}
               >
@@ -249,6 +276,7 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
               <TabButton
                 key={tab.id}
                 $isActive={activeTab === tab.id}
+                $theme={theme}
                 onClick={() => setActiveTab(tab.id)}
                 title={tab.label}
               >
@@ -271,7 +299,6 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
 export default SidePanelMenu;
 
 // Styled Components
-// Styled Components
 const Container = styled.div<{ $isCollapsed: boolean }>`
   display: flex;
   flex-direction: column;
@@ -279,6 +306,8 @@ const Container = styled.div<{ $isCollapsed: boolean }>`
   min-width: ${(props) => (props.$isCollapsed ? "80px" : "320px")};
   background-color: var(--bg-secondary);
   transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  border-right: ${(props) =>
+    props.$isCollapsed ? "none" : "1px solid var(--border-bg)"};
   overflow: hidden;
 `;
 
@@ -288,18 +317,18 @@ const MainPanel = styled.div`
   overflow: hidden;
 `;
 
-const IconPanel = styled.div`
+const IconPanel = styled.div<{ $isCollapsed: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 80px;
-  background-color: var(--bg-primary);
+  border-right: 1px solid var(--border-bg);
 `;
 
 const IconPanelHeader = styled.div`
   display: flex;
   margin: 8px 0;
-  margin-bottom: 8px;
+  margin-bottom: 0px;
 `;
 
 const CollapseButton = styled.button`
@@ -323,12 +352,20 @@ const TabList = styled.div`
   gap: 16px;
 `;
 
-const TabButton = styled.button<{ $isActive: boolean }>`
+const TabButton = styled.button<{
+  $isActive?: boolean;
+  $theme: "light" | "dark";
+}>`
   position: relative;
   border: none;
   padding: 10px;
-  background: ${(props) =>
-    props.$isActive ? "var(--primary-alternate)" : "transparent"};
+  background: ${(props) => {
+    if (props.$theme === "dark" && props.$isActive)
+      return "var(--primary-alternate)";
+    if (props.$isActive) return "var(--primary-action)";
+    return "var(--bg-secondary)";
+  }};
+
   border-radius: 10px;
   cursor: pointer;
   display: flex;
@@ -337,8 +374,13 @@ const TabButton = styled.button<{ $isActive: boolean }>`
   transition: all 0.2s ease;
 
   &:hover {
-    background: ${(props) =>
-      props.$isActive ? "var(--primary-alternate)" : "var(--hover-bg)"};
+    background: ${(props) => {
+      if (props.$theme === "dark" && props.$isActive)
+        return "var(--primary-alternate)";
+
+      if (props.$isActive) return "var(--primary-action)";
+      return "var(--hover-bg)";
+    }};
   }
 `;
 
@@ -365,7 +407,6 @@ const TabBadge = styled.span`
   width: 10px;
   height: 10px;
   padding: 2px;
-
 
   border-radius: 50%;
   display: flex;
@@ -402,22 +443,30 @@ const ContentSection = styled.div`
 `;
 
 const SectionTitle = styled.h3`
-  font-size: 12px;
+  font-size: 18px;
   font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 16px;
+  color: var(--text-primary);
+  margin: 0;
+  margin-bottom: 8px;
 `;
 
-const ViewItem = styled.button<{ $isActive?: boolean; $isDisabled?: boolean }>`
+const ViewItem = styled.button<{
+  $isActive?: boolean;
+  $isDisabled?: boolean;
+  $theme: "light" | "dark";
+}>`
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
+  gap: 8px;
+  padding: 10px;
   border: none;
-  background: ${(props) =>
-    props.$isActive ? "var(--primary-alternate)" : "transparent"};
+  background: ${(props) => {
+    if (props.$theme === "dark" && props.$isActive)
+      return "var(--primary-alternate)";
+    if (props.$isActive) return "var(--primary-action)";
+    return "transparent";
+  }};
+
   border-radius: 8px;
   cursor: ${(props) => (props.$isDisabled ? "not-allowed" : "pointer")};
   opacity: ${(props) => (props.$isDisabled ? 0.5 : 1)};
@@ -425,16 +474,19 @@ const ViewItem = styled.button<{ $isActive?: boolean; $isDisabled?: boolean }>`
   margin-bottom: 4px;
 
   &:hover {
-    background: ${(props) =>
-      props.$isDisabled
-        ? "transparent"
-        : props.$isActive
-        ? "var(--primary-alternate)"
-        : "var(--hover-bg)"};
+    background: ${(props) => {
+      if (props.$isDisabled) return "transparent";
+      if (props.$theme === "dark" && props.$isActive)
+        return "var(--primary-alternate)";
+      if (props.$isActive) return "var(--primary-action)";
+      return "var(--hover-bg)";
+    }};
   }
 `;
 
-const ViewIcon = styled.div`
+const ViewIcon = styled.div<{
+  $isActive?: boolean;
+}>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -442,14 +494,22 @@ const ViewIcon = styled.div`
   svg {
     width: 20px;
     height: 20px;
-    color: var(--text-primary);
+    color: ${(props) => {
+      if (props.$isActive) return "var(--text-inverted)";
+      return "var(--text-primary)";
+    }};
   }
 `;
 
-const ViewText = styled.span`
+const ViewText = styled.span<{
+  $isActive?: boolean;
+}>`
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-primary);
+  color: ${(props) => {
+    if (props.$isActive) return "var(--text-inverted)";
+    return "var(--text-primary)";
+  }};
 `;
 
 const ItemList = styled.div`
@@ -513,8 +573,8 @@ const LogoIcon = styled.div`
   flex-shrink: 0;
 
   img {
-    height: 72px;
-    width: 72px;
+    height: 60px;
+    width: 60px;
     flex-shrink: 0;
   }
 `;
