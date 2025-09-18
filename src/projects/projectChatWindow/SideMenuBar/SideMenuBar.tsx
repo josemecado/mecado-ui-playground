@@ -16,6 +16,7 @@ import { Equation } from "./Equation";
 import ThemeToggleButton from "../../../reusable-components/ThemeToggleButton";
 import { useLocation } from "react-router-dom";
 import { NavigationMenuItem } from "./NavigationMenuItem";
+
 interface FileItem {
   name: string;
   path: string;

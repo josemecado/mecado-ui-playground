@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   MessageSquare,
   Box,
@@ -98,7 +98,59 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
     onToggleCollapse?.();
   };
 
+  // Add these after your existing state declarations
+  const [isHovered, setIsHovered] = useState(false);
+  const effectiveCollapsed = isCollapsed && !isHovered;
+
+  const HOVER_OPEN_DELAY = 200;
+  const HOVER_CLOSE_DELAY = 100;
+
+  const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const viewTabs = [{ id: "views" as TabType, icon: <Eye />, label: "Views" }];
+
+  // Add these functions before handleToggleCollapse
+  const clearTimers = () => {
+    if (openTimer.current) {
+      clearTimeout(openTimer.current);
+      openTimer.current = null;
+    }
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+
+  const handleHoverStart = () => {
+    if (!isCollapsed) return;
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    if (openTimer.current) return;
+    openTimer.current = setTimeout(() => {
+      setIsHovered(true);
+      openTimer.current = null;
+    }, HOVER_OPEN_DELAY);
+  };
+
+  const handleHoverEnd = () => {
+    if (!isCollapsed) return;
+    if (openTimer.current) {
+      clearTimeout(openTimer.current);
+      openTimer.current = null;
+    }
+    closeTimer.current = setTimeout(() => {
+      setIsHovered(false);
+      closeTimer.current = null;
+    }, HOVER_CLOSE_DELAY);
+  };
+
+  // Add these useEffects after your existing useEffects
+  useEffect(() => clearTimers, []);
+
+  useEffect(() => {
+    clearTimers();
+    setIsHovered(false);
+  }, [isCollapsed]);
 
   const toolTabs = [
     {
@@ -241,7 +293,13 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
   };
 
   return (
-    <Container $isCollapsed={isCollapsed}>
+    <Container
+      $isCollapsed={effectiveCollapsed}
+      onMouseEnter={handleHoverStart}
+      onMouseLeave={handleHoverEnd}
+      onFocusCapture={() => setIsHovered(true)}
+      onBlurCapture={handleHoverEnd}
+    >
       <MainPanel>
         {/* Left Icon Panel */}
         <IconPanel $isCollapsed={isCollapsed}>
@@ -290,7 +348,11 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
         </IconPanel>
 
         {/* Right Content Panel */}
-        {!isCollapsed && <ContentPanel>{renderContent()}</ContentPanel>}
+        {!effectiveCollapsed && (
+          <ContentPanel $isVisible={!effectiveCollapsed}>
+            {renderContent()}
+          </ContentPanel>
+        )}
       </MainPanel>
     </Container>
   );
@@ -305,7 +367,8 @@ const Container = styled.div<{ $isCollapsed: boolean }>`
   width: ${(props) => (props.$isCollapsed ? "80px" : "320px")};
   min-width: ${(props) => (props.$isCollapsed ? "80px" : "320px")};
   background-color: var(--bg-secondary);
-  transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    min-width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
   border-right: ${(props) =>
     props.$isCollapsed ? "none" : "1px solid var(--border-bg)"};
   overflow: hidden;
@@ -322,6 +385,7 @@ const IconPanel = styled.div<{ $isCollapsed: boolean }>`
   flex-direction: column;
   align-items: center;
   width: 80px;
+  min-width: 80px;
   border-right: 1px solid var(--border-bg);
 `;
 
@@ -414,7 +478,7 @@ const TabBadge = styled.span`
   justify-content: center;
 `;
 
-const ContentPanel = styled.div`
+const ContentPanel = styled.div<{ $isVisible: boolean }>`
   flex: 1;
   padding: 24px;
   overflow-y: auto;

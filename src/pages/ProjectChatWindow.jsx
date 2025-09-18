@@ -6,12 +6,13 @@ import StreamingTextBubblePlayground from "../reusable-components/StreamingBubbl
 import HookArchitectureVisualizer from "../projects/projectGeometryWindow/visualizer/ProjectGeometryVisualizer";
 import LevelArchitectureVisualizer from "../projects/projectGeometryWindow/visualizer/LevelArchitectureVisualizer";
 import SidePanelMenu from "../projects/projectChatWindow/SideMenu/SidePanelMenu";
+import { GeometryLinkingWireframe } from "../projects/geoLinking/GeometryLinkingInterface";
 
 export default function ProjectChatWindow() {
   return (
     <Container>
       {/* <SideMenu /> */}
-      <SidePanelMenu
+      {/* <SidePanelMenu
         projectId={""}
         projectVersions={[]}
         projectVersion={0}
@@ -22,7 +23,8 @@ export default function ProjectChatWindow() {
         onToggleCollapse={() => {}}
         currentView={"chat"}
         onViewChange={() => {}}
-      />
+      /> */}
+      <GeometryLinkingWireframe />
       {/* <ChatForm /> */}
       {/* <StreamingTextBubblePlayground /> */}
       {/* <HookArchitectureVisualizer /> */}
