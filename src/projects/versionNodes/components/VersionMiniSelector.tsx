@@ -1,8 +1,8 @@
 // VersionMiniSelector.tsx
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useCallback, useMemo } from "react";
 import styled from "styled-components";
-import { ProjectVersion } from "./mockData";
-import { VersionFlowPreview } from "./VersionFlowPreview";
+import { ProjectVersion } from "../utils/VersionInterfaces";
+import { VersionFlowPreview } from "../views/VersionFlowPreview";
 
 import { GitFork } from "lucide-react";
 
@@ -11,7 +11,6 @@ interface VersionMiniSelectorProps {
   activeVersionId: string;
   onVersionChange: (versionId: string) => void;
   onNewVersion?: () => void;
-  showPreviewOnHover?: boolean;
 }
 
 type NodeState = "active" | "parent" | "child";
@@ -21,7 +20,6 @@ export const VersionMiniSelector: React.FC<VersionMiniSelectorProps> = ({
   activeVersionId,
   onVersionChange,
   onNewVersion,
-  showPreviewOnHover = false,
 }) => {
   const [showPreview, setShowPreview] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -66,7 +64,6 @@ export const VersionMiniSelector: React.FC<VersionMiniSelectorProps> = ({
 
   // Hover preview handlers
   const handleMouseEnter = () => {
-    if (!showPreviewOnHover) return;
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
     timeoutRef.current = setTimeout(
@@ -75,7 +72,6 @@ export const VersionMiniSelector: React.FC<VersionMiniSelectorProps> = ({
     );
   };
   const handleMouseLeave = () => {
-    if (!showPreviewOnHover) return;
     timeoutRef.current = setTimeout(
       () => setShowPreview(false),
       PREVIEW_HIDE_DELAY
@@ -92,6 +88,20 @@ export const VersionMiniSelector: React.FC<VersionMiniSelectorProps> = ({
       PREVIEW_HIDE_DELAY
     );
   };
+
+  // Handle version change from preview
+  const handleVersionChangeFromPreview = useCallback(
+    (versionId: string) => {
+      // Immediately trigger the version change
+      onVersionChange(versionId);
+
+      // Keep the preview open after selection
+      // This allows users to navigate through multiple versions
+      // without the preview closing each time
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    },
+    [onVersionChange]
+  );
 
   return (
     <SelectorWrapper ref={containerRef}>
@@ -175,7 +185,7 @@ export const VersionMiniSelector: React.FC<VersionMiniSelectorProps> = ({
         )}
       </SelectorContainer>
 
-      {/* {showPreviewOnHover && showPreview && (
+      {showPreview && (
         <PreviewPopup
           onMouseEnter={handlePreviewMouseEnter}
           onMouseLeave={handlePreviewMouseLeave}
@@ -183,23 +193,11 @@ export const VersionMiniSelector: React.FC<VersionMiniSelectorProps> = ({
           <VersionFlowPreview
             versions={versions}
             height="250px"
-            onVersionChange={onVersionChange}
+            onVersionChange={handleVersionChangeFromPreview}
             activeVersionId={activeVersionId}
           />
         </PreviewPopup>
-      )} */}
-
-      <PreviewPopup
-        onMouseEnter={handlePreviewMouseEnter}
-        onMouseLeave={handlePreviewMouseLeave}
-      >
-        <VersionFlowPreview
-          versions={versions}
-          height="250px"
-          onVersionChange={onVersionChange}
-          activeVersionId={activeVersionId}
-        />
-      </PreviewPopup>
+      )}
     </SelectorWrapper>
   );
 };
@@ -220,6 +218,7 @@ const SelectorContainer = styled.div`
   border-radius: 8px;
   border: 1px solid var(--border-bg);
   max-width: 100%;
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
 `;
 
 /* Summary circle: shows "—" (No Parent) or "+N" (extra ancestors) or empty if none extra */
@@ -227,7 +226,7 @@ const SummaryCircle = styled.div`
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: 2px dashed var(--border-bg);
+  border: 2px dashed var(--border-outline);
   background: transparent;
   display: inline-flex;
   align-items: center;
@@ -240,7 +239,7 @@ const SummaryCircle = styled.div`
 
 const PreviewPopup = styled.div`
   position: absolute;
-  bottom: calc(100% + 12px);
+  top: calc(100% + 12px);
   left: 50%;
   transform: translateX(-50%);
   width: 400px;
@@ -277,7 +276,7 @@ const PreviewPopup = styled.div`
   }
 `;
 
-const VersionNode = styled.button<{ $state: NodeState }>`
+const VersionNode = styled.button<{ $state: NodeState; $isArchived?: boolean }>`
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -288,7 +287,7 @@ const VersionNode = styled.button<{ $state: NodeState }>`
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 11px;
   font-weight: 700;
-  border: 2px solid transparent;
+  border: 1px solid var(--border-outline);
   position: relative;
   z-index: 2;
   flex-shrink: 0;
@@ -301,13 +300,12 @@ const VersionNode = styled.button<{ $state: NodeState }>`
     switch (p.$state) {
       case "active":
         return `
-          background: var(--primary-action);
-          color: white;
+          background: var(--primary-alternate);
+          color: var(--text-inverted);
           opacity: 1;
           animation: pulse 0.4s ease-out;
           &:hover { 
             transform: scale(1.1); 
-            border-color: var(--primary-action);
             box-shadow: 0 0 0 4px rgba(var(--primary-action-rgb), 0.2);
           }
           @keyframes pulse {
@@ -326,7 +324,8 @@ const VersionNode = styled.button<{ $state: NodeState }>`
             transform: scale(1.1); 
             border-color: var(--accent-neutral); 
             opacity: 1;
-            background: var(--bg-secondary);
+            background: var(--primary-alternate);
+            color: var(--text-inverted);
           }
         `;
       case "child":
@@ -340,18 +339,20 @@ const VersionNode = styled.button<{ $state: NodeState }>`
             transform: scale(1.1); 
             border-color: var(--border-bg); 
             opacity: 0.9;
-            background: var(--bg-secondary);
+            background: var(--primary-alternate);
+            color: var(--text-inverted);
           }
         `;
     }
   }}
+
+  opacity: ${(p) => (p.$isArchived ? 0.5 : 1)};
 `;
 
 const ConnectionLine = styled.div<{ $dimmed: boolean }>`
   width: 20px;
   height: 2px;
-  background: ${(p) =>
-    p.$dimmed ? "var(--border-bg)" : "var(--accent-neutral)"};
+  background: var(--border-outline);
   opacity: ${(p) => (p.$dimmed ? 0.35 : 0.65)};
   position: relative;
   z-index: 1;
@@ -362,7 +363,7 @@ const AddButton = styled.button`
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  border: 2px dashed var(--border-bg);
+  border: 2px dashed var(--border-outline);
   background: transparent;
   display: inline-flex;
   align-items: center;
@@ -377,11 +378,10 @@ const AddButton = styled.button`
   flex-shrink: 0;
 
   &:hover {
-    background: var(--bg-tertiary);
+    background: var(--primary-alternate);
     border-color: var(--primary-action);
     border-style: solid;
-    color: var(--primary-action);
-    transform: scale(1.08);
+    color: var(--text-inverted);
     opacity: 1;
   }
 `;

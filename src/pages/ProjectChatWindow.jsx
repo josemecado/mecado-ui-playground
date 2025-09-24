@@ -1,18 +1,13 @@
 import styled from "styled-components";
 import SideMenu from "../projects/projectChatWindow/SideMenuBar/SideMenuBar";
-import ChatForm from "../projects/projectChatWindow/ChatView/MecadoChatForm";
-import DetailBar from "../projects/projectChatWindow/DetailBar/DetailBar";
-import StreamingTextBubblePlayground from "../reusable-components/StreamingBubbleTest.tsx/StreamingBubblePlayground";
-import HookArchitectureVisualizer from "../projects/projectGeometryWindow/visualizer/ProjectGeometryVisualizer";
-import LevelArchitectureVisualizer from "../projects/projectGeometryWindow/visualizer/LevelArchitectureVisualizer";
-import SidePanelMenu from "../projects/projectChatWindow/SideMenu/SidePanelMenu";
-import { GeometryLinkingWireframe } from "../projects/geoLinking/GeometryLinkingInterface";
+// import SidePanelMenu from "../projects/projectChatWindow/SideMenu/SidePanelMenu";
+import { VersionNodeBridge } from "../projects/versionNodes/VersionNodeBridge";
 
 export default function ProjectChatWindow() {
   return (
     <Container>
       {/* <SideMenu /> */}
-      {/* <SidePanelMenu
+      <SideMenu
         projectId={""}
         projectVersions={[]}
         projectVersion={0}
@@ -23,13 +18,18 @@ export default function ProjectChatWindow() {
         onToggleCollapse={() => {}}
         currentView={"chat"}
         onViewChange={() => {}}
-      /> */}
-      <GeometryLinkingWireframe />
-      {/* <ChatForm /> */}
-      {/* <StreamingTextBubblePlayground /> */}
-      {/* <HookArchitectureVisualizer /> */}
-      {/* <LevelArchitectureVisualizer /> */}
-      {/* <DetailBar /> */}
+      />
+
+  <VersionNodeBridge
+    mode="flow"
+    projectId="ui-dev"
+    projectVersions={null} // This triggers mock data mode
+    projectVersion={3}
+    onVersionChange={console.log}
+    onNewProjectVersion={async () => {}}
+    pinnedEquations={[]}
+  />
+
     </Container>
   );
 }

@@ -1,13 +1,14 @@
 // AddVersionModal.tsx
-
 import React, { useState } from "react";
 import styled from "styled-components";
-import { ProjectVersion, EdgeConfig } from "./mockData";
+import { ProjectVersion } from "../utils/VersionInterfaces";
+import { SimpleVersionRelationshipStorage } from "../hooks/versionRelationshipStorage";
 
 interface AddVersionModalProps {
-  onSave: (data: ProjectVersion) => void;
+  onSave: (newVersion: ProjectVersion, parentVersionId: string | null) => void;
   onCancel: () => void;
   existingVersions: ProjectVersion[];
+  projectId: string;
 }
 
 const ModalOverlay = styled.div`
@@ -86,21 +87,6 @@ const FormLabel = styled.label`
   color: var(--text-primary);
 `;
 
-const FormInput = styled.input`
-  padding: 8px 12px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-bg);
-  border-radius: 6px;
-  color: var(--text-primary);
-  font-size: 14px;
-
-  &:focus {
-    outline: none;
-    border-color: var(--primary-action);
-    background: var(--bg-primary);
-  }
-`;
-
 const FormSelect = styled.select`
   padding: 8px 12px;
   background: var(--bg-secondary);
@@ -173,14 +159,9 @@ const Button = styled.button<{ variant?: "primary" | "secondary" }>`
   }}
 `;
 
-const RequiredIndicator = styled.span`
-  color: var(--error);
-  margin-left: 2px;
-`;
-
-const ValidationWarning = styled.div`
-  color: var(--error);
-  font-size: 12px;
+const HelpText = styled.div`
+  font-size: 11px;
+  color: var(--text-muted);
   margin-top: 4px;
 `;
 
@@ -188,45 +169,113 @@ export const AddVersionModal: React.FC<AddVersionModalProps> = ({
   onSave,
   onCancel,
   existingVersions,
+  projectId,
 }) => {
+  // Default to the most recent version as parent
+  const defaultParent = existingVersions.length > 0
+    ? existingVersions[existingVersions.length - 1].id
+    : "";
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    parentVersion: existingVersions.length > 0 ? existingVersions[existingVersions.length - 1].id : "",
-    createConnection: true,
+    parentVersion: defaultParent,
   });
-  
+
   const [showValidation, setShowValidation] = useState(false);
 
   const handleSubmit = () => {
-    if (!formData.title.trim()) {
-      setShowValidation(true);
-      return;
+    // Generate new version ID
+    const versionNumber = existingVersions.length + 1;
+    const newVersionId = `v${versionNumber}`;
+    
+    // Update the relationship storage
+    if (formData.parentVersion) {
+      const relationshipMap = SimpleVersionRelationshipStorage.getRelationshipMap();
+      
+      // Ensure project exists in map
+      if (!relationshipMap[projectId]) {
+        relationshipMap[projectId] = {};
+      }
+      
+      // Add the new version as a child of its parent
+      if (!relationshipMap[projectId][formData.parentVersion]) {
+        relationshipMap[projectId][formData.parentVersion] = [];
+      }
+      
+      if (!relationshipMap[projectId][formData.parentVersion].includes(newVersionId)) {
+        relationshipMap[projectId][formData.parentVersion].push(newVersionId);
+      }
+      
+      // Initialize the new version with no children
+      relationshipMap[projectId][newVersionId] = [];
+      
+      // Save the updated relationships
+      SimpleVersionRelationshipStorage.saveRelationshipMap(relationshipMap);
+      
+      console.log('Updated relationships:', relationshipMap[projectId]);
     }
 
-    const versionNumber = existingVersions.length + 1;
+    // Create the new version object
     const newVersion: ProjectVersion = {
-      id: `v${versionNumber}`,
-      title: `v${versionNumber} - ${formData.title}`,
+      id: newVersionId,
+      title: `Version ${versionNumber}`,
       parentVersion: formData.parentVersion || null,
-      createdAt: new Date().toISOString().split('T')[0],
+      createdAt: new Date().toISOString(),
       geometries: [],
-      equations: [],
-      files: [],
-      edges: formData.createConnection && formData.parentVersion 
-        ? [] 
-        : [],
+      pinnedEquations: [],
+      uploadedFiles: [],
+      generatedFiles: [],
+      metrics: [
+        {
+          title: "Total Mass",
+          value: 0,
+          type: "mass",
+          unit: "kg",
+        },
+        {
+          title: "Safety Factor", 
+          value: 0,
+          type: "margin_of_safety",
+        },
+      ],
+      edges: [],
     };
 
-    onSave(newVersion);
+    onSave(newVersion, formData.parentVersion || null);
   };
 
   const updateField = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (field === 'title' && value.trim()) {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (field === "title" && value.trim()) {
       setShowValidation(false);
     }
   };
+
+  // Group versions by their depth in the tree for better organization
+  const getVersionDepth = (versionId: string): number => {
+    let depth = 0;
+    let currentId: string | null = versionId;
+    
+    while (currentId) {
+      const version = existingVersions.find(v => v.id === currentId);
+      if (version && version.parentVersion) {
+        depth++;
+        currentId = version.parentVersion;
+      } else {
+        break;
+      }
+    }
+    
+    return depth;
+  };
+
+  const sortedVersions = [...existingVersions].sort((a, b) => {
+    const depthA = getVersionDepth(a.id);
+    const depthB = getVersionDepth(b.id);
+    if (depthA !== depthB) return depthA - depthB;
+    return a.id.localeCompare(b.id);
+  });
 
   return (
     <ModalOverlay onClick={onCancel}>
@@ -237,78 +286,42 @@ export const AddVersionModal: React.FC<AddVersionModalProps> = ({
         </ModalHeader>
 
         <ModalBody>
-          <SectionTitle>VERSION DETAILS</SectionTitle>
-          
-          <FormSection>
-            <FormLabel>
-              Title <RequiredIndicator>*</RequiredIndicator>
-            </FormLabel>
-            <FormInput
-              value={formData.title}
-              onChange={(e) => updateField("title", e.target.value)}
-              placeholder="e.g., Weight Optimization, Material Change..."
-              style={{
-                borderColor: showValidation && !formData.title.trim() ? "var(--error)" : undefined
-              }}
-            />
-            {showValidation && !formData.title.trim() && (
-              <ValidationWarning>Version title is required</ValidationWarning>
-            )}
-          </FormSection>
-
-          <FormSection>
-            <FormLabel>Description</FormLabel>
-            <FormInput
-              value={formData.description}
-              onChange={(e) => updateField("description", e.target.value)}
-              placeholder="Brief description of changes..."
-            />
-          </FormSection>
-
           {existingVersions.length > 0 && (
             <>
-              <SectionTitle>RELATIONSHIPS</SectionTitle>
-              
+              <SectionTitle>VERSION HIERARCHY</SectionTitle>
+
               <FormSection>
                 <FormLabel>Parent Version</FormLabel>
                 <FormSelect
                   value={formData.parentVersion}
                   onChange={(e) => updateField("parentVersion", e.target.value)}
                 >
-                  <option value="">None (Independent Version)</option>
-                  {existingVersions.map(version => (
-                    <option key={version.id} value={version.id}>
-                      {version.title}
-                    </option>
-                  ))}
+                  <option value="">None (Create as Root Version)</option>
+                  {sortedVersions.map((version) => {
+                    const depth = getVersionDepth(version.id);
+                    const indent = "  ".repeat(depth);
+                    return (
+                      <option key={version.id} value={version.id}>
+                        {indent}{version.id.toUpperCase()} - {version.title}
+                      </option>
+                    );
+                  })}
                 </FormSelect>
+                <HelpText>
+                  Select which version this new version should branch from. 
+                  Leave empty to create an independent root version.
+                </HelpText>
               </FormSection>
-
-              {formData.parentVersion && (
-                <FormSection>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={formData.createConnection}
-                      onChange={(e) => updateField("createConnection", e.target.checked)}
-                      style={{ cursor: 'pointer' }}
-                    />
-                    <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
-                      Create connection from parent
-                    </span>
-                  </label>
-                </FormSection>
-              )}
             </>
           )}
         </ModalBody>
 
         <ModalFooter>
           <Button onClick={onCancel}>Cancel</Button>
-          <Button 
-            variant="primary" 
+          <Button
+            variant="primary"
             onClick={handleSubmit}
-            disabled={!formData.title.trim()}
+            disabled={false}
           >
             Create Version
           </Button>

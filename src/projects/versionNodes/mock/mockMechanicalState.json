@@ -1,0 +1,125 @@
+{
+  "state_info": {
+    "Connections": [
+      {
+        "error": "'NoneType' object has no attribute 'Children'"
+      }
+    ],
+    "Named Selections": [
+      {
+        "error": "'NoneType' object has no attribute 'Children'"
+      }
+    ],
+    "Remote Points": [],
+    "Analyses": [
+      {
+        "solution_items": [
+          {
+            "object_id": 26,
+            "name": "Solution Information",
+            "type": "SolutionInformation"
+          }
+        ],
+        "object_id": 24,
+        "loads": [],
+        "name": "Static Structural",
+        "boundary_conditions": [
+          {
+            "object_id": 28,
+            "scoped_ids": [274],
+            "scoped_to": 1,
+            "name": "Fixed Support 1",
+            "is_suppressed": false,
+            "type": "FixedSupport"
+          }
+        ],
+        "settings": {
+          "stabilizationmethod": "Energy",
+          "initialtimestep": "1 [sec]",
+          "maximumtimestep": "1 [sec]",
+          "weaksprings": "Off",
+          "timeintegration": "False",
+          "inertiarelief": "False",
+          "largedeflection": "False",
+          "currentstepnumber": "1",
+          "automatictimestepping": "ProgramControlled",
+          "solvertype": "ProgramControlled",
+          "solverpivotchecking": "ProgramControlled",
+          "numberofsteps": "1",
+          "minimumtimestep": "0.1 [sec]",
+          "stependtime": "1 [sec]"
+        },
+        "type": "structural"
+      }
+    ],
+    "Mesh": {
+      "object_id": 15,
+      "mesh_method": "0",
+      "element_size": 0.0,
+      "children": [],
+      "elements": 0,
+      "type": "Mesh",
+      "name": "Mesh",
+      "element_order": "ProgramControlled",
+      "quality": {
+        "overall_status": "Acceptable",
+        "status_code": "2",
+        "has_errors": false
+      },
+      "mesh_state": "Not Generated",
+      "nodes": 0,
+      "control_summary": {
+        "by_type": {},
+        "total": 0,
+        "active": 0,
+        "suppressed": 0
+      }
+    },
+    "Project": {
+      "solve_required": false,
+      "name": "Project",
+      "summary": {
+        "total_nodes": 0,
+        "total_parts": 1,
+        "total_elements": 0,
+        "total_bodies": 1
+      },
+      "unit_system": "m"
+    },
+    "Materials": [
+      {
+        "object_id": 10,
+        "name": "Structural Steel",
+        "type": "Material"
+      }
+    ],
+    "Geometry": [
+      {
+        "object_id": 19,
+        "name": "Aluminum heat sink_L41mm_w19mm_H40mm Bodies",
+        "material": "Structural Steel",
+        "is_suppressed": false,
+        "type": "Part",
+        "children": [
+          {
+            "geo_body_id": 321,
+            "object_id": 20,
+            "name": "Aluminum heat sink_L41mm_w19mm_H40mm|Solid",
+            "is_suppressed": false,
+            "type": "Body"
+          }
+        ]
+      }
+    ],
+    "Coordinate Systems": [
+      {
+        "origin": [0.0, 0.0, 0.0],
+        "object_id": 23,
+        "name": "Global Coordinate System",
+        "is_suppressed": false,
+        "type": "CoordinateSystem"
+      }
+    ]
+  },
+  "success": true
+}

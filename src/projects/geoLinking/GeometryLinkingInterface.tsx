@@ -4,14 +4,13 @@ import {
   Box,
   Minus,
   Square,
-  ArrowRight,
   Link2,
   Trash2,
   Plus,
   RotateCcw,
   Check,
-  X,
   Info,
+  PieChart,
 } from "lucide-react";
 
 interface MockUnmappedData {
@@ -47,8 +46,10 @@ export const GeometryLinkingWireframe: React.FC = () => {
   const oldVersion = 1;
   const newVersion = 2;
 
-  // Core state
-  const [currentMode, setCurrentMode] = useState<EntityKind>("body");
+  // Separate mode state for each viewer
+  const [leftMode, setLeftMode] = useState<EntityKind>("body");
+  const [rightMode, setRightMode] = useState<EntityKind>("body");
+
   const [selections, setSelections] = useState<SelectionData>({
     left: 0,
     right: 0,
@@ -99,11 +100,6 @@ export const GeometryLinkingWireframe: React.FC = () => {
     selectionState === "RIGHT_SINGLE" || selectionState === "RIGHT_MANY";
   const canLink = selectionState === "LEFT_TO_RIGHT";
 
-  const handleModeChange = useCallback((newMode: EntityKind) => {
-    setCurrentMode(newMode);
-    setSelections({ left: 0, right: 0 });
-  }, []);
-
   const handleLeftSelect = useCallback(() => {
     setSelections((prev) => ({
       ...prev,
@@ -148,19 +144,41 @@ export const GeometryLinkingWireframe: React.FC = () => {
     }
   };
 
+  // Chart data for overview
+  const chartData = {
+    linked: linkedCount,
+    deleted: markedDeleted,
+    new: markedNew,
+    remaining: totalOriginal - totalProcessed,
+  };
+
   return (
     <Container>
-      <Header>
-        <HeaderTitle>Geometry Analysis Transfer</HeaderTitle>
-      </Header>
       <MainContent>
         {/* Left Viewer */}
         <ViewerSection>
           <ViewerHeader>
-            <ViewerTitle>Source Geometry (v{oldVersion})</ViewerTitle>
-            <ViewerSubtitle>Contains existing FEA setup</ViewerSubtitle>
+            <ViewerTitleSection>
+              <ViewerTitle>Source Geometry (v{oldVersion})</ViewerTitle>
+              <ViewerSubtitle>Contains existing FEA setup</ViewerSubtitle>
+            </ViewerTitleSection>
           </ViewerHeader>
           <MockViewer onClick={handleLeftSelect} selected={selections.left > 0}>
+            <ViewerModeSelector>
+              {(["body", "face", "edge"] as EntityKind[]).map((mode) => (
+                <ModeButton
+                  key={mode}
+                  active={leftMode === mode}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLeftMode(mode);
+                  }}
+                >
+                  {getModeIcon(mode)}
+                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                </ModeButton>
+              ))}
+            </ViewerModeSelector>
             <ViewerPlaceholder>
               <ViewerIcon>
                 <Box size={48} />
@@ -170,10 +188,43 @@ export const GeometryLinkingWireframe: React.FC = () => {
                 Original geometry with analysis setup
               </ViewerSubtext>
               {selections.left > 0 && (
-                <SelectionBadge left>{selections.left} selected</SelectionBadge>
+                <SelectionBadge left>{selections.left} Selected</SelectionBadge>
               )}
             </ViewerPlaceholder>
+
+            <GeometryActionButtons>
+              {/* Left-specific actions */}
+              <ViewerActions>
+                <ActionButton
+                  disabled={!canMarkNew}
+                  onClick={handleMarkNew}
+                  variant="success"
+                  size="small"
+                >
+                  <Plus size={16} />
+                  Mark New
+                </ActionButton>
+                <ActionButton
+                  disabled={!canMarkDeleted}
+                  onClick={handleMarkDeleted}
+                  variant="danger"
+                  size="small"
+                >
+                  <Trash2 size={16} />
+                  Mark Deleted
+                </ActionButton>
+                <ActionButton
+                  onClick={handleClear}
+                  variant="secondary"
+                  size="small"
+                >
+                  <RotateCcw size={16} />
+                  Clear
+                </ActionButton>
+              </ViewerActions>
+            </GeometryActionButtons>
           </MockViewer>
+
           <ViewerStats>
             <StatItem>
               <StatNumber unmapped>
@@ -195,26 +246,9 @@ export const GeometryLinkingWireframe: React.FC = () => {
         {/* Center Control Panel */}
         <ControlPanel>
           <ControlPanelUpper>
-
-            
-            <ModeSection>
-              <ModeTitle>Selection Mode</ModeTitle>
-              <ModeButtons>
-                {(["body", "face", "edge"] as EntityKind[]).map((mode) => (
-                  <ModeButton
-                    key={mode}
-                    active={currentMode === mode}
-                    onClick={() => handleModeChange(mode)}
-                  >
-                    {getModeIcon(mode)}
-                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                  </ModeButton>
-                ))}
-              </ModeButtons>
-            </ModeSection>
             <ProgressSection>
               <ProgressHeader>
-                <ProgressTitle>Transfer Progress (v{oldVersion} → v{newVersion})</ProgressTitle>
+                <ProgressTitle>Transfer Progress</ProgressTitle>
                 <ProgressPercent>
                   {Math.round(progressPercent)}%
                 </ProgressPercent>
@@ -235,69 +269,62 @@ export const GeometryLinkingWireframe: React.FC = () => {
                 </ProgressStat>
               </ProgressStats>
             </ProgressSection>
+            {/* Overview Chart */}
+            <ChartSection>
+              <ChartHeader>
+                <ChartTitle>
+                  <PieChart size={16} />
+                  Transfer Overview
+                </ChartTitle>
+              </ChartHeader>
+              <ChartContainer>
+                <DonutChart>
+                  <DonutCenter>
+                    <DonutCenterNumber>
+                      {Math.round(progressPercent)}%
+                    </DonutCenterNumber>
+                    <DonutCenterLabel>Complete</DonutCenterLabel>
+                  </DonutCenter>
+                  {/* Mock donut chart visualization */}
+                  <DonutSegment
+                    percentage={progressPercent}
+                    color="var(--primary-action)"
+                  />
+                </DonutChart>
+                <ChartLegend>
+                  <LegendItem>
+                    <LegendDot color="var(--primary-action)" />
+                    <LegendLabel>Linked: {chartData.linked}</LegendLabel>
+                  </LegendItem>
+                  <LegendItem>
+                    <LegendDot color="var(--error)" />
+                    <LegendLabel>Deleted: {chartData.deleted}</LegendLabel>
+                  </LegendItem>
+                  <LegendItem>
+                    <LegendDot color="var(--accent-primary)" />
+                    <LegendLabel>New: {chartData.new}</LegendLabel>
+                  </LegendItem>
+                  <LegendItem>
+                    <LegendDot color="var(--text-muted)" />
+                    <LegendLabel>Remaining: {chartData.remaining}</LegendLabel>
+                  </LegendItem>
+                </ChartLegend>
+              </ChartContainer>
+            </ChartSection>
 
-            <ActionsSection>
-              <ActionButton
-                disabled={!canMarkDeleted}
-                onClick={handleMarkDeleted}
-                variant="danger"
-              >
-                <Trash2 size={16} />
-                Mark Deleted
-              </ActionButton>
-
-              <ActionButton
-                disabled={!canLink}
-                onClick={handleLink}
-                variant="primary"
-              >
-                <Link2 size={16} />
-                Link Elements
-              </ActionButton>
-
-              <ActionButton
-                disabled={!canMarkNew}
-                onClick={handleMarkNew}
-                variant="success"
-              >
-                <Plus size={16} />
-                Mark New
-              </ActionButton>
-
-              <ActionButton onClick={handleClear} variant="secondary">
-                <RotateCcw size={16} />
-                Clear Selection
-              </ActionButton>
-            </ActionsSection>
+            {/* Central linking actions */}
+            <ActionButton
+              disabled={!canLink}
+              onClick={handleLink}
+              variant="primary"
+              size="large"
+            >
+              <Link2 size={16} />
+              Link Selected Elements
+            </ActionButton>
           </ControlPanelUpper>
-          <ControlPanelLower>
-            <SummarySection>
-              <SummaryTitle>Transfer Summary</SummaryTitle>
-              <SummaryStats>
-                <SummaryStat>
-                  <SummaryStatIcon linked>
-                    <Link2 size={14} />
-                  </SummaryStatIcon>
-                  <SummaryStatNumber>{linkedCount}</SummaryStatNumber>
-                  <SummaryStatLabel>Linked</SummaryStatLabel>
-                </SummaryStat>
-                <SummaryStat>
-                  <SummaryStatIcon deleted>
-                    <Trash2 size={14} />
-                  </SummaryStatIcon>
-                  <SummaryStatNumber>{markedDeleted}</SummaryStatNumber>
-                  <SummaryStatLabel>Deleted</SummaryStatLabel>
-                </SummaryStat>
-                <SummaryStat>
-                  <SummaryStatIcon new>
-                    <Plus size={14} />
-                  </SummaryStatIcon>
-                  <SummaryStatNumber>{markedNew}</SummaryStatNumber>
-                  <SummaryStatLabel>New</SummaryStatLabel>
-                </SummaryStat>
-              </SummaryStats>
-            </SummarySection>
 
+          <ControlPanelLower>
             <FinishSection>
               <FinishButton disabled={progressPercent < 100}>
                 <Check size={16} />
@@ -310,13 +337,30 @@ export const GeometryLinkingWireframe: React.FC = () => {
         {/* Right Viewer */}
         <ViewerSection>
           <ViewerHeader>
-            <ViewerTitle>Target Geometry (v{newVersion})</ViewerTitle>
-            <ViewerSubtitle>Will receive transferred setup</ViewerSubtitle>
+            <ViewerTitleSection>
+              <ViewerTitle>Target Geometry (v{newVersion})</ViewerTitle>
+              <ViewerSubtitle>Will receive transferred setup</ViewerSubtitle>
+            </ViewerTitleSection>
           </ViewerHeader>
           <MockViewer
             onClick={handleRightSelect}
             selected={selections.right > 0}
           >
+            <ViewerModeSelector>
+              {(["body", "face", "edge"] as EntityKind[]).map((mode) => (
+                <ModeButton
+                  key={mode}
+                  active={rightMode === mode}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setRightMode(mode);
+                  }}
+                >
+                  {getModeIcon(mode)}
+                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                </ModeButton>
+              ))}
+            </ViewerModeSelector>
             <ViewerPlaceholder>
               <ViewerIcon>
                 <Box size={48} />
@@ -325,11 +369,45 @@ export const GeometryLinkingWireframe: React.FC = () => {
               <ViewerSubtext>Modified geometry for analysis</ViewerSubtext>
               {selections.right > 0 && (
                 <SelectionBadge right>
-                  {selections.right} selected
+                  {selections.right} Selected
                 </SelectionBadge>
               )}
             </ViewerPlaceholder>
+
+            <GeometryActionButtons>
+              {/* Right-specific actions */}
+              <ViewerActions>
+                <ActionButton
+                  disabled={!canMarkNew}
+                  onClick={handleMarkNew}
+                  variant="success"
+                  size="small"
+                >
+                  <Plus size={16} />
+                  Mark New
+                </ActionButton>
+
+                <ActionButton
+                  disabled={!canMarkDeleted}
+                  onClick={handleMarkDeleted}
+                  variant="danger"
+                  size="small"
+                >
+                  <Trash2 size={16} />
+                  Mark Deleted
+                </ActionButton>
+                <ActionButton
+                  onClick={handleClear}
+                  variant="secondary"
+                  size="small"
+                >
+                  <RotateCcw size={16} />
+                  Clear
+                </ActionButton>
+              </ViewerActions>
+            </GeometryActionButtons>
           </MockViewer>
+
           <ViewerStats>
             <StatItem>
               <StatNumber unmapped>
@@ -354,8 +432,8 @@ export const GeometryLinkingWireframe: React.FC = () => {
           Select elements to link, mark as deleted, or mark as new
         </StatusItem>
         <StatusItem>
-          Current: {currentMode} mode | Selected: {selections.left} left,{" "}
-          {selections.right} right
+          Left: {leftMode} mode, {selections.left} selected | Right: {rightMode}{" "}
+          mode, {selections.right} selected
         </StatusItem>
       </StatusBar>
     </Container>
@@ -372,25 +450,18 @@ const Container = styled.div`
 `;
 
 const Header = styled.div`
-display: flex;
-justify-content: space-between;
+  display: flex;
+  justify-content: space-between;
   padding: 16px 16px 16px 12px;
-  
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-bg);
   text-align: center;
 `;
 
 const HeaderTitle = styled.h1`
-  margin: 0 0 8px 0;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 600;
-`;
-
-const HeaderSubtitle = styled.p`
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 16px;
+  text-align: center;
 `;
 
 const MainContent = styled.div`
@@ -408,8 +479,16 @@ const ViewerSection = styled.div`
 
 const ViewerHeader = styled.div`
   padding: 16px;
-  background: var(--bg-tertiary);
+  background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-bg);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+`;
+
+const ViewerTitleSection = styled.div`
+  flex: 1;
 `;
 
 const ViewerTitle = styled.h3`
@@ -424,12 +503,35 @@ const ViewerSubtitle = styled.p`
   font-size: 14px;
 `;
 
+const ModeButton = styled.button<{ active?: boolean }>`
+  padding: 6px 10px;
+  background: ${(props) =>
+    props.active ? "var(--primary-action)" : "var(--bg-tertiary)"};
+  color: ${(props) => (props.active ? "white" : "var(--text-primary)")};
+  border: 1px solid
+    ${(props) => (props.active ? "var(--primary-action)" : "var(--border-bg)")};
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  &:hover {
+    background: ${(props) =>
+      props.active ? "var(--primary-action)" : "var(--hover-bg)"};
+    opacity: 0.7;
+  }
+`;
+
 const MockViewer = styled.div<{ selected?: boolean }>`
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
   border: 2px solid
     ${(props) => (props.selected ? "var(--primary-action)" : "transparent")};
   cursor: pointer;
@@ -437,7 +539,6 @@ const MockViewer = styled.div<{ selected?: boolean }>`
   position: relative;
 
   &:hover {
-    background: var(--bg-tertiary);
     border-color: var(--primary-action);
   }
 `;
@@ -466,21 +567,28 @@ const ViewerSubtext = styled.div`
 const SelectionBadge = styled.div<{ left?: boolean; right?: boolean }>`
   position: absolute;
   top: 16px;
-  ${(props) => (props.left ? "left: 16px;" : "right: 16px;")}
+  right: 16px;
   background: ${(props) =>
-    props.left ? "var(--error-bg)" : "var(--success-bg)"};
-  color: ${(props) =>
-    props.left ? "var(--error-text)" : "var(--success-text)"};
+    props.left ? "var(--accent-primary)" : "var(--accent-primary)"};
+  color: white;
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
+`;
+
+const ViewerActions = styled.div`
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-bg);
 `;
 
 const ViewerStats = styled.div`
   display: flex;
   padding: 16px;
-  background: var(--bg-tertiary);
+  background: var(--bg-secondary);
   gap: 24px;
   justify-content: center;
 `;
@@ -493,7 +601,7 @@ const StatNumber = styled.div<{ unmapped?: boolean }>`
   font-size: 20px;
   font-weight: 600;
   color: ${(props) =>
-    props.unmapped ? "var(--error-text)" : "var(--text-primary)"};
+    props.unmapped ? "var(--error)" : "var(--text-primary)"};
 `;
 
 const StatLabel = styled.div`
@@ -514,9 +622,21 @@ const ControlPanel = styled.div`
   overflow-y: auto;
 `;
 
-const ProgressSection = styled.div`
-background-color: var(--bg-secondary);
+const ControlPanelUpper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+`;
 
+const ControlPanelLower = styled.div`
+  display: flex;
+  flex-direction: column;
+  margin-top: auto;
+  gap: 16px;
+`;
+
+const ProgressSection = styled.div`
+  background-color: var(--bg-secondary);
 `;
 
 const ProgressHeader = styled.div`
@@ -528,19 +648,19 @@ const ProgressHeader = styled.div`
 
 const ProgressTitle = styled.h3`
   margin: 0;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
 `;
 
 const ProgressPercent = styled.div`
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
-  color: var(--primary-action);
+  color: var(--text-muted);
 `;
 
 const ProgressBar = styled.div`
   height: 8px;
-  background: var(--bg-tertiary);
+  background: var(--text-muted);
   border-radius: 4px;
   overflow: hidden;
   margin-bottom: 12px;
@@ -551,7 +671,7 @@ const ProgressFill = styled.div`
   background: linear-gradient(
     90deg,
     var(--primary-action),
-    var(--primary-action-hover)
+    var(--accent-primary)
   );
   transition: width 0.3s ease;
 `;
@@ -577,60 +697,154 @@ const ProgressStatLabel = styled.div`
   color: var(--text-muted);
 `;
 
-const ModeSection = styled.div``;
-
-const ModeTitle = styled.h3`
-  margin: 0 0 12px 0;
-  font-size: 16px;
-  font-weight: 600;
+// New chart components
+const ChartSection = styled.div`
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  padding: 16px;
 `;
 
-const ModeButtons = styled.div`
+const ChartHeader = styled.div`
+  margin-bottom: 16px;
+`;
+
+const ChartTitle = styled.h4`
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
   display: flex;
+  align-items: center;
   gap: 8px;
 `;
 
-const ModeButton = styled.button<{ active?: boolean }>`
-  flex: 1;
-  padding: 8px 12px;
-  background: ${(props) =>
-    props.active ? "var(--primary-action)" : "var(--bg-tertiary)"};
-  color: ${(props) => (props.active ? "white" : "var(--text-primary)")};
-  border: 1px solid
-    ${(props) => (props.active ? "var(--primary-action)" : "var(--border-bg)")};
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
+const ChartContainer = styled.div`
   display: flex;
+  gap: 16px;
   align-items: center;
-  gap: 4px;
-
-  &:hover {
-    background: ${(props) =>
-      props.active ? "var(--primary-action-hover)" : "var(--hover-bg)"};
-  }
 `;
 
-const ActionsSection = styled.div`
+const DonutChart = styled.div`
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--primary-action) 0deg,
+    var(--primary-action) calc(var(--percentage, 0) * 3.6deg),
+    var(--bg-primary) calc(var(--percentage, 0) * 3.6deg),
+    var(--bg-primary) 360deg
+  );
+`;
+
+const DonutCenter = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px;
+  height: 50px;
+  background: var(--bg-secondary);
+  border-radius: 50%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  justify-content: center;
+`;
+
+const DonutCenterNumber = styled.div`
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+`;
+
+const DonutCenterLabel = styled.div`
+  font-size: 8px;
+  color: var(--text-muted);
+`;
+
+const DonutSegment = styled.div<{ percentage: number; color: string }>`
+  display: none; /* Just for type safety - actual styling handled by conic-gradient */
+`;
+
+const ChartLegend = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+`;
+
+const LegendItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const LegendDot = styled.div<{ color: string }>`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: ${(props) => props.color};
+`;
+
+const LegendLabel = styled.div`
+  font-size: 12px;
+  color: var(--text-primary);
+`;
+
+const LinkingSection = styled.div`
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  padding: 16px;
+  border: 2px solid var(--primary-action);
+`;
+
+const LinkingHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--primary-action);
+`;
+
+const LinkingDescription = styled.p`
+  margin: 0 0 16px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+`;
+
+const LinkingHint = styled.div`
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: var(--bg-primary);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  border: 1px solid var(--border-bg);
+`;
+
+const SectionTitle = styled.h4`
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
 `;
 
 const ActionButton = styled.button<{
   variant?: "primary" | "secondary" | "danger" | "success";
+  size?: "small" | "large";
 }>`
-  padding: 12px 16px;
+  padding: 8px;
   background: ${(props) => {
     switch (props.variant) {
       case "primary":
-        return "var(--primary-action)";
+        return "var(--primary-alternate)";
       case "danger":
-        return "var(--error-bg)";
+        return "var(--error)";
       case "success":
-        return "var(--success-bg)";
+        return "var(--accent-primary)";
       default:
         return "var(--bg-tertiary)";
     }
@@ -638,13 +852,13 @@ const ActionButton = styled.button<{
   color: ${(props) => {
     switch (props.variant) {
       case "primary":
-        return "white";
+        return "var(--text-inverted)";
       case "danger":
-        return "var(--error-text)";
+        return "white";
       case "success":
-        return "var(--success-text)";
+        return "white";
       default:
-        return "var(--text-primary)";
+        return "white";
     }
   }};
   border: 1px solid
@@ -653,31 +867,33 @@ const ActionButton = styled.button<{
         case "primary":
           return "var(--primary-action)";
         case "danger":
-          return "var(--error-border)";
+          return "var(--error)";
         case "success":
-          return "var(--success-border)";
+          return "var(--accent-primary)";
         default:
           return "var(--border-bg)";
       }
     }};
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: 8px;
+  font-size: ${(props) => (props.size === "large" ? "15px" : "13px")};
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 3px;
   justify-content: center;
+  width: ${(props) => (props.size === "large" ? "100%" : "auto")};
 
   &:hover:not(:disabled) {
     transform: translateY(-1px);
     opacity: 0.9;
   }
 
-  &:disabled {
-    opacity: 0.5;
+  &:hover:disabled {
     cursor: not-allowed;
+    opacity: 0.7;
+
     transform: none;
   }
 `;
@@ -712,8 +928,8 @@ const SummaryStatIcon = styled.div<{
 }>`
   color: ${(props) => {
     if (props.linked) return "var(--primary-action)";
-    if (props.deleted) return "var(--error-text)";
-    if (props.new) return "var(--success-text)";
+    if (props.deleted) return "var(--error)";
+    if (props.new) return "var(--accent-primary)";
     return "var(--text-muted)";
   }};
 `;
@@ -734,9 +950,9 @@ const FinishSection = styled.div``;
 const FinishButton = styled.button`
   width: 100%;
   padding: 16px;
-  background: var(--success-bg);
-  color: var(--success-text);
-  border: 1px solid var(--success-border);
+  background: var(--accent-primary);
+  color: var(--text-inverted);
+  border: 1px solid var(--accent-primary);
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
@@ -748,7 +964,7 @@ const FinishButton = styled.button`
   justify-content: center;
 
   &:hover:not(:disabled) {
-    background: var(--success-hover);
+    background: var(--hover-primary);
     transform: translateY(-2px);
   }
 
@@ -776,15 +992,28 @@ const StatusItem = styled.div`
   gap: 8px;
 `;
 
-// Control Panel
-const ControlPanelUpper = styled.div`
+const ViewerModeSelector = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 32px;
+  justify-content: space-around;
+  gap: 12px;
+
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-bg);
+  border-radius: 8px;
+  padding: 4px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 `;
 
-const ControlPanelLower = styled.div`
-  display: flex;
-  flex-direction: column;
-  margin-top: auto;
+const GeometryActionButtons = styled.div`
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
 `;

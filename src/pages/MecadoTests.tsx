@@ -7,7 +7,6 @@ import SortingModal, {
   SortOrder,
   SortingConfig,
 } from "../projects/sorting/SortingModal";
-import VersionNodeUI from "../projects/versionNodes/VersionNodeUI";
 import { Activity, Archive, Tag } from "lucide-react";
 
 export default function MecadoTests() {
@@ -25,7 +24,6 @@ export default function MecadoTests() {
       {/* <GeometryFlow /> */}
       {/* <VersionFlowVisualization /> */}
 
-      <VersionNodeUI />
 
       <ModalDock>
         <SortingModal
