@@ -16,6 +16,7 @@ import {
   Upload,
   RefreshCw,
   Bot,
+  MoreHorizontal,
 } from "lucide-react";
 import { animated, useSpring } from "@react-spring/web";
 import { MetricsPanel } from "./MetricsPanel";
@@ -28,6 +29,8 @@ export interface SortingConfig {
   comparisonType: "baseline" | "sequential";
 }
 
+
+// add to VersionNodeData
 // add to VersionNodeData
 type AIGenStage =
   | "Creating Variation"
@@ -64,7 +67,6 @@ export const VersionNode: React.FC<VersionNodeProps> = ({
   const { theme } = useTheme();
 
   const [selectedMetric, setSelectedMetric] = useState<string | null>(() => {
-    // If there's a sort config, auto-select that metric
     if (versionData.sortConfig) {
       const sortedMetric = versionData.metrics.find(
         (m) => m.title === versionData.sortConfig?.metricTitle
@@ -75,6 +77,12 @@ export const VersionNode: React.FC<VersionNodeProps> = ({
   });
 
   const isAIGenerating = !!versionData.aiGenerating;
+
+  // Limit displayed metrics to 3
+  const MAX_DISPLAYED_METRICS = 3;
+  const displayedMetrics = versionData.metrics.slice(0, MAX_DISPLAYED_METRICS);
+  const hasMoreMetrics = versionData.metrics.length > MAX_DISPLAYED_METRICS;
+  const hiddenMetricsCount = versionData.metrics.length - MAX_DISPLAYED_METRICS;
 
   // Enhanced animation for archived nodes
   const animationProps = useSpring({
@@ -101,24 +109,26 @@ export const VersionNode: React.FC<VersionNodeProps> = ({
   };
 
   const handleMetricClick = (metricTitle: string) => {
-    // Don't allow metric interaction for archived versions
     if (versionData.isArchived) return;
-
-    // Toggle selection normally
     setSelectedMetric((current) =>
       current === metricTitle ? null : metricTitle
     );
   };
 
+  const handleMoreMetricsClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (versionData.onShowDetails) {
+      versionData.onShowDetails(versionData.id);
+    }
+  };
+
   // UPDATED: Use new multi-value difference checking with dynamic optimization
   const isPositiveChange = (metric: Metric): boolean => {
-    // Check if we have multi-value differences
     if (metric.differences && metric.differences.length > 0) {
-      // Find the primary value difference
       const primaryDiff =
         metric.differences.find(
           (d) => d.valueLabel === metric.primaryValueLabel
-        ) || metric.differences[0]; // Fallback to first difference
+        ) || metric.differences[0];
 
       const target = metric.optimizationTarget || "minimize";
       return target === "maximize"
@@ -126,7 +136,6 @@ export const VersionNode: React.FC<VersionNodeProps> = ({
         : primaryDiff.direction === "decrease";
     }
 
-    // Fallback to legacy single difference
     if (metric.difference) {
       const target = metric.optimizationTarget || "minimize";
       return target === "maximize"
@@ -137,58 +146,16 @@ export const VersionNode: React.FC<VersionNodeProps> = ({
     return true;
   };
 
-  // UPDATED: Use MetricUtils for formatting
   const formatMetricValue = (metric: Metric) => {
     const primaryValue = MetricUtils.getPrimaryValue(metric);
     const unit = MetricUtils.getPrimaryUnit(metric);
     return MetricUtils.formatValue(primaryValue, unit);
   };
 
-  // UPDATED: Get primary difference percentage for display
-  const getPrimaryDifferencePercentage = (metric: Metric): number => {
-    // Check multi-value differences first
-    if (metric.differences && metric.differences.length > 0) {
-      const primaryDiff =
-        metric.differences.find(
-          (d) => d.valueLabel === metric.primaryValueLabel
-        ) || metric.differences[0];
-      return primaryDiff.percentage;
-    }
-
-    // Fallback to legacy difference
-    return metric.difference?.percentage || 0;
-  };
-
-  // UPDATED: Check if primary difference indicates change
-  const hasPrimaryDifferenceChange = (metric: Metric): boolean => {
-    if (metric.differences && metric.differences.length > 0) {
-      const primaryDiff =
-        metric.differences.find(
-          (d) => d.valueLabel === metric.primaryValueLabel
-        ) || metric.differences[0];
-      return primaryDiff.direction !== "unchanged";
-    }
-
-    return metric.difference?.direction !== "unchanged";
-  };
-
-  // UPDATED: Get primary difference direction
-  const getPrimaryDifferenceDirection = (
-    metric: Metric
-  ): "increase" | "decrease" | "unchanged" => {
-    if (metric.differences && metric.differences.length > 0) {
-      const primaryDiff =
-        metric.differences.find(
-          (d) => d.valueLabel === metric.primaryValueLabel
-        ) || metric.differences[0];
-      return primaryDiff.direction;
-    }
-
-    return metric.difference?.direction || "unchanged";
-  };
-
   const handleStyle = {
-    background: versionData.isArchived ? "var(--text-muted)" : "var(--bg)",
+    background: versionData.isArchived
+      ? "var(--text-muted)"
+      : "var(--primary-alternate)",
     width: 8,
     height: 8,
     border: `2px solid ${
@@ -204,18 +171,15 @@ export const VersionNode: React.FC<VersionNodeProps> = ({
       );
       setSelectedMetric(sortedMetric?.title || null);
     } else {
-      // Clear selection when sort is removed or archived
       setSelectedMetric(null);
     }
   }, [versionData.sortConfig, versionData.metrics, versionData.isArchived]);
 
-  // Determine if geometry can be shown (AI gen must be past "Creating Variation")
   const canShowGeometry =
     !!versionData.geometry?.renderContent &&
     !versionData.isArchived &&
     (!versionData.aiGenerating || (versionData.aiStageIndex ?? 0) >= 0);
 
-  // Determine if we should show the upload button
   const hasGeometry = versionData.geometry?.data;
   const showUploadButton = !hasGeometry && !versionData.isArchived;
 
@@ -256,7 +220,6 @@ export const VersionNode: React.FC<VersionNodeProps> = ({
           )}
 
           <HeaderRight>
-            {/* AI status badge */}
             {!versionData.isArchived && versionData.aiGenerating && (
               <AIStatusBadge title={versionData.aiStage || "Generating..."}>
                 <RefreshCw className="spin" size={12} />
@@ -330,7 +293,6 @@ export const VersionNode: React.FC<VersionNodeProps> = ({
                         "No geometry loaded"}
                   </div>
 
-                  {/* Upload Button - only show when no geometry and not archived */}
                   {showUploadButton && (
                     <UploadButton
                       onClick={handleUploadClick}
@@ -354,7 +316,6 @@ export const VersionNode: React.FC<VersionNodeProps> = ({
                     </UploadButton>
                   )}
 
-                  {/* Error message */}
                   {versionData.uploadError && !versionData.isArchived && (
                     <ErrorMessage>{versionData.uploadError}</ErrorMessage>
                   )}
@@ -364,9 +325,9 @@ export const VersionNode: React.FC<VersionNodeProps> = ({
           </CanvasArea>
         </ContentContainer>
 
-        {!versionData.isArchived && !isAIGenerating && (
+        {!versionData.isArchived && !isAIGenerating && versionData.metrics.length > 0 && (
           <MetricsFooter $theme={theme} $isArchived={versionData.isArchived}>
-            {versionData.metrics.map((metric, idx) => {
+            {displayedMetrics.map((metric, idx) => {
               const isSelected =
                 selectedMetric === metric.title && !versionData.isArchived;
               const isPositive = isPositiveChange(metric);
@@ -402,12 +363,6 @@ export const VersionNode: React.FC<VersionNodeProps> = ({
                     $isArchived={versionData.isArchived}
                   >
                     {metric.title}
-                    {/* Show indicator for multi-value metrics */}
-                    {metric.values.length > 1 && (
-                      <MultiValueIndicator>
-                        ({metric.values.length})
-                      </MultiValueIndicator>
-                    )}
                   </MetricButtonLabel>
                   <ValueRow>
                     <MetricButtonValue
@@ -415,17 +370,24 @@ export const VersionNode: React.FC<VersionNodeProps> = ({
                       $isArchived={versionData.isArchived}
                     >
                       {formatMetricValue(metric)}
-                      {/* Show primary value label for multi-value metrics */}
-                      {metric.values.length > 1 && metric.primaryValueLabel && (
-                        <PrimaryValueLabel $isSelected={isSelected}>
-                          {metric.primaryValueLabel}
-                        </PrimaryValueLabel>
-                      )}
                     </MetricButtonValue>
                   </ValueRow>
                 </MetricButton>
               );
             })}
+
+            {hasMoreMetrics && (
+              <MoreMetricsButton
+                onClick={handleMoreMetricsClick}
+                className="nodrag"
+                title={`View ${hiddenMetricsCount} more metric${
+                  hiddenMetricsCount > 1 ? "s" : ""
+                }`}
+              >
+                <MoreHorizontal size={16} />
+                <MoreMetricsLabel>+{hiddenMetricsCount} more</MoreMetricsLabel>
+              </MoreMetricsButton>
+            )}
           </MetricsFooter>
         )}
 
@@ -455,11 +417,11 @@ const NodeContainer = styled.div<{
     if (props.selected) {
       return "2px solid var(--border-outline)";
     }
-    return "1px solid var(--border-bg)";
+    return "1px solid var(--border-outline)";
   }};
   border-radius: 12px;
-  width: 500px;
-  min-height: ${(props) => (props.$hasSelectedMetric ? "400px" : "320px")};
+  width: 540px;
+  min-height: 340px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -469,6 +431,7 @@ const NodeContainer = styled.div<{
       : "rgba(0, 0, 0, 0.24) 0px 3px 8px"};
   filter: ${(props) => (props.$isArchived ? "grayscale(0.7)" : "none")};
   transition: min-height 0.3s ease-in-out;
+  background-color: var(--bg-tertiary);
 `;
 
 const ArchiveBadge = styled.div`
@@ -659,7 +622,7 @@ const UploadButton = styled.button<{
 
   &:hover:not(:disabled) {
     background: ${(props) =>
-      props.$hasError ? "var(--error-hover)" : "var(--primary-action-hover)"};
+      props.$hasError ? "var(--error)" : "var(--hover-primary)"};
     transform: translateY(-1px);
   }
 
@@ -719,8 +682,8 @@ const MetricsFooter = styled.div<{
   $isArchived?: boolean;
 }>`
   display: flex;
-  justify-content: space-between;
-  gap: 4px;
+  justify-content: space-evenly;
+  gap: 32px;
   padding: 8px;
   background: ${(props) => {
     if (props.$isArchived) {
@@ -730,19 +693,21 @@ const MetricsFooter = styled.div<{
       ? "var(--bg-secondary)"
       : "var(--bg-tertiary)";
   }};
+
   border-top: 1px solid var(--border-bg);
   overflow-x: auto;
   opacity: ${(props) => (props.$isArchived ? 0.8 : 1)};
 
   &::-webkit-scrollbar {
-    height: 4px;
+    height: 8px;
   }
   &::-webkit-scrollbar-track {
-    background: transparent;
+    background: ${(props) =>
+      props.$theme === "dark" ? "var(--bg-primary)" : "var(--text-muted)"};
   }
   &::-webkit-scrollbar-thumb {
-    background: var(--border-bg);
-    border-radius: 2px;
+    background: var(--primary-alternate);
+    border-radius: 8px;
   }
 `;
 
@@ -756,7 +721,6 @@ const MetricButton = styled.button<{
   $isArchived?: boolean;
   $metric: Metric;
 }>`
-  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -767,7 +731,7 @@ const MetricButton = styled.button<{
       return "var(--bg-secondary)";
     }
     if (props.$isSelected) {
-      return "var(--primary-alternate)";
+      return "var(--primary-action)";
     }
     if (props.$theme === "light") {
       return "var(--bg-primary)";
@@ -775,12 +739,24 @@ const MetricButton = styled.button<{
     return "var(--bg-secondary)";
   }};
 
+  color: ${(props) => {
+    if (props.$isArchived) {
+      return "var(--text-muted)";
+    }
+
+    if (props.$theme === "light") {
+      return props.$isSelected ? "#B1BEC9" : "var(--text-muted)";
+    }
+
+    return props.$isSelected ? "#B1BEC9" : "var(--text-muted)";
+  }};
+
   border: 1px solid
     ${(props) => {
-      if (props.$isArchived) return "var(--text-muted)";
+      if (props.$isArchived) return "var(--border-outline)";
       if (props.$isSorted) return "var(--primary-action)";
       if (props.$isSelected) return "var(--primary-action)";
-      return "var(--border-bg)";
+      return "var(--border-outline)";
     }};
 
   box-shadow: rgba(0, 0, 0, 0.05) 0px 6px 24px 0px,
@@ -804,7 +780,7 @@ const MetricButton = styled.button<{
   &:hover {
     background: ${(props) => {
       if (props.$isArchived) return "var(--bg-secondary)";
-      return props.$isSelected ? "var(--primary-alternate)" : "var(--hover-bg)";
+      return props.$isSelected ? "var(--hover-primary)" : "var(--hover-bg)";
     }};
     border: 1px solid
       ${(props) =>
@@ -817,6 +793,7 @@ const MetricButton = styled.button<{
       )};
     `}
     transform: ${(props) => (props.$isArchived ? "none" : "translateY(-1px)")};
+    color: ${props => props.$isSelected ? 'white' : 'var(--text-primary)'};
   }
 
   &:disabled {
@@ -844,18 +821,16 @@ const MetricButtonLabel = styled.div<{
 }>`
   font-size: 10px;
   font-weight: ${(props) =>
-    props.$isSelected && !props.$isArchived ? "600" : "500"};
-  color: ${(props) => {
-    if (props.$isArchived) {
-      return "var(--text-muted)";
-    }
-    return props.$isSelected ? "var(--text-inverted)" : "var(--text-muted)";
-  }};
+    props.$isSelected && !props.$isArchived ? "600" : "600"};
   letter-spacing: 0.5px;
   display: flex;
   align-items: center;
   gap: 4px;
   text-align: center;
+
+  &:hover {
+    color: reds;
+  }
 `;
 
 const MetricButtonValue = styled.div<{
@@ -868,7 +843,7 @@ const MetricButtonValue = styled.div<{
     if (props.$isArchived) {
       return "var(--text-muted)";
     }
-    return props.$isSelected ? "var(--text-inverted)" : "var(--text-primary)";
+    return props.$isSelected ? "white" : "var(--text-primary)";
   }};
   display: flex;
   flex-direction: column;
@@ -968,3 +943,40 @@ const RedactedLine = styled.div`
 `;
 
 export default VersionNode;
+
+const MoreMetricsButton = styled.button`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 12px;
+  background: var(--bg-tertiary);
+  border: 1px dashed var(--border-outline);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+
+  &:hover {
+    background: var(--hover-bg);
+      border: 1px solid var(--border-outline);
+    transform: translateY(-1px);
+
+    svg {
+      color: var(--primary-alternate);
+    }
+  }
+
+  svg {
+    color: var(--text-primary);
+    transition: color 0.2s ease;
+  }
+`;
+
+const MoreMetricsLabel = styled.div`
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.3px;
+`;
