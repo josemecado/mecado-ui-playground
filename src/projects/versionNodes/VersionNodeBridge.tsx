@@ -1,15 +1,17 @@
-// nodeVisuals/versionNodes/VersionMiniSelector.bridge.tsx
+// nodeVisuals/versionNodes/VersionNodeBridge.tsx
 import React, { useState, useEffect, useCallback } from "react";
 import { VersionMiniSelector } from "./components/VersionMiniSelector";
 import VersionFlowVisualization from "./views/VersionFlow";
-import { ProjectVersion } from "./utils/VersionInterfaces";
+import { ProjectAnalysisFlow } from "../analysisFlow/ProjectAnalysisFlow";
+import { ProjectVersion, Analysis, AnalysisGroup } from "./utils/VersionInterfaces";
 import { Equation } from "../../reusable-components/models/vulcanModels";
 import { AddVersionModal } from "./components/AddVersionModal";
 import { useProjectVersions } from "./bootUpHooks/useProjectVersions";
+import { useAnalysisData } from "../AnalysisFlow/useAnalysisData";
 import { clearAllCaches } from "./bootUpHooks/useProjectVersions";
 
 // Types
-export type BridgeMode = "mini" | "flow";
+export type BridgeMode = "mini" | "flow" | "analysis";
 
 interface CommonBridgeProps {
   projectId: string;
@@ -46,8 +48,9 @@ export const VersionNodeBridge: React.FC<GraphBridgeProps> = ({
 }) => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedAnalysis, setSelectedAnalysis] = useState<Analysis | null>(null);
 
-  // Use the refactored hook
+  // Use the refactored hook for version data
   const { versions } = useProjectVersions({
     projectId,
     projectVersions,
@@ -55,6 +58,20 @@ export const VersionNodeBridge: React.FC<GraphBridgeProps> = ({
     uploadedFilesRefreshKey,
     generatedDocsRefreshKey,
     refreshKey,
+    useMockData: mode === "analysis", // Use mock data for analysis mode during development
+  });
+
+  // Calculate active version ID
+  const activeVersionId = versions.find(v => v.title === `Version ${projectVersion}`)?.id 
+    || versions[versions.length - 1]?.id 
+    || "";
+
+  // Use analysis data hook for analysis mode
+  const analysisData = useAnalysisData({
+    projectId,
+    versionId: activeVersionId,
+    refreshKey,
+    useMockData: true, // Always use mock data for now
   });
 
   useEffect(() => {
@@ -74,20 +91,18 @@ export const VersionNodeBridge: React.FC<GraphBridgeProps> = ({
     }
   }, [projectVersions]);
 
-  // Calculate active version ID
-  const activeVersionId = "";
-
   // Handlers
   const handleVersionChange = useCallback(
     (id: string) => {
-      // onVersionChange(extractVersionNumber(id));
+      // Extract version number from id (e.g., "v1" -> 1)
+      const versionNum = parseInt(id.replace(/[^0-9]/g, '')) || 1;
+      onVersionChange(versionNum);
     },
     [onVersionChange]
   );
 
   const handleAddVersion = useCallback(
     async (newVersion: ProjectVersion, parentVersionId: string | null) => {
-      // The relationship storage is already updated in the modal
       if (onNewProjectVersion) {
         await onNewProjectVersion();
       }
@@ -105,13 +120,29 @@ export const VersionNodeBridge: React.FC<GraphBridgeProps> = ({
   }, []);
 
   const handleRefreshGeometry = useCallback(() => {
-    // Clear all caches and force re-fetch
     clearAllCaches();
     setRefreshKey((prev) => prev + 1);
   }, []);
 
+  // Analysis mode handlers
+  const handleAnalysisClick = useCallback((analysis: Analysis) => {
+    setSelectedAnalysis(analysis);
+    console.log("Analysis clicked:", analysis);
+    // TODO: Open analysis details modal/panel
+  }, []);
+
+  const handleGroupClick = useCallback((group: AnalysisGroup) => {
+    console.log("Analysis group clicked:", group);
+    // The tab switching is handled internally by ProjectAnalysisFlow
+  }, []);
+
+  const handleRequirementsClick = useCallback(() => {
+    console.log("Requirements clicked");
+    // TODO: Open requirements panel/modal
+  }, []);
+
   // Early return if no versions
-  if (!versions.length) return null;
+  if (!versions.length && mode !== "analysis") return null;
 
   // Render based on mode
   if (mode === "mini") {
@@ -136,21 +167,33 @@ export const VersionNodeBridge: React.FC<GraphBridgeProps> = ({
     );
   }
 
+  if (mode === "analysis") {
+    return (
+      <ProjectAnalysisFlow
+        analysisGroups={analysisData.analysisGroups}
+        requirements={analysisData.requirements}
+        activeVersionId={activeVersionId}
+        onAnalysisClick={handleAnalysisClick}
+        onGroupClick={handleGroupClick}
+        onRequirementsClick={handleRequirementsClick}
+      />
+    );
+  }
+
   // mode === "flow"
   return (
-  <VersionFlowVisualization
-    versions={versions}
-    activeVersionId={activeVersionId}
-    onVersionChange={handleVersionChange}
-    onAddVersion={async (newVersion) => {
-      // When called from VersionFlowVisualization, relationships are already saved
-      if (onNewProjectVersion) {
-        await onNewProjectVersion();
-      }
-    }}
-    onNewProjectVersion={onNewProjectVersion} // NEW: Pass through the backend version creator
-    projectId={projectId}
-    onRefreshGeometry={handleRefreshGeometry}
-  />
+    <VersionFlowVisualization
+      versions={versions}
+      activeVersionId={activeVersionId}
+      onVersionChange={handleVersionChange}
+      onAddVersion={async (newVersion) => {
+        if (onNewProjectVersion) {
+          await onNewProjectVersion();
+        }
+      }}
+      onNewProjectVersion={onNewProjectVersion}
+      projectId={projectId}
+      onRefreshGeometry={handleRefreshGeometry}
+    />
   );
 };

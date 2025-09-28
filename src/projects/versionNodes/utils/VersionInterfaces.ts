@@ -108,21 +108,68 @@ export interface ANSYSSolutionItem {
   [key: string]: any;
 }
 
-// Updated ProjectVersion interface
+// EXTENDED: ProjectVersion interface with analysis support
 export interface ProjectVersion {
   id: string;
   title: string;
   parentVersion: string | null;
   createdAt: string;
-  geometries: GeometryFile[]; // Keep for backward compatibility
-  geometry?: VersionGeometry; // VTK geometry data
+  geometries: GeometryFile[];
+  geometry?: VersionGeometry;
   pinnedEquations: Equation[];
   uploadedFiles: FileItem[];
   generatedFiles: FileItem[];
-  metrics: Metric[]; // Now supports dynamic multi-value metrics
+  metrics: Metric[]; // Keep for backwards compatibility
   edges?: EdgeConfig[];
   isArchived?: boolean;
+  
+  // NEW: Analysis-specific fields
+  analysisGroups?: AnalysisGroup[];
+  requirements?: Requirement[];
+  analysisConfiguration?: {
+    sourceVersionId?: string; // If this config was copied from another version
+    lastModified?: string;
+    autoRetryOnFailure?: boolean;
+  };
 }
+
+// NEW: Requirement interface for pass/fail criteria
+export interface Requirement {
+  id: string;
+  name: string;
+  description: string;
+  targetValue: number;
+  unit: string;
+  comparator: ">" | "<" | ">=" | "<=" | "==" | "!=";
+  category: "structural" | "thermal" | "modal" | "general";
+  priority: "critical" | "important" | "standard";
+  currentValue?: number;
+  status?: "pass" | "fail" | "pending";
+}
+
+// NEW: Analysis Group interface
+export interface AnalysisGroup {
+  id: string;
+  name: "Structural" | "Thermal" | "Modal";
+  status: "pending" | "running" | "passed" | "failed" | "partial";
+  analyses: Analysis[];
+  requirements?: Requirement[];
+}
+
+// NEW: Individual Analysis interface
+export interface Analysis {
+  id: string;
+  name: string;
+  type: string;
+  status: "pending" | "running" | "completed" | "failed";
+  metrics: Metric[];
+  errors?: string[];
+  warnings?: string[];
+  executedAt?: string;
+  duration?: number;
+  progress?: number; // 0-100 for running analyses
+}
+
 
 // Utility type for metric value operations
 export type MetricValueOperation = "maximum" | "minimum" | "average" | "sum";

@@ -20,16 +20,22 @@ export default function ProjectChatWindow() {
         onViewChange={() => {}}
       />
 
-  <VersionNodeBridge
-    mode="flow"
-    projectId="ui-dev"
-    projectVersions={null} // This triggers mock data mode
-    projectVersion={3}
-    onVersionChange={console.log}
-    onNewProjectVersion={async () => {}}
-    pinnedEquations={[]}
-  />
-
+      {/* <VersionNodeBridge
+        mode="flow"
+        projectId="ui-dev"
+        projectVersions={null} // This triggers mock data mode
+        projectVersion={3}
+        onVersionChange={console.log}
+        onNewProjectVersion={async () => {}}
+        pinnedEquations={[]}
+      /> */}
+      <VersionNodeBridge
+        mode="analysis" // New mode!
+        projectId={""}
+        projectVersions={[]}
+        projectVersion={1}
+        onVersionChange={console.log}
+      />
     </Container>
   );
 }
