@@ -1,7 +1,6 @@
 // hooks/useAnalysisAnimation.tsx
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Node, Edge } from "@xyflow/react";
-import { Analysis } from "../../versionNodes/utils/VersionInterfaces";
 
 interface UseAnalysisAnimationProps {
   nodes: Node[];
@@ -9,6 +8,7 @@ interface UseAnalysisAnimationProps {
   onNodesChange: (nodes: Node[]) => void;
   onEdgesChange: (edges: Edge[]) => void;
   onAnalysisComplete?: (analysisId: string) => void;
+  onAnimationComplete?: () => void;
 }
 
 interface UseAnalysisAnimationReturn {
@@ -25,13 +25,13 @@ export const useAnalysisAnimation = ({
   onNodesChange,
   onEdgesChange,
   onAnalysisComplete,
+  onAnimationComplete,
 }: UseAnalysisAnimationProps): UseAnalysisAnimationReturn => {
   const [isRunning, setIsRunning] = useState(false);
   const [currentAnalysisIndex, setCurrentAnalysisIndex] = useState(-1);
   const animationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const edgeAnimationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Filter to get only analysis nodes (not group nodes)
+  // Filter to get only analysis nodes
   const analysisNodes = nodes.filter(n => n.type === 'analysis');
 
   const resetAnimation = useCallback(() => {
@@ -50,14 +50,15 @@ export const useAnalysisAnimation = ({
     }));
     onNodesChange(resetNodes);
 
-    // Reset all edges
+    // Reset all edges to dashed, muted state
     const resetEdges = edges.map(edge => ({
       ...edge,
       animated: false,
       style: {
-        ...edge.style,
-        stroke: 'var(--border-outline)',
-        strokeWidth: 1.5,
+        stroke: 'var(--text-muted)',
+        strokeWidth: 2,
+        strokeDasharray: '5 5',
+        opacity: 0.5
       }
     }));
     onEdgesChange(resetEdges);
@@ -66,32 +67,65 @@ export const useAnalysisAnimation = ({
     if (animationTimeoutRef.current) {
       clearTimeout(animationTimeoutRef.current);
     }
-    if (edgeAnimationTimeoutRef.current) {
-      clearTimeout(edgeAnimationTimeoutRef.current);
-    }
   }, [nodes, edges, onNodesChange, onEdgesChange]);
 
-  const animateEdgeToNext = useCallback((fromNodeId: string, toNodeId: string) => {
-    const updatedEdges = edges.map(edge => {
-      // Find the edge connecting these two nodes
-      const isTargetEdge = 
-        (edge.source === fromNodeId && edge.target === toNodeId) ||
-        (edge.target === toNodeId && edge.source.includes(fromNodeId.split('-')[0]));
-      
-      return {
-        ...edge,
-        animated: isTargetEdge,
-        style: {
-          ...edge.style,
-          stroke: isTargetEdge ? 'var(--accent-primary)' : edge.style?.stroke || 'var(--border-outline)',
-          strokeWidth: isTargetEdge ? 2.5 : 1.5,
-        }
-      };
+  const updateEdgeState = useCallback((edgeIndex: number, state: 'pending' | 'active' | 'completed' | 'failed') => {
+    const updatedEdges = edges.map((edge, index) => {
+      if (index !== edgeIndex) return edge;
+
+      switch (state) {
+        case 'pending':
+          return {
+            ...edge,
+            animated: false,
+            style: {
+              stroke: 'var(--text-muted)',
+              strokeWidth: 2,
+              strokeDasharray: '5 5',
+              opacity: 0.5
+            }
+          };
+        case 'active':
+          return {
+            ...edge,
+            animated: true,
+            style: {
+              stroke: 'var(--accent-primary)',
+              strokeWidth: 2.5,
+              strokeDasharray: '5 5',
+              opacity: 1
+            }
+          };
+        case 'completed':
+          return {
+            ...edge,
+            animated: false,
+            style: {
+              stroke: 'var(--primary-alternate)',
+              strokeWidth: 2,
+              strokeDasharray: '0',
+              opacity: 1
+            }
+          };
+        case 'failed':
+          return {
+            ...edge,
+            animated: false,
+            style: {
+              stroke: 'var(--error)',
+              strokeWidth: 2,
+              strokeDasharray: '0',
+              opacity: 1
+            }
+          };
+        default:
+          return edge;
+      }
     });
     onEdgesChange(updatedEdges);
   }, [edges, onEdgesChange]);
 
-  const completeCurrentAnalysis = useCallback((nodeId: string) => {
+  const completeCurrentAnalysis = useCallback((nodeId: string, failed: boolean = false) => {
     const updatedNodes = nodes.map(node => {
       if (node.id === nodeId) {
         return {
@@ -99,8 +133,8 @@ export const useAnalysisAnimation = ({
           data: {
             ...node.data,
             isActive: false,
-            isCompleted: true,
-            isFailed: false,
+            isCompleted: !failed,
+            isFailed: failed,
           }
         };
       }
@@ -115,18 +149,7 @@ export const useAnalysisAnimation = ({
       // Animation complete
       setIsRunning(false);
       setCurrentAnalysisIndex(-1);
-      
-      // Stop edge animations
-      const finalEdges = edges.map(edge => ({
-        ...edge,
-        animated: false,
-        style: {
-          ...edge.style,
-          stroke: 'var(--success)',
-          strokeWidth: 1.5,
-        }
-      }));
-      onEdgesChange(finalEdges);
+      onAnimationComplete?.();
       return;
     }
 
@@ -150,25 +173,43 @@ export const useAnalysisAnimation = ({
     });
     onNodesChange(updatedNodes);
 
-    // Animate edge from previous node if exists
+    // Update edge states
     if (index > 0) {
-      const prevNode = analysisNodes[index - 1];
-      animateEdgeToNext(prevNode.id, currentNode.id);
+      // Set previous edge to completed
+      updateEdgeState(index - 1, 'completed');
+    }
+    if (index < edges.length) {
+      // Set current edge to active (edge leading to next node)
+      updateEdgeState(index, 'active');
     }
 
     // Simulate analysis duration (2-4 seconds)
     const duration = 2000 + Math.random() * 2000;
     
+    // Randomly determine if analysis fails (10% chance)
+    const willFail = Math.random() < 0.1;
+    
     animationTimeoutRef.current = setTimeout(() => {
       // Complete current analysis
-      completeCurrentAnalysis(currentNode.id);
+      completeCurrentAnalysis(currentNode.id, willFail);
       
-      // Move to next analysis after a short delay
-      edgeAnimationTimeoutRef.current = setTimeout(() => {
-        activateAnalysis(index + 1);
-      }, 500);
+      // Update edge state after completion
+      if (index < edges.length) {
+        updateEdgeState(index, willFail ? 'failed' : 'completed');
+      }
+      
+      // If not failed, move to next analysis
+      if (!willFail) {
+        setTimeout(() => {
+          activateAnalysis(index + 1);
+        }, 300);
+      } else {
+        // Stop animation on failure
+        setIsRunning(false);
+        console.log(`Analysis failed at step ${index + 1}`);
+      }
     }, duration);
-  }, [analysisNodes, nodes, edges, onNodesChange, animateEdgeToNext, completeCurrentAnalysis, onEdgesChange]);
+  }, [analysisNodes, nodes, edges, onNodesChange, updateEdgeState, completeCurrentAnalysis]);
 
   const startAnimation = useCallback(() => {
     if (isRunning || analysisNodes.length === 0) return;
@@ -189,9 +230,6 @@ export const useAnalysisAnimation = ({
     if (animationTimeoutRef.current) {
       clearTimeout(animationTimeoutRef.current);
     }
-    if (edgeAnimationTimeoutRef.current) {
-      clearTimeout(edgeAnimationTimeoutRef.current);
-    }
     
     resetAnimation();
   }, [resetAnimation]);
@@ -201,9 +239,6 @@ export const useAnalysisAnimation = ({
     return () => {
       if (animationTimeoutRef.current) {
         clearTimeout(animationTimeoutRef.current);
-      }
-      if (edgeAnimationTimeoutRef.current) {
-        clearTimeout(edgeAnimationTimeoutRef.current);
       }
     };
   }, []);

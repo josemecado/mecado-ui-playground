@@ -166,19 +166,19 @@ const NodeContainer = styled.div<{
   position: relative;
   background: ${props => {
     if (props.$isActive) {
-      return 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)';
+      return 'var(--bg-tertiary)';
     }
     if (props.$isCompleted) {
       return 'linear-gradient(135deg, var(--success) 0%, #10b981 100%)';
     }
-    return 'linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%)';
+    return 'var(--bg-secondary)';
   }};
-  border: 2px solid ${props => {
-    if (props.$isActive) return 'var(--accent-primary)';
-    if (props.$isCompleted) return 'var(--success)';
+  border: ${props => {
+    if (props.$isActive) return '2px solid var(--border-outline)';
+    if (props.$isCompleted) return '2px solid var(--border-bg)';
     switch(props.$status) {
-      case 'failed': return 'var(--error)';
-      default: return 'var(--border-outline)';
+      case 'failed': return '2px solid var(--error)';
+      default: return '1px solid var(--border-outline)';
     }
   }};
   border-radius: 12px;

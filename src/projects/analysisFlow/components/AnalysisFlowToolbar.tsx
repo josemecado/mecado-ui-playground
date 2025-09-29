@@ -5,7 +5,7 @@ import {
   AnalysisGroup,
   Requirement,
 } from "../../versionNodes/utils/VersionInterfaces";
-import { Play } from "lucide-react";
+import { Play, Square } from "lucide-react";
 
 interface AnalysisToolbarProps {
   analysisGroups: AnalysisGroup[];
@@ -14,6 +14,7 @@ interface AnalysisToolbarProps {
   onTabChange: (tabId: string | "all") => void;
   onRequirementsClick: () => void;
   onRunAnalyses?: () => void;
+  isRunning?: boolean;
 }
 
 export const AnalysisToolbar: React.FC<AnalysisToolbarProps> = ({
@@ -23,6 +24,7 @@ export const AnalysisToolbar: React.FC<AnalysisToolbarProps> = ({
   onTabChange,
   onRequirementsClick,
   onRunAnalyses,
+  isRunning = false,
 }) => {
   const passedRequirements = requirements.filter(
     (r) => r.status === "pass"
@@ -33,14 +35,24 @@ export const AnalysisToolbar: React.FC<AnalysisToolbarProps> = ({
       ? ((passedRequirements / totalRequirements) * 100).toFixed(0)
       : 0;
 
+  // Determine button label based on state
+  const getButtonLabel = () => {
+    if (isRunning) return "Stop";
+    if (activeTab === "all") return "Run All";
+    return "Run Analyses";
+  };
+
   return (
     <ToolbarContainer>
       <LeftSection>
-        <RunButton onClick={onRunAnalyses}>
+        <RunButton 
+          onClick={onRunAnalyses}
+          $isRunning={isRunning}
+        >
           <PlayIcon>
-            <Play size={16} />
+            {isRunning ? <Square size={16} /> : <Play size={16} />}
           </PlayIcon>
-          <RunLabel>Run Analyses</RunLabel>
+          <RunLabel>{getButtonLabel()}</RunLabel>
         </RunButton>
       </LeftSection>
 
@@ -49,6 +61,7 @@ export const AnalysisToolbar: React.FC<AnalysisToolbarProps> = ({
           <BaseTabButton
             $active={activeTab === "all"}
             onClick={() => onTabChange("all")}
+            disabled={isRunning}
           >
             <TabLabel>Overview</TabLabel>
             <TabCount $active={activeTab === "all"}>
@@ -61,9 +74,13 @@ export const AnalysisToolbar: React.FC<AnalysisToolbarProps> = ({
               key={group.id}
               $active={activeTab === group.id}
               onClick={() => onTabChange(group.id)}
+              disabled={isRunning}
             >
               <TabLabel>{group.name}</TabLabel>
-              <StatusIndicator $status={group.status} />
+              <StatusIndicator 
+                $status={group.status} 
+                $isActive={isRunning && activeTab === group.id}
+              />
             </BaseTabButton>
           ))}
         </TabSection>
@@ -132,17 +149,24 @@ const BaseTabButton = styled.button<{
     transform: translateY(-1px);
   }
 
-  &:active {
+  &:active:not(:disabled) {
     transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 `;
 
-const RunButton = styled.button`
+const RunButton = styled.button<{ $isRunning: boolean }>`
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: var(--accent-primary);
+  background: ${props => props.$isRunning 
+    ? "var(--error)" 
+    : "var(--accent-primary)"};
   color: white;
   border: none;
   border-radius: 8px;
@@ -153,7 +177,9 @@ const RunButton = styled.button`
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
   &:hover {
-    background: var(--hover-primary);
+    background: ${props => props.$isRunning 
+      ? "var(--error)" 
+      : "var(--hover-primary)"};
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   }
@@ -165,6 +191,15 @@ const RunButton = styled.button`
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+
+  ${props => props.$isRunning && `
+    animation: pulseButton 2s ease-in-out infinite;
+  `}
+
+  @keyframes pulseButton {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.85; }
   }
 `;
 
@@ -192,11 +227,12 @@ const TabCount = styled.span<{ $active: boolean }>`
   border-radius: 10px;
 `;
 
-const StatusIndicator = styled.div<{ $status: string }>`
+const StatusIndicator = styled.div<{ $status: string; $isActive?: boolean }>`
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: ${(props) => {
+    if (props.$isActive) return "var(--accent-primary)";
     switch (props.$status) {
       case "passed":
         return "var(--success)";
@@ -211,17 +247,16 @@ const StatusIndicator = styled.div<{ $status: string }>`
     }
   }};
   box-shadow: ${(props) => {
-    if (props.$status === "running") {
-      return "0 0 0 2px rgba(var(--accent-primary), 0.3)";
+    if (props.$status === "running" || props.$isActive) {
+      return "0 0 0 2px rgba(var(--accent-primary-rgb), 0.3)";
     }
     return "none";
   }};
   animation: ${(props) =>
-    props.$status === "running" ? "pulse 2s infinite" : "none"};
+    (props.$status === "running" || props.$isActive) ? "pulse 2s infinite" : "none"};
 
   @keyframes pulse {
-    0%,
-    100% {
+    0%, 100% {
       opacity: 1;
     }
     50% {
