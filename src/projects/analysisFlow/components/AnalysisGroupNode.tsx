@@ -33,14 +33,14 @@ export const AnalysisGroupNode: React.FC<NodeProps> = ({ data }) => {
 
   return (
     <GroupContainer $status={group.status}>
-      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Left} style={{ opacity: 0 }} />
       
       <GroupHeader>
         <IconWrapper>
-          <Layers size={20} />
+          <Layers size={18} />
         </IconWrapper>
         <HeaderContent>
-          <GroupTitle>{group.name.toUpperCase()}</GroupTitle>
+          <GroupTitle>{group.name}</GroupTitle>
           <GroupSubtitle>Analysis Group</GroupSubtitle>
         </HeaderContent>
         <StatusIcon $status={group.status}>
@@ -84,14 +84,14 @@ export const AnalysisGroupNode: React.FC<NodeProps> = ({ data }) => {
         </StatusSection>
       </GroupBody>
 
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
+      <Handle type="source" position={Position.Right} style={{ opacity: 0 }} />
     </GroupContainer>
   );
 };
 
 // Styled Components
 const GroupContainer = styled.div<{ $status: string }>`
-  background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+  background: var(--bg-secondary);
   border: 2px solid ${props => {
     switch(props.$status) {
       case 'passed': return 'var(--success)';
@@ -136,14 +136,14 @@ const GroupHeader = styled.div`
 `;
 
 const IconWrapper = styled.div`
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--primary-action) 0%, var(--primary-alternate) 100%);
+  background: var(--primary-alternate);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--text-inverted);
   margin-right: 12px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 `;
@@ -159,7 +159,6 @@ const GroupTitle = styled.h3`
   font-size: 15px;
   font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: 0.8px;
 `;
 
 const GroupSubtitle = styled.span`
@@ -184,12 +183,7 @@ const StatusIcon = styled.div<{ $status: string }>`
 
 const Divider = styled.div`
   height: 1px;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    var(--border-bg) 20%, 
-    var(--border-bg) 80%, 
-    transparent 100%
-  );
+  background: var(--border-outline);
 `;
 
 const GroupBody = styled.div`
@@ -207,8 +201,8 @@ const MetricRow = styled.div`
 
 const MetricCard = styled.div`
   padding: 10px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--border-bg);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-outline);
   border-radius: 8px;
   backdrop-filter: blur(5px);
 `;

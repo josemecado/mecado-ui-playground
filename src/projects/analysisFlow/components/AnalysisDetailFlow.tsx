@@ -18,7 +18,7 @@ import { AnalysisGroup, Analysis } from "../../versionNodes/utils/VersionInterfa
 import { AnalysisIndividualNode } from "./AnalysisNode";
 import { useAnalysisAnimation } from "../hooks/useAnalysisAnimation";
 import { AnalysisDetailsFooter } from "./AnalysisFooter";
-import { RequirementsModal } from "./RequirementsModal";
+import { RequirementsModal } from "./requirements/RequirementsModal";
 import { RefreshCw, Maximize2, Minimize2 } from "lucide-react";
 
 interface AnalysisDetailFlowProps {
@@ -47,7 +47,7 @@ export const AnalysisDetailFlow = forwardRef<AnalysisDetailFlowRef, AnalysisDeta
       const edges: Edge[] = [];
 
       // Add only analysis nodes in a horizontal pipeline
-      const analysisSpacing = 280;
+      const analysisSpacing = 300;
       const startX = 200;
       const centerY = 250;
       

@@ -131,11 +131,6 @@ export const VersionNodeBridge: React.FC<GraphBridgeProps> = ({
     // TODO: Open analysis details modal/panel
   }, []);
 
-  const handleGroupClick = useCallback((group: AnalysisGroup) => {
-    console.log("Analysis group clicked:", group);
-    // The tab switching is handled internally by ProjectAnalysisFlow
-  }, []);
-
   const handleRequirementsClick = useCallback(() => {
     console.log("Requirements clicked");
     // TODO: Open requirements panel/modal
@@ -174,7 +169,6 @@ export const VersionNodeBridge: React.FC<GraphBridgeProps> = ({
         requirements={analysisData.requirements}
         activeVersionId={activeVersionId}
         onAnalysisClick={handleAnalysisClick}
-        onGroupClick={handleGroupClick}
         onRequirementsClick={handleRequirementsClick}
       />
     );

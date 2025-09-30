@@ -236,6 +236,8 @@ const SidebarContainer = styled.div<{ $collapsed?: boolean }>`
   overflow-y: auto;
   overflow-x: hidden;
   transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  border-right: 1px solid var(--border-bg);
+
 
   &::-webkit-scrollbar {
     width: 6px;

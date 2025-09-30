@@ -1,17 +1,21 @@
 // components/AnalysisDetailsFooter.tsx
-import React from "react";
+import React, { useState, useMemo } from "react";
 import styled from "styled-components";
-import { Analysis } from "../../versionNodes/utils/VersionInterfaces";
-import { 
-  AlertTriangle, 
-  Clock, 
-  CheckCircle, 
+import {
+  Analysis,
+  Requirement,
+} from "../../versionNodes/utils/VersionInterfaces";
+import {
+  AlertTriangle,
+  Clock,
+  CheckCircle,
   XCircle,
   ChevronRight,
   Activity,
   FileText,
   Settings,
-  X
+  X,
+  ArrowUpDown,
 } from "lucide-react";
 
 interface AnalysisDetailsFooterProps {
@@ -19,36 +23,69 @@ interface AnalysisDetailsFooterProps {
   onClose: () => void;
 }
 
+type SortOption = "default" | "status" | "priority";
+
 export const AnalysisDetailsFooter: React.FC<AnalysisDetailsFooterProps> = ({
   analysis,
-  onClose
+  onClose,
 }) => {
+  const [requirementSort, setRequirementSort] = useState<SortOption>("default");
+
   if (!analysis) return null;
 
   const getStatusIcon = (status: string) => {
-    switch(status) {
-      case 'completed': return <CheckCircle size={14} />;
-      case 'failed': return <XCircle size={14} />;
-      case 'running': return <Activity size={14} className="spin" />;
-      default: return <Clock size={14} />;
+    switch (status) {
+      case "completed":
+        return <CheckCircle size={14} />;
+      case "failed":
+        return <XCircle size={14} />;
+      case "running":
+        return <Activity size={14} className="spin" />;
+      default:
+        return <Clock size={14} />;
     }
   };
 
-  const formatDuration = (duration?: number) => {
-    if (!duration) return 'N/A';
-    const minutes = Math.floor(duration / 60);
-    const seconds = duration % 60;
-    return `${minutes}m ${seconds}s`;
+  const getRequirementStatusIcon = (status?: string) => {
+    switch (status) {
+      case "pass":
+        return <CheckCircle size={12} />;
+      case "fail":
+        return <XCircle size={12} />;
+      default:
+        return <AlertTriangle size={12} />;
+    }
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'Not executed';
-    const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+  // Sort requirements based on selected option
+  const sortedRequirements = useMemo(() => {
+    if (!analysis.requirements) return [];
+
+    const reqs = [...analysis.requirements];
+    switch (requirementSort) {
+      case "status":
+        return reqs.sort((a, b) => {
+          const order = { fail: 0, pending: 1, pass: 2 };
+          return (
+            (order[a.status || "pending"] || 1) -
+            (order[b.status || "pending"] || 1)
+          );
+        });
+      case "priority":
+        return reqs.sort((a, b) => {
+          const order = { critical: 0, important: 1, standard: 2 };
+          return order[a.priority] - order[b.priority];
+        });
+      default:
+        return reqs;
+    }
+  }, [analysis.requirements, requirementSort]);
+
+  const cycleSortOption = () => {
+    setRequirementSort((prev) => {
+      if (prev === "default") return "status";
+      if (prev === "status") return "priority";
+      return "default";
     });
   };
 
@@ -56,132 +93,193 @@ export const AnalysisDetailsFooter: React.FC<AnalysisDetailsFooterProps> = ({
     <FooterContainer>
       <FooterHeader>
         <HeaderLeft>
-          <Title>Analysis Details</Title>
-          <AnalysisName>{analysis.name}</AnalysisName>
-        </HeaderLeft>
-        <CloseButton onClick={onClose}>
-          <X size={16} />
-        </CloseButton>
-      </FooterHeader>
+          <TitleSection>
+            <Title>Analysis Details</Title>
+            <AnalysisName>{analysis.name}</AnalysisName>
+          </TitleSection>
+                  <InfoCardsRow>
+          <InfoCard>
+            <InfoValue $status={analysis.status}>
+              {getStatusIcon(analysis.status)}
+              <span>{analysis.status}</span>
+            </InfoValue>
+          </InfoCard>
 
-      <FooterContent>
-        <MainSection>
-          <InfoGrid>
-            <InfoCard>
-              <InfoLabel>Status</InfoLabel>
-              <InfoValue $status={analysis.status}>
-                {getStatusIcon(analysis.status)}
-                <span>{analysis.status}</span>
-              </InfoValue>
-            </InfoCard>
-
-            <InfoCard>
-              <InfoLabel>Type</InfoLabel>
-              <InfoValue>
-                <Settings size={12} />
-                <span>{analysis.type}</span>
-              </InfoValue>
-            </InfoCard>
-
-            <InfoCard>
-              <InfoLabel>Duration</InfoLabel>
-              <InfoValue>
-                <Clock size={12} />
-                <span>{formatDuration(analysis.duration)}</span>
-              </InfoValue>
-            </InfoCard>
-
-            <InfoCard>
-              <InfoLabel>Executed</InfoLabel>
-              <InfoValue>
-                <span>{formatDate(analysis.executedAt)}</span>
-              </InfoValue>
-            </InfoCard>
-          </InfoGrid>
+          <InfoCard>
+            <InfoValue>
+              <Settings size={12} />
+              <span>{analysis.type}</span>
+            </InfoValue>
+          </InfoCard>
 
           {analysis.progress !== undefined && (
-            <ProgressSection>
-              <ProgressLabel>Progress</ProgressLabel>
-              <ProgressBarContainer>
-                <ProgressBar $progress={analysis.progress} />
-                <ProgressText>{analysis.progress}%</ProgressText>
-              </ProgressBarContainer>
-            </ProgressSection>
+            <InfoCard>
+              <InfoValue>
+                <ProgressMini $progress={analysis.progress} />
+                <span>{analysis.progress}%</span>
+              </InfoValue>
+            </InfoCard>
           )}
+        </InfoCardsRow>
+        </HeaderLeft>
 
-          {analysis.metrics && analysis.metrics.length > 0 && (
-            <MetricsSection>
-              <SectionTitle>
-                <FileText size={14} />
-                Results Metrics
-              </SectionTitle>
-              <MetricsList>
-                {analysis.metrics.slice(0, 3).map((metric, index) => (
-                  <MetricItem key={index}>
-                    <MetricName>{metric.title}</MetricName>
-                    <MetricValue>
-                      {metric.values && metric.values[0] 
-                        ? `${metric.values[0].value.toExponential(2)} ${metric.values[0].unit || ''}`
-                        : 'N/A'
-                      }
-                    </MetricValue>
-                  </MetricItem>
-                ))}
-              </MetricsList>
-            </MetricsSection>
-          )}
-        </MainSection>
-
-        <ActionsSection>
-          {analysis.errors && analysis.errors.length > 0 && (
-            <ErrorSection>
-              <ErrorHeader>
-                <AlertTriangle size={14} />
-                <span>Errors ({analysis.errors.length})</span>
-              </ErrorHeader>
-              <ErrorList>
-                {analysis.errors.map((error, index) => (
-                  <ErrorItem key={index}>
-                    <ChevronRight size={12} />
-                    <span>{error}</span>
-                  </ErrorItem>
-                ))}
-              </ErrorList>
-            </ErrorSection>
-          )}
-
-          {analysis.warnings && analysis.warnings.length > 0 && (
-            <WarningSection>
-              <WarningHeader>
-                <AlertTriangle size={14} />
-                <span>Warnings ({analysis.warnings.length})</span>
-              </WarningHeader>
-              <WarningList>
-                {analysis.warnings.map((warning, index) => (
-                  <WarningItem key={index}>
-                    <ChevronRight size={12} />
-                    <span>{warning}</span>
-                  </WarningItem>
-                ))}
-              </WarningList>
-            </WarningSection>
-          )}
-
+        <HeaderRight>
           <ActionButtons>
-            <ActionButton $variant="primary" disabled={analysis.status === 'running'}>
+            <ActionButton
+              $variant="primary"
+              disabled={analysis.status === "running"}
+            >
               <Settings size={14} />
               Configure
             </ActionButton>
-            <ActionButton $variant="secondary" disabled={analysis.status === 'running'}>
+            <ActionButton
+              $variant="secondary"
+              disabled={analysis.status === "running"}
+            >
               <Activity size={14} />
-              {analysis.status === 'failed' ? 'Retry' : 'Re-run'}
+              {analysis.status === "failed" ? "Retry" : "Re-run"}
             </ActionButton>
             <ActionButton $variant="tertiary">
               <FileText size={14} />
               View Logs
             </ActionButton>
           </ActionButtons>
-        </ActionsSection>
+          <CloseButton onClick={onClose}>
+            <X size={16} />
+          </CloseButton>
+        </HeaderRight>
+      </FooterHeader>
+
+      <FooterContent>
+        {/* Requirements Table - Left Side */}
+        {analysis.requirements && analysis.requirements.length > 0 && (
+          <RequirementsSection>
+            <SectionHeader>
+              <SectionTitle>
+                <FileText size={14} />
+                Requirements ({sortedRequirements.length})
+              </SectionTitle>
+              <SortButton onClick={cycleSortOption}>
+                <ArrowUpDown size={12} />
+                Sort: {requirementSort}
+              </SortButton>
+            </SectionHeader>
+
+            <RequirementsTable>
+              <TableHeader>
+                <HeaderCell $width="5%"></HeaderCell>
+                <HeaderCell $width="35%">Name</HeaderCell>
+                <HeaderCell $width="20%">Target</HeaderCell>
+                <HeaderCell $width="20%">Current</HeaderCell>
+                <HeaderCell $width="20%">Priority</HeaderCell>
+              </TableHeader>
+              <TableBody>
+                {sortedRequirements.map((req) => (
+                  <TableRow key={req.id} $status={req.status}>
+                    <TableCell>
+                      <StatusIconCell $status={req.status}>
+                        {getRequirementStatusIcon(req.status)}
+                      </StatusIconCell>
+                    </TableCell>
+                    <TableCell>
+                      <RequirementName>{req.name}</RequirementName>
+                    </TableCell>
+                    <TableCell>
+                      <TargetValue>
+                        {req.comparator} {req.targetValue} {req.unit}
+                      </TargetValue>
+                    </TableCell>
+                    <TableCell>
+                      <CurrentValue $status={req.status}>
+                        {req.currentValue !== undefined
+                          ? `${req.currentValue} ${req.unit}`
+                          : "—"}
+                      </CurrentValue>
+                    </TableCell>
+                    <TableCell>
+                      <PriorityBadge $priority={req.priority}>
+                        {req.priority}
+                      </PriorityBadge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </RequirementsTable>
+          </RequirementsSection>
+        )}
+
+        {/* Metrics & Errors/Warnings - Right Side */}
+        <RightSection>
+          {/* Dynamic Title based on what's displayed */}
+          <SectionTitle>
+            {analysis.errors && analysis.errors.length > 0 ? (
+              <>
+                <XCircle size={14} />
+                Errors ({analysis.errors.length})
+              </>
+            ) : analysis.warnings && analysis.warnings.length > 0 ? (
+              <>
+                <AlertTriangle size={14} />
+                Warnings ({analysis.warnings.length})
+              </>
+            ) : analysis.metrics && analysis.metrics.length > 0 ? (
+              <>
+                <Activity size={14} />
+                Results Metrics ({analysis.metrics.length})
+              </>
+            ) : null}
+          </SectionTitle>
+
+          <RightSectionContent>
+            {/* Metrics */}
+            {analysis.metrics && analysis.metrics.length > 0 && (
+              <MetricsSection>
+                <MetricsList>
+                  {analysis.metrics.map((metric, index) => (
+                    <MetricItem key={index}>
+                      <MetricName>{metric.title}</MetricName>
+                      <MetricValue>
+                        {metric.values && metric.values[0]
+                          ? `${metric.values[0].value.toExponential(2)} ${
+                              metric.values[0].unit || ""
+                            }`
+                          : "N/A"}
+                      </MetricValue>
+                    </MetricItem>
+                  ))}
+                </MetricsList>
+              </MetricsSection>
+            )}
+
+            {/* Errors */}
+            {analysis.errors && analysis.errors.length > 0 && (
+              <ErrorSection>
+                <ErrorList>
+                  {analysis.errors.map((error, index) => (
+                    <ErrorItem key={index}>
+                      <ChevronRight size={12} />
+                      <span>{error}</span>
+                    </ErrorItem>
+                  ))}
+                </ErrorList>
+              </ErrorSection>
+            )}
+
+            {/* Warnings */}
+            {analysis.warnings && analysis.warnings.length > 0 && (
+              <WarningSection>
+                <WarningList>
+                  {analysis.warnings.map((warning, index) => (
+                    <WarningItem key={index}>
+                      <ChevronRight size={12} />
+                      <span>{warning}</span>
+                    </WarningItem>
+                  ))}
+                </WarningList>
+              </WarningSection>
+            )}
+          </RightSectionContent>
+        </RightSection>
       </FooterContent>
     </FooterContainer>
   );
@@ -189,12 +287,9 @@ export const AnalysisDetailsFooter: React.FC<AnalysisDetailsFooterProps> = ({
 
 // Styled Components
 const FooterContainer = styled.div`
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
   background: var(--bg-secondary);
-  border-top: 2px solid var(--border-bg);
+  border-top: 1px solid var(--border-outline);
+  border-radius: 12px 12px 0px 0px;
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
   z-index: 50;
   animation: slideUp 0.3s ease;
@@ -213,8 +308,12 @@ const FooterContainer = styled.div`
   }
 
   @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 `;
 
@@ -222,12 +321,21 @@ const FooterHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 20px;
+  padding: 12px 16px;
+  border-radius: 12px 12px 0px 0px;
   background: var(--bg-tertiary);
   border-bottom: 1px solid var(--border-bg);
+  min-height: 32px;
 `;
 
 const HeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex: 1;
+`;
+
+const TitleSection = styled.div`
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -235,7 +343,7 @@ const HeaderLeft = styled.div`
 
 const Title = styled.h3`
   margin: 0;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -248,12 +356,152 @@ const AnalysisName = styled.div`
   color: var(--text-primary);
 `;
 
+const InfoCardsRow = styled.div`
+  display: flex;
+  gap: 8px;
+  align-items: center;
+`;
+
+const InfoCard = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-outline);
+  color: var(--text-primary);
+  white-space: nowrap;
+`;
+
+const InfoValue = styled.div<{ $status?: string }>`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: ${(props) => {
+    switch (props.$status) {
+      case "completed":
+        return "var(--success)";
+      case "failed":
+        return "var(--error)";
+      case "running":
+        return "var(--accent-primary)";
+      default:
+        return "var(--text-primary)";
+    }
+  }};
+
+  svg {
+    opacity: 0.8;
+  }
+`;
+
+const ProgressMini = styled.div<{ $progress: number }>`
+  width: 30px;
+  height: 4px;
+  background: var(--bg-primary);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: ${(props) => props.$progress}%;
+    background: var(--accent-primary);
+    transition: width 0.3s ease;
+  }
+`;
+
+const HeaderRight = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const ActionButtons = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+const ActionButton = styled.button<{
+  $variant: "primary" | "secondary" | "tertiary";
+}>`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  height: 32px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  ${(props) => {
+    switch (props.$variant) {
+      case "primary":
+        return `
+          background: var(--accent-primary);
+          color: white;
+          border: none;
+          
+          &:hover:not(:disabled) {
+            background: var(--primary-action);
+            transform: translateY(-1px);
+          }
+        `;
+      case "secondary":
+        return `
+          background: var(--bg-tertiary);
+          color: var(--text-primary);
+          border: 1px solid var(--border-outline);
+          
+          &:hover:not(:disabled) {
+            background: var(--hover-bg);
+            border-color: var(--primary-alternate);
+            transform: translateY(-1px);
+          }
+        `;
+      case "tertiary":
+        return `
+          background: transparent;
+          color: var(--text-muted);
+          border: 1px solid var(--border-bg);
+          
+          &:hover:not(:disabled) {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border-color: var(--border-outline);
+          }
+        `;
+    }
+  }}
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  svg {
+    opacity: 0.8;
+  }
+`;
+
 const CloseButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 40px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-outline);
   border-radius: 6px;
@@ -270,9 +518,10 @@ const CloseButton = styled.button`
 
 const FooterContent = styled.div`
   display: flex;
-  padding: 16px 20px;
-  gap: 20px;
-  max-height: 280px;
+  flex-direction: column;
+  padding: 16px;
+  gap: 16px;
+  max-height: 320px;
   overflow-y: auto;
 
   &::-webkit-scrollbar {
@@ -288,106 +537,25 @@ const FooterContent = styled.div`
   }
 `;
 
-const MainSection = styled.div`
-  flex: 2;
+const RequirementsSection = styled.div`
+  flex: 2 1 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
+  min-width: 0;
 `;
 
-const InfoGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+const RightSection = styled.div`
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 `;
 
-const InfoCard = styled.div`
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-bg);
-  border-radius: 8px;
-  padding: 10px;
-`;
-
-const InfoLabel = styled.div`
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  margin-bottom: 6px;
-`;
-
-const InfoValue = styled.div<{ $status?: string }>`
+const SectionHeader = styled.div`
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: ${props => {
-    switch(props.$status) {
-      case 'completed': return 'var(--success)';
-      case 'failed': return 'var(--error)';
-      case 'running': return 'var(--accent-primary)';
-      default: return 'var(--text-primary)';
-    }
-  }};
-
-  svg {
-    opacity: 0.8;
-  }
-`;
-
-const ProgressSection = styled.div`
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-bg);
-  border-radius: 8px;
-  padding: 12px;
-`;
-
-const ProgressLabel = styled.div`
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-`;
-
-const ProgressBarContainer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-`;
-
-const ProgressBar = styled.div<{ $progress: number }>`
-  flex: 1;
-  height: 6px;
-  background: var(--bg-primary);
-  border-radius: 3px;
-  overflow: hidden;
-  position: relative;
-
-  &::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    width: ${props => props.$progress}%;
-    background: var(--accent-primary);
-    transition: width 0.3s ease;
-  }
-`;
-
-const ProgressText = styled.div`
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-primary);
-`;
-
-const MetricsSection = styled.div`
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-bg);
-  border-radius: 8px;
-  padding: 12px;
 `;
 
 const SectionTitle = styled.div`
@@ -397,13 +565,182 @@ const SectionTitle = styled.div`
   font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 10px;
+`;
+
+const SortButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-outline);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-transform: capitalize;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+    border-color: var(--primary-alternate);
+  }
+`;
+
+const RequirementsTable = styled.div`
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-outline);
+  border-radius: 8px;
+  overflow: hidden;
+`;
+
+const TableHeader = styled.div`
+  display: flex;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-outline);
+  padding: 8px 12px;
+`;
+
+const HeaderCell = styled.div<{ $width: string }>`
+  flex: 0 0 ${(props) => props.$width};
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+`;
+
+const TableBody = styled.div`
+  max-height: 200px;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--primary-alternate);
+    border-radius: 2px;
+  }
+`;
+
+const TableRow = styled.div<{ $status?: string }>`
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-bg);
+  transition: all 0.2s ease;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: var(--hover-bg);
+  }
+`;
+
+const TableCell = styled.div<{ $width?: string }>`
+  flex: ${(props) => (props.$width ? `0 0 ${props.$width}` : 1)};
+  font-size: 11px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+`;
+
+const StatusIconCell = styled.div<{ $status?: string }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${(props) => {
+    switch (props.$status) {
+      case "pass":
+        return "var(--success)";
+      case "fail":
+        return "var(--error)";
+      default:
+        return "var(--text-muted)";
+    }
+  }};
+`;
+
+const RequirementName = styled.span`
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const TargetValue = styled.span`
+  font-size: 10px;
+  color: var(--text-muted);
+`;
+
+const CurrentValue = styled.span<{ $status?: string }>`
+  font-size: 10px;
+  font-weight: 600;
+  color: ${(props) => {
+    switch (props.$status) {
+      case "pass":
+        return "var(--success)";
+      case "fail":
+        return "var(--error)";
+      default:
+        return "var(--text-muted)";
+    }
+  }};
+`;
+
+const PriorityBadge = styled.div<{ $priority: string }>`
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: ${(props) => {
+    switch (props.$priority) {
+      case "critical":
+        return "rgba(239, 68, 68, 0.1)";
+      case "important":
+        return "rgba(99, 102, 241, 0.1)";
+      default:
+        return "var(--bg-secondary)";
+    }
+  }};
+  color: ${(props) => {
+    switch (props.$priority) {
+      case "critical":
+        return "var(--error)";
+      case "important":
+        return "var(--accent-primary)";
+      default:
+        return "var(--text-muted)";
+    }
+  }};
+`;
+
+const MetricsSection = styled.div`
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-outline);
+  border-radius: 8px;
+  padding: 12px;
+`;
+
+const RightSectionContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 `;
 
 const MetricsList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 6px;
+  margin-top: 8px;
 `;
 
 const MetricItem = styled.div`
@@ -426,15 +763,8 @@ const MetricValue = styled.div`
   color: var(--text-primary);
 `;
 
-const ActionsSection = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
 const ErrorSection = styled.div`
-  background: rgba(var(--error-rgb), 0.1);
+  background: var(--bg-tertiary);
   border: 1px solid var(--error);
   border-radius: 8px;
   padding: 10px;
@@ -471,7 +801,7 @@ const ErrorItem = styled.div`
 `;
 
 const WarningSection = styled.div`
-  background: rgba(var(--accent-primary-rgb), 0.1);
+  background: var(--bg-tertiary);
   border: 1px solid var(--accent-primary);
   border-radius: 8px;
   padding: 10px;
@@ -504,73 +834,5 @@ const WarningItem = styled.div`
   svg {
     margin-top: 2px;
     flex-shrink: 0;
-  }
-`;
-
-const ActionButtons = styled.div`
-  display: flex;
-  gap: 8px;
-  margin-top: auto;
-`;
-
-const ActionButton = styled.button<{ $variant: 'primary' | 'secondary' | 'tertiary' }>`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex: 1;
-
-  ${props => {
-    switch(props.$variant) {
-      case 'primary':
-        return `
-          background: var(--accent-primary);
-          color: white;
-          border: none;
-          
-          &:hover:not(:disabled) {
-            background: var(--hover-primary);
-            transform: translateY(-1px);
-          }
-        `;
-      case 'secondary':
-        return `
-          background: var(--bg-tertiary);
-          color: var(--text-primary);
-          border: 1px solid var(--border-outline);
-          
-          &:hover:not(:disabled) {
-            background: var(--hover-bg);
-            border-color: var(--primary-alternate);
-            transform: translateY(-1px);
-          }
-        `;
-      case 'tertiary':
-        return `
-          background: transparent;
-          color: var(--text-muted);
-          border: 1px solid var(--border-bg);
-          
-          &:hover:not(:disabled) {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            border-color: var(--border-outline);
-          }
-        `;
-    }
-  }}
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  svg {
-    opacity: 0.8;
   }
 `;

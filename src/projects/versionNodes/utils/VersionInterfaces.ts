@@ -119,15 +119,18 @@ export interface ProjectVersion {
   pinnedEquations: Equation[];
   uploadedFiles: FileItem[];
   generatedFiles: FileItem[];
-  metrics: Metric[]; // Keep for backwards compatibility
   edges?: EdgeConfig[];
   isArchived?: boolean;
   
-  // NEW: Analysis-specific fields
+  // Analysis data
   analysisGroups?: AnalysisGroup[];
-  requirements?: Requirement[];
+  requirements?: Requirement[]; // Version-level requirements
+  
+  // Legacy support
+  metrics: Metric[]; // Keep for backwards compatibility
+  
   analysisConfiguration?: {
-    sourceVersionId?: string; // If this config was copied from another version
+    sourceVersionId?: string;
     lastModified?: string;
     autoRetryOnFailure?: boolean;
   };
@@ -141,8 +144,10 @@ export interface Requirement {
   targetValue: number;
   unit: string;
   comparator: ">" | "<" | ">=" | "<=" | "==" | "!=";
-  category: "structural" | "thermal" | "modal" | "general";
+  category: string; // Changed to generic string ✅
   priority: "critical" | "important" | "standard";
+  
+  // For tracking actual values
   currentValue?: number;
   status?: "pass" | "fail" | "pending";
 }
@@ -150,10 +155,10 @@ export interface Requirement {
 // NEW: Analysis Group interface
 export interface AnalysisGroup {
   id: string;
-  name: "Structural" | "Thermal" | "Modal";
+  name: string; // Changed from union to generic string ✅
   status: "pending" | "running" | "passed" | "failed" | "partial";
   analyses: Analysis[];
-  requirements?: Requirement[];
+  requirements?: Requirement[]; // Group-level requirements
 }
 
 // NEW: Individual Analysis interface
@@ -162,14 +167,17 @@ export interface Analysis {
   name: string;
   type: string;
   status: "pending" | "running" | "completed" | "failed";
+  
   metrics: Metric[];
+  requirements?: Requirement[];
+  
+  // Only if running
+  progress?: number; // 0-100
+  
+  // Only if failed
   errors?: string[];
   warnings?: string[];
-  executedAt?: string;
-  duration?: number;
-  progress?: number; // 0-100 for running analyses
 }
-
 
 // Utility type for metric value operations
 export type MetricValueOperation = "maximum" | "minimum" | "average" | "sum";

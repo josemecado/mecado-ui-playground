@@ -1,5 +1,5 @@
 // views/AnalysisGroupsOverview.tsx
-import React, { useMemo, useEffect, useCallback } from "react";
+import React, { useMemo, useEffect, useCallback, useState } from "react";
 import {
   ReactFlow,
   Node,
@@ -7,6 +7,7 @@ import {
   Controls,
   Background,
   BackgroundVariant,
+  MiniMap,
   useNodesState,
   useEdgesState,
   NodeTypes,
@@ -15,6 +16,7 @@ import "@xyflow/react/dist/style.css";
 import styled from "styled-components";
 import { AnalysisGroup } from "../../versionNodes/utils/VersionInterfaces";
 import { AnalysisGroupNode } from "../components/AnalysisGroupNode";
+import { RequirementsModal } from "./requirements/RequirementsModal";
 import { Maximize2, Minimize2 } from "lucide-react";
 
 interface AnalysisGroupsOverviewProps {
@@ -30,11 +32,13 @@ export const AnalysisGroupsOverview: React.FC<AnalysisGroupsOverviewProps> = ({
   analysisGroups,
   onGroupSelect,
 }) => {
-  const [isFullscreen, setIsFullscreen] = React.useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showRequirements, setShowRequirements] = useState(true);
 
-  // Generate nodes for all groups in a grid layout
-  const initialNodes = useMemo(() => {
+  // Generate nodes and edges
+  const { initialNodes, initialEdges } = useMemo(() => {
     const nodes: Node[] = [];
+    const edges: Edge[] = [];
     const columns = 3;
     
     analysisGroups.forEach((group, index) => {
@@ -45,23 +49,43 @@ export const AnalysisGroupsOverview: React.FC<AnalysisGroupsOverviewProps> = ({
         id: group.id,
         type: 'analysisGroup',
         position: { 
-          x: 100 + col * 350, 
-          y: 100 + row * 280 
+          x: 100 + col * 400, 
+          y: 100 + row * 300 
         },
         data: { group },
+        draggable: true,
       });
+
+      // Create horizontal edges between groups in the same row
+      if (col > 0) {
+        const prevGroupId = analysisGroups[index - 1]?.id;
+        if (prevGroupId) {
+          edges.push({
+            id: `${prevGroupId}-${group.id}`,
+            source: prevGroupId,
+            target: group.id,
+            animated: group.status === 'running',
+            style: { 
+              stroke: getEdgeColor(group.status),
+              strokeWidth: 2 
+            },
+            type: 'smoothstep',
+          });
+        }
+      }
     });
 
-    return nodes;
+    return { initialNodes: nodes, initialEdges: edges };
   }, [analysisGroups]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, , onEdgesChange] = useEdgesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  // Update nodes when data changes
+  // Update nodes and edges when data changes
   useEffect(() => {
     setNodes(initialNodes);
-  }, [initialNodes, setNodes]);
+    setEdges(initialEdges);
+  }, [initialNodes, initialEdges, setNodes, setEdges]);
 
   const handleNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
     if (node.type === 'analysisGroup') {
@@ -69,14 +93,36 @@ export const AnalysisGroupsOverview: React.FC<AnalysisGroupsOverviewProps> = ({
     }
   }, [onGroupSelect]);
 
+  // Collect all requirements from all groups
+  const allRequirements = useMemo(() => {
+    return analysisGroups.flatMap(g => g.requirements || []);
+  }, [analysisGroups]);
+
   return (
     <OverviewContainer $fullscreen={isFullscreen}>
       <HeaderSection>
-        <Title>Analysis Groups Overview</Title>
-        <Subtitle>Select a group to view detailed analysis pipeline</Subtitle>
+        <HeaderLeft>
+          <Title>Analysis Groups Overview</Title>
+          <Subtitle>Select a group to view detailed analysis pipeline</Subtitle>
+        </HeaderLeft>
+        <HeaderRight>
+          <ToggleButton 
+            onClick={() => setShowRequirements(!showRequirements)}
+            $active={showRequirements}
+          >
+            {showRequirements ? 'Hide' : 'Show'} Requirements
+          </ToggleButton>
+        </HeaderRight>
       </HeaderSection>
       
       <FlowWrapper>
+        {showRequirements && allRequirements.length > 0 && (
+          <RequirementsModal 
+            requirements={allRequirements}
+            groupName="All Groups"
+          />
+        )}
+
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -87,10 +133,14 @@ export const AnalysisGroupsOverview: React.FC<AnalysisGroupsOverviewProps> = ({
           fitView
           fitViewOptions={{ 
             padding: 0.2,
-            maxZoom: 1.2,
+            maxZoom: 1.0,
+            minZoom: 0.5,
           }}
-          minZoom={0.4}
+          minZoom={0.3}
           maxZoom={1.5}
+          nodesDraggable={true}
+          elementsSelectable={true}
+          panOnDrag={true}
         >
           <Controls>
             <button 
@@ -110,41 +160,51 @@ export const AnalysisGroupsOverview: React.FC<AnalysisGroupsOverviewProps> = ({
               {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
             </button>
           </Controls>
+          
           <Background 
             variant={BackgroundVariant.Dots} 
             gap={20} 
             size={1.5}
             color="var(--border-bg)"
           />
+          
+          <MiniMap 
+            nodeColor={(node) => {
+              const group = node.data.group as AnalysisGroup;
+              return getMiniMapColor(group.status);
+            }}
+            maskColor="rgba(0, 0, 0, 0.6)"
+            style={{
+              background: 'var(--bg-tertiary)',
+              border: '1px solid var(--border-bg)',
+              borderRadius: '8px',
+            }}
+          />
         </ReactFlow>
       </FlowWrapper>
-      
-      <StatsBar>
-        <StatItem>
-          <StatValue>{analysisGroups.length}</StatValue>
-          <StatLabel>Total Groups</StatLabel>
-        </StatItem>
-        <StatItem>
-          <StatValue>
-            {analysisGroups.filter(g => g.status === 'passed').length}
-          </StatValue>
-          <StatLabel>Passed</StatLabel>
-        </StatItem>
-        <StatItem>
-          <StatValue>
-            {analysisGroups.filter(g => g.status === 'running').length}
-          </StatValue>
-          <StatLabel>Running</StatLabel>
-        </StatItem>
-        <StatItem>
-          <StatValue>
-            {analysisGroups.filter(g => g.status === 'failed').length}
-          </StatValue>
-          <StatLabel>Failed</StatLabel>
-        </StatItem>
-      </StatsBar>
     </OverviewContainer>
   );
+};
+
+// Helper functions
+const getEdgeColor = (status: string): string => {
+  switch(status) {
+    case 'passed': return '#10b981';
+    case 'failed': return '#ef4444';
+    case 'running': return 'var(--primary-alternate)';
+    case 'partial': return '#f59e0b';
+    default: return 'var(--border-outline)';
+  }
+};
+
+const getMiniMapColor = (status: string): string => {
+  switch(status) {
+    case 'passed': return '#10b981';
+    case 'failed': return '#ef4444';
+    case 'running': return 'var(--accent-primary)';
+    case 'partial': return '#f59e0b';
+    default: return 'var(--text-muted)';
+  }
 };
 
 // Styled Components
@@ -165,10 +225,24 @@ const OverviewContainer = styled.div<{ $fullscreen: boolean }>`
 `;
 
 const HeaderSection = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 20px;
   background: rgba(255, 255, 255, 0.02);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border-bg);
+`;
+
+const HeaderLeft = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const HeaderRight = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: center;
 `;
 
 const Title = styled.h2`
@@ -185,6 +259,23 @@ const Subtitle = styled.p`
   color: var(--text-muted);
 `;
 
+const ToggleButton = styled.button<{ $active: boolean }>`
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-outline);
+  background: ${props => props.$active ? 'var(--primary-alternate)' : 'var(--bg-tertiary)'};
+  color: ${props => props.$active ? 'var(--text-inverted)' : 'var(--text-primary)'};
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${props => props.$active ? 'var(--primary-action)' : 'var(--hover-bg)'};
+    border-color: var(--primary-alternate);
+  }
+`;
+
 const FlowWrapper = styled.div`
   flex: 1;
   position: relative;
@@ -195,7 +286,7 @@ const FlowWrapper = styled.div`
   
   .react-flow__node {
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: transform 0.2s ease;
     
     &:hover {
       transform: scale(1.02);
@@ -231,34 +322,13 @@ const FlowWrapper = styled.div`
       fill: currentColor;
     }
   }
-`;
 
-const StatsBar = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 40px;
-  padding: 16px;
-  background: var(--bg-tertiary);
-  border-top: 1px solid var(--border-bg);
-`;
+  .react-flow__minimap {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-bg);
+  }
 
-const StatItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-`;
-
-const StatValue = styled.div`
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text-primary);
-`;
-
-const StatLabel = styled.div`
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  .react-flow__edge-path {
+    stroke-width: 2;
+  }
 `;
