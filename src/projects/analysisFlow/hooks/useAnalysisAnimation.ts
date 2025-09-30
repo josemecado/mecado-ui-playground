@@ -4,6 +4,10 @@ import {
   AnalysisGroup,
   Analysis,
 } from "../../versionNodes/utils/VersionInterfaces";
+import {
+  getMockMetricsForAnalysis,
+  evaluateRequirementsWithMockData,
+} from "../utils/mockAnalysisData";
 
 interface UseAnalysisAnimationProps {
   analysisGroup: AnalysisGroup;
@@ -37,122 +41,6 @@ export const useAnalysisAnimation = ({
   const currentIndexRef = useRef<number>(-1);
   const isStoppedRef = useRef(false);
 
-  // Helper: Generate mock metrics based on analysis type
-  const generateMockMetrics = useCallback((analysis: Analysis) => {
-    const type = analysis.type;
-    const values = {
-      max: 100 + Math.random() * 150,
-      avg: 75 + Math.random() * 50,
-      min: 50 + Math.random() * 25,
-    };
-
-    if (type === "stress") {
-      return [
-        {
-          title: "Von Mises Stress",
-          type: "structural_stress",
-          values: [
-            { label: "Maximum", value: values.max * 1e6, unit: "Pa" },
-            { label: "Average", value: values.avg * 1e6, unit: "Pa" },
-            { label: "Minimum", value: values.min * 1e6, unit: "Pa" },
-          ],
-          primaryValueLabel: "Maximum",
-          optimizationTarget: "minimize" as const,
-        },
-      ];
-    } else if (type === "deformation") {
-      return [
-        {
-          title: "Total Deformation",
-          type: "displacement",
-          values: [
-            { label: "Maximum", value: values.max * 0.00001, unit: "m" },
-            { label: "Average", value: values.avg * 0.00001, unit: "m" },
-            { label: "Minimum", value: values.min * 0.00001, unit: "m" },
-          ],
-          primaryValueLabel: "Maximum",
-          optimizationTarget: "minimize" as const,
-        },
-      ];
-    } else if (type === "thermal") {
-      return [
-        {
-          title: "Temperature Distribution",
-          type: "temperature",
-          values: [
-            { label: "Maximum", value: values.max, unit: "°C" },
-            { label: "Average", value: values.avg, unit: "°C" },
-            { label: "Minimum", value: values.min, unit: "°C" },
-          ],
-          primaryValueLabel: "Maximum",
-          optimizationTarget: "minimize" as const,
-        },
-      ];
-    } else if (type === "safety") {
-      return [
-        {
-          title: "Safety Factor",
-          type: "safety_factor",
-          values: [
-            { label: "Minimum", value: values.min / 20, unit: "" },
-            { label: "Average", value: values.avg / 20, unit: "" },
-          ],
-          primaryValueLabel: "Minimum",
-          optimizationTarget: "maximize" as const,
-        },
-      ];
-    }
-    return [];
-  }, []);
-
-  // Helper: Evaluate requirements based on metrics
-  const evaluateRequirements = useCallback(
-    (analysis: Analysis, metrics: any[]) => {
-      if (!analysis.requirements) return analysis.requirements;
-
-      return analysis.requirements.map((req) => {
-        const metric = metrics[0];
-        if (!metric || !metric.values) return req;
-
-        const metricValue =
-          metric.values.find((v) => v.label === "Maximum")?.value ||
-          metric.values[0]?.value;
-
-        if (metricValue === undefined) return req;
-
-        let passed = false;
-        switch (req.comparator) {
-          case ">":
-            passed = metricValue > req.targetValue;
-            break;
-          case "<":
-            passed = metricValue < req.targetValue;
-            break;
-          case ">=":
-            passed = metricValue >= req.targetValue;
-            break;
-          case "<=":
-            passed = metricValue <= req.targetValue;
-            break;
-          case "==":
-            passed = metricValue === req.targetValue;
-            break;
-          case "!=":
-            passed = metricValue !== req.targetValue;
-            break;
-        }
-
-        return {
-          ...req,
-          currentValue: metricValue,
-          status: passed ? ("pass" as const) : ("fail" as const),
-        };
-      });
-    },
-    []
-  );
-
-  // Core single analysis animation function - now uses ref for current state
   const animateSingleAnalysis = useCallback(
     (analysisId: string): Promise<boolean> => {
       return new Promise((resolve) => {
@@ -224,11 +112,13 @@ export const useAnalysisAnimation = ({
           clearInterval(progressIntervalRef.current!);
 
           // Generate metrics and evaluate requirements
-          const metrics = generateMockMetrics(analysis);
-          const updatedRequirements = evaluateRequirements(analysis, metrics);
+          const metrics = getMockMetricsForAnalysis(analysis.id);
+          const updatedRequirements =
+            evaluateRequirementsWithMockData(analysis);
 
-          // 30% chance of failure for testing
-          const hasFailed = Math.random() > 0.7;
+          const hasFailed = updatedRequirements
+            ? updatedRequirements.some((req) => req.status === "fail")
+            : false;
 
           console.log(
             `Completing analysis: ${analysis.name}, failed: ${hasFailed}`
@@ -261,7 +151,7 @@ export const useAnalysisAnimation = ({
         }, duration);
       });
     },
-    [onUpdateGroup, generateMockMetrics, evaluateRequirements]
+    [onUpdateGroup] // Only onUpdateGroup is needed now since the mock functions are imported
   );
 
   // Sequential animation

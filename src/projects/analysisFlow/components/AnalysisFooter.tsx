@@ -97,30 +97,30 @@ export const AnalysisDetailsFooter: React.FC<AnalysisDetailsFooterProps> = ({
             <Title>Analysis Details</Title>
             <AnalysisName>{analysis.name}</AnalysisName>
           </TitleSection>
-                  <InfoCardsRow>
-          <InfoCard>
-            <InfoValue $status={analysis.status}>
-              {getStatusIcon(analysis.status)}
-              <span>{analysis.status}</span>
-            </InfoValue>
-          </InfoCard>
-
-          <InfoCard>
-            <InfoValue>
-              <Settings size={12} />
-              <span>{analysis.type}</span>
-            </InfoValue>
-          </InfoCard>
-
-          {analysis.progress !== undefined && (
+          <InfoCardsRow>
             <InfoCard>
-              <InfoValue>
-                <ProgressMini $progress={analysis.progress} />
-                <span>{analysis.progress}%</span>
+              <InfoValue $status={analysis.status}>
+                {getStatusIcon(analysis.status)}
+                <span>{analysis.status}</span>
               </InfoValue>
             </InfoCard>
-          )}
-        </InfoCardsRow>
+
+            <InfoCard>
+              <InfoValue>
+                <Settings size={12} />
+                <span>{analysis.type}</span>
+              </InfoValue>
+            </InfoCard>
+
+            {analysis.progress !== undefined && (
+              <InfoCard>
+                <InfoValue>
+                  <ProgressMini $progress={analysis.progress} />
+                  <span>{analysis.progress}%</span>
+                </InfoValue>
+              </InfoCard>
+            )}
+          </InfoCardsRow>
         </HeaderLeft>
 
         <HeaderRight>
@@ -164,25 +164,37 @@ export const AnalysisDetailsFooter: React.FC<AnalysisDetailsFooterProps> = ({
                 Sort: {requirementSort}
               </SortButton>
             </SectionHeader>
-
             <RequirementsTable>
               <TableHeader>
-                <HeaderCell $width="5%"></HeaderCell>
-                <HeaderCell $width="35%">Name</HeaderCell>
+                <HeaderCell $width="40%">Requirement</HeaderCell>
                 <HeaderCell $width="20%">Target</HeaderCell>
-                <HeaderCell $width="20%">Current</HeaderCell>
+                <HeaderCell $width="20%">Actual</HeaderCell>
                 <HeaderCell $width="20%">Priority</HeaderCell>
               </TableHeader>
               <TableBody>
                 {sortedRequirements.map((req) => (
-                  <TableRow key={req.id} $status={req.status}>
+                  <TableRow
+                    key={req.id}
+                    $status={req.status}
+                    $expanded={req.status === "fail"}
+                  >
                     <TableCell>
-                      <StatusIconCell $status={req.status}>
-                        {getRequirementStatusIcon(req.status)}
-                      </StatusIconCell>
-                    </TableCell>
-                    <TableCell>
-                      <RequirementName>{req.name}</RequirementName>
+                      <RequirementNameCell>
+                        <StatusIconCell $status={req.status}>
+                          {getRequirementStatusIcon(req.status)}
+                        </StatusIconCell>
+                        <RequirementDetails>
+                          <RequirementName $status={req.status}>
+                            {req.name}
+                          </RequirementName>
+                          {req.status === "fail" && (
+                            <FailureReason>
+                              Expected {req.comparator} {req.targetValue}{" "}
+                              {req.unit}, got {req.currentValue} {req.unit}
+                            </FailureReason>
+                          )}
+                        </RequirementDetails>
+                      </RequirementNameCell>
                     </TableCell>
                     <TableCell>
                       <TargetValue>
@@ -192,7 +204,7 @@ export const AnalysisDetailsFooter: React.FC<AnalysisDetailsFooterProps> = ({
                     <TableCell>
                       <CurrentValue $status={req.status}>
                         {req.currentValue !== undefined
-                          ? `${req.currentValue} ${req.unit}`
+                          ? `${req.currentValue.toFixed(2)} ${req.unit}`
                           : "—"}
                       </CurrentValue>
                     </TableCell>
@@ -251,17 +263,26 @@ export const AnalysisDetailsFooter: React.FC<AnalysisDetailsFooterProps> = ({
               </MetricsSection>
             )}
 
-            {/* Errors */}
-            {analysis.errors && analysis.errors.length > 0 && (
+            {analysis.status === "failed" && analysis.requirements && (
               <ErrorSection>
-                <ErrorList>
-                  {analysis.errors.map((error, index) => (
-                    <ErrorItem key={index}>
-                      <ChevronRight size={12} />
-                      <span>{error}</span>
-                    </ErrorItem>
-                  ))}
-                </ErrorList>
+                <ErrorHeader>
+                  <XCircle size={12} />
+                  Analysis Failed - Requirements Not Met
+                </ErrorHeader>
+                <FailedRequirementsSummary>
+                  {analysis.requirements
+                    .filter((r) => r.status === "fail")
+                    .map((req) => (
+                      <FailedRequirementItem key={req.id}>
+                        <ChevronRight size={10} />
+                        <span>
+                          <strong>{req.name}:</strong> Expected {req.comparator}{" "}
+                          {req.targetValue} {req.unit}, got{" "}
+                          {req.currentValue?.toFixed(2)} {req.unit}
+                        </span>
+                      </FailedRequirementItem>
+                    ))}
+                </FailedRequirementsSummary>
               </ErrorSection>
             )}
 
@@ -628,19 +649,24 @@ const TableBody = styled.div`
   }
 `;
 
-const TableRow = styled.div<{ $status?: string }>`
+const TableRow = styled.div<{ $status?: string; $expanded?: boolean }>`
   display: flex;
-  align-items: center;
-  padding: 8px 12px;
+  align-items: ${(props) => (props.$expanded ? "flex-start" : "center")};
+  padding: ${(props) => (props.$expanded ? "12px" : "8px 12px")};
   border-bottom: 1px solid var(--border-bg);
   transition: all 0.2s ease;
+  background: ${(props) =>
+    props.$status === "fail" ? "rgba(var(--error-rgb), 0.03)" : "transparent"};
 
   &:last-child {
     border-bottom: none;
   }
 
   &:hover {
-    background: var(--hover-bg);
+    background: ${(props) =>
+      props.$status === "fail"
+        ? "rgba(var(--error-rgb), 0.06)"
+        : "var(--hover-bg)"};
   }
 `;
 
@@ -668,11 +694,27 @@ const StatusIconCell = styled.div<{ $status?: string }>`
   }};
 `;
 
-const RequirementName = styled.span`
+const RequirementName = styled.span<{ $status?: string }>`
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: ${(props) =>
+    props.$status === "fail" ? "var(--error)" : "var(--text-primary)"};
+`;
+
+const RequirementNameCell = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+`;
+
+const RequirementDetails = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
 `;
 
 const TargetValue = styled.span`
@@ -680,8 +722,16 @@ const TargetValue = styled.span`
   color: var(--text-muted);
 `;
 
-const CurrentValue = styled.span<{ $status?: string }>`
+const FailureReason = styled.div`
   font-size: 10px;
+  color: var(--error);
+  opacity: 0.8;
+  line-height: 1.3;
+  font-weight: 500;
+`;
+
+const CurrentValue = styled.span<{ $status?: string }>`
+  font-size: 11px;
   font-weight: 600;
   color: ${(props) => {
     switch (props.$status) {
@@ -775,8 +825,8 @@ const ErrorHeader = styled.div`
   align-items: center;
   gap: 6px;
   color: var(--error);
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   margin-bottom: 8px;
 `;
 
@@ -834,5 +884,35 @@ const WarningItem = styled.div`
   svg {
     margin-top: 2px;
     flex-shrink: 0;
+  }
+`;
+
+
+const FailedRequirementsSummary = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const FailedRequirementItem = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--text-primary);
+  line-height: 1.4;
+  padding: 4px 6px;
+  background: rgba(var(--error-rgb), 0.05);
+  border-radius: 4px;
+
+  svg {
+    margin-top: 3px;
+    flex-shrink: 0;
+    color: var(--error);
+  }
+
+  strong {
+    color: var(--error);
+    font-weight: 600;
   }
 `;

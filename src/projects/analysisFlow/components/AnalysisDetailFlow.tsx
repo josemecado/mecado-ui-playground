@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useImperativeHandle,
   forwardRef,
+  useRef,
 } from "react";
 import {
   ReactFlow,
@@ -58,14 +59,41 @@ export const AnalysisDetailFlow = forwardRef<
     const [selectedAnalysis, setSelectedAnalysis] =
       React.useState<Analysis | null>(null);
 
-    // Use the new animation hook
+    // Track previous analysis states to detect failures
+    const prevAnalysesRef = useRef<Analysis[]>([]);
+
+    // Detect when an analysis fails and auto-show footer
+    useEffect(() => {
+      const prevAnalyses = prevAnalysesRef.current;
+      const currentAnalyses = analysisGroup.analyses;
+
+      // Check each analysis for status change to failed
+      currentAnalyses.forEach((currentAnalysis, index) => {
+        const prevAnalysis = prevAnalyses[index];
+
+        // If this analysis just transitioned to failed status
+        if (
+          prevAnalysis &&
+          prevAnalysis.status !== "failed" &&
+          currentAnalysis.status === "failed"
+        ) {
+          console.log(`Analysis failed: ${currentAnalysis.name}`);
+          setSelectedAnalysis(currentAnalysis);
+          onAnalysisClick?.(currentAnalysis);
+        }
+      });
+
+      // Update ref for next comparison
+      prevAnalysesRef.current = [...currentAnalyses];
+    }, [analysisGroup.analyses, onAnalysisClick]);
+
     const {
       isRunning,
       currentAnalysisId,
       startAnimation,
       stopAnimation,
       resetAnimation,
-      animateSingleAnalysis
+      animateSingleAnalysis,
     } = useAnalysisAnimation({
       analysisGroup,
       onUpdateGroup,
@@ -87,7 +115,7 @@ export const AnalysisDetailFlow = forwardRef<
         },
         data: {
           ...analysis,
-          onAnimateNode: () => animateSingleAnalysis(analysis.id), // NEW: Pass function
+          onAnimateNode: () => animateSingleAnalysis(analysis.id),
         },
       }));
     }, [analysisGroup, animateSingleAnalysis]);
@@ -193,12 +221,12 @@ export const AnalysisDetailFlow = forwardRef<
                 )}
               </ControlButton>
             </StyledControls>
-          <Background 
-            variant={BackgroundVariant.Dots} 
-            gap={60} 
-            size={1.5}
-            color="var(--text-muted)"
-          />
+            <Background
+              variant={BackgroundVariant.Dots}
+              gap={60}
+              size={1.5}
+              color="var(--text-muted)"
+            />
           </ReactFlow>
         </FlowWrapper>
 

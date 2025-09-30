@@ -4,7 +4,7 @@ import { Handle, NodeProps, Position } from "@xyflow/react";
 import styled, { keyframes, css } from "styled-components";
 import { Analysis } from "../../versionNodes/utils/VersionInterfaces";
 import {
-  Activity,
+  LoaderCircle,
   CheckCircle,
   XCircle,
   Clock,
@@ -15,6 +15,7 @@ import {
   PlayCircle,
   RotateCcw,
   FileText,
+  Calculator
 } from "lucide-react";
 
 export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
@@ -25,7 +26,7 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
   const getStatusIcon = () => {
     switch (analysis.status) {
       case "running":
-        return <Activity size={14} className="spin" />;
+        return <LoaderCircle size={14} className="spin" />;
       case "completed":
         return <CheckCircle size={14} />;
       case "failed":
@@ -42,7 +43,7 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
       type.includes("frequency") ||
       type.includes("harmonic")
     )
-      return <Activity size={16} />;
+      return <LoaderCircle size={16} />;
     if (
       type.includes("stress") ||
       type.includes("deformation") ||
@@ -118,7 +119,7 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
           <RunningContent>
             <ProgressSection>
               <ProgressLabel>
-                <Activity size={10} className="spin" />
+                <Calculator size={10}/>
                 Computing results...
               </ProgressLabel>
               <ProgressBar>
@@ -239,7 +240,7 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
 
         {nodeStatus === "running" && (
           <RunningIndicator>
-            <Activity size={10} className="spin" />
+            <LoaderCircle size={10} className="spin" />
             Running...
           </RunningIndicator>
         )}
