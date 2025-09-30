@@ -170,6 +170,7 @@ export const VersionNodeBridge: React.FC<GraphBridgeProps> = ({
         activeVersionId={activeVersionId}
         onAnalysisClick={handleAnalysisClick}
         onRequirementsClick={handleRequirementsClick}
+        onUpdateGroup={analysisData.updateAnalysisGroup}
       />
     );
   }

@@ -6,7 +6,7 @@ import { RequirementCell } from "./RequirementCell";
 import {
   CheckCircle,
   XCircle,
-  AlertTriangle,
+  Clock,
   ChevronDown,
   ChevronUp,
   FileText,
@@ -75,7 +75,7 @@ export const RequirementsModal: React.FC<RequirementsModalProps> = ({
                 <span>{failedCount}</span>
               </StatusItem>
               <StatusItem $color="var(--text-muted)">
-                <AlertTriangle size={12} />
+                <Clock size={12} />
                 <span>{pendingCount}</span>
               </StatusItem>
             </StatusSummary>

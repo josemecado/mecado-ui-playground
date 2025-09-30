@@ -53,7 +53,7 @@ export const AnalysisDetailsFooter: React.FC<AnalysisDetailsFooterProps> = ({
       case "fail":
         return <XCircle size={12} />;
       default:
-        return <AlertTriangle size={12} />;
+        return <Clock size={12} />;
     }
   };
 

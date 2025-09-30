@@ -239,9 +239,9 @@ const StatusIndicator = styled.div<{ $status: string; $isActive?: boolean }>`
       case "failed":
         return "var(--error)";
       case "running":
-        return "var(--accent-primary)";
+        return "var(--primary-alternate)";
       case "partial":
-        return "var(--accent-primary)";
+        return "#f59e0b";
       default:
         return "var(--text-muted)";
     }

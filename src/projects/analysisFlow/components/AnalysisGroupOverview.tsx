@@ -100,21 +100,6 @@ export const AnalysisGroupsOverview: React.FC<AnalysisGroupsOverviewProps> = ({
 
   return (
     <OverviewContainer $fullscreen={isFullscreen}>
-      <HeaderSection>
-        <HeaderLeft>
-          <Title>Analysis Groups Overview</Title>
-          <Subtitle>Select a group to view detailed analysis pipeline</Subtitle>
-        </HeaderLeft>
-        <HeaderRight>
-          <ToggleButton 
-            onClick={() => setShowRequirements(!showRequirements)}
-            $active={showRequirements}
-          >
-            {showRequirements ? 'Hide' : 'Show'} Requirements
-          </ToggleButton>
-        </HeaderRight>
-      </HeaderSection>
-      
       <FlowWrapper>
         {showRequirements && allRequirements.length > 0 && (
           <RequirementsModal 
@@ -163,9 +148,9 @@ export const AnalysisGroupsOverview: React.FC<AnalysisGroupsOverviewProps> = ({
           
           <Background 
             variant={BackgroundVariant.Dots} 
-            gap={20} 
+            gap={60} 
             size={1.5}
-            color="var(--border-bg)"
+            color="var(--text-muted)"
           />
           
           <MiniMap 
@@ -201,7 +186,7 @@ const getMiniMapColor = (status: string): string => {
   switch(status) {
     case 'passed': return '#10b981';
     case 'failed': return '#ef4444';
-    case 'running': return 'var(--accent-primary)';
+    case 'running': return 'var(--accent-alternate)';
     case 'partial': return '#f59e0b';
     default: return 'var(--text-muted)';
   }
@@ -222,58 +207,6 @@ const OverviewContainer = styled.div<{ $fullscreen: boolean }>`
     z-index: 1000;
   `}
   background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
-`;
-
-const HeaderSection = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--border-bg);
-`;
-
-const HeaderLeft = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const HeaderRight = styled.div`
-  display: flex;
-  gap: 12px;
-  align-items: center;
-`;
-
-const Title = styled.h2`
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: 0.5px;
-`;
-
-const Subtitle = styled.p`
-  margin: 4px 0 0 0;
-  font-size: 13px;
-  color: var(--text-muted);
-`;
-
-const ToggleButton = styled.button<{ $active: boolean }>`
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--border-outline);
-  background: ${props => props.$active ? 'var(--primary-alternate)' : 'var(--bg-tertiary)'};
-  color: ${props => props.$active ? 'var(--text-inverted)' : 'var(--text-primary)'};
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: ${props => props.$active ? 'var(--primary-action)' : 'var(--hover-bg)'};
-    border-color: var(--primary-alternate);
-  }
 `;
 
 const FlowWrapper = styled.div`

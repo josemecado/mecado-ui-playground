@@ -1,7 +1,7 @@
 // components/AnalysisGroupNode.tsx
 import React from "react";
 import { Handle, NodeProps, Position } from "@xyflow/react";
-import styled from "styled-components";
+import styled, { keyframes, css } from "styled-components";
 import { AnalysisGroup } from "../../versionNodes/utils/VersionInterfaces";
 import { 
   Activity, 
@@ -9,112 +9,256 @@ import {
   XCircle, 
   AlertCircle,
   Clock,
-  Layers
+  Layers,
+  AlertTriangle,
+  ChevronRight,
+  Zap,
+  Settings,
+  BarChart3
 } from "lucide-react";
 
 export const AnalysisGroupNode: React.FC<NodeProps> = ({ data }) => {
   const group = data.group as AnalysisGroup;
   
-  const getStatusIcon = (status: string) => {
-    switch(status) {
-      case 'passed': return <CheckCircle size={16} />;
-      case 'failed': return <XCircle size={16} />;
-      case 'running': return <Activity size={16} className="spin" />;
-      case 'partial': return <AlertCircle size={16} />;
-      default: return <Clock size={16} />;
+  const getStatusIcon = () => {
+    switch(group.status) {
+      case 'passed': return <CheckCircle size={14} />;
+      case 'failed': return <XCircle size={14} />;
+      case 'running': return <Activity size={14} className="spin" />;
+      case 'partial': return <AlertTriangle size={14} />;
+      default: return <Clock size={14} />;
     }
   };
 
-  const completedCount = group.analyses.filter(
-    a => a.status === 'completed' || a.status === 'failed'
-  ).length;
+  const getAnalysisTypeIcon = (type: string) => {
+    if (type.includes("thermal")) return <Zap size={12} />;
+    if (type.includes("modal") || type.includes("frequency")) return <Activity size={12} />;
+    if (type.includes("stress") || type.includes("deformation") || type.includes("safety")) 
+      return <Settings size={12} />;
+    return <BarChart3 size={12} />;
+  };
+
+  // Calculate statistics
+  const completedAnalyses = group.analyses.filter(a => a.status === 'completed');
+  const failedAnalyses = group.analyses.filter(a => a.status === 'failed');
+  const runningAnalysis = group.analyses.find(a => a.status === 'running');
+  const pendingCount = group.analyses.filter(a => a.status === 'pending').length;
+  
   const totalCount = group.analyses.length;
+  const completedCount = completedAnalyses.length + failedAnalyses.length;
   const progressPercentage = (completedCount / totalCount) * 100;
 
+  // Get failed requirements from failed analyses
+  const failedRequirements = failedAnalyses.flatMap(analysis => 
+    (analysis.requirements || []).filter(req => req.status === 'fail')
+  );
+
   return (
-    <GroupContainer $status={group.status}>
-      <Handle type="target" position={Position.Left} style={{ opacity: 0 }} />
+    <NodeContainer $status={group.status} $isActive={group.status === 'running'}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{
+          background: "var(--primary-alternate)",
+          border: "2px solid var(--bg-primary)",
+          width: 10,
+          height: 10,
+          left: -5,
+        }}
+      />
       
-      <GroupHeader>
-        <IconWrapper>
-          <Layers size={18} />
-        </IconWrapper>
-        <HeaderContent>
-          <GroupTitle>{group.name}</GroupTitle>
-          <GroupSubtitle>Analysis Group</GroupSubtitle>
-        </HeaderContent>
-        <StatusIcon $status={group.status}>
-          {getStatusIcon(group.status)}
-        </StatusIcon>
-      </GroupHeader>
+      {group.status === 'running' && <ActivePulse />}
+
+      {/* Header */}
+      <NodeHeader $status={group.status}>
+        <HeaderLeft>
+          <GroupIconWrapper>
+            <Layers size={16} />
+          </GroupIconWrapper>
+          <HeaderText>
+            <GroupName>{group.name}</GroupName>
+            <GroupType>Analysis Pipeline</GroupType>
+          </HeaderText>
+        </HeaderLeft>
+        <StatusIconWrapper $status={group.status}>
+          {getStatusIcon()}
+        </StatusIconWrapper>
+      </NodeHeader>
 
       <Divider />
 
-      <GroupBody>
-        <MetricRow>
-          <MetricCard>
-            <MetricLabel>Progress</MetricLabel>
-            <MetricValue>{completedCount}/{totalCount}</MetricValue>
-            <MiniProgressBar>
-              <MiniProgressFill $percentage={progressPercentage} $status={group.status} />
-            </MiniProgressBar>
-          </MetricCard>
-          
-          {group.requirements && (
-            <MetricCard>
-              <MetricLabel>Requirements</MetricLabel>
-              <MetricValue>
-                {group.requirements.filter(r => r.status === 'pass').length}/
-                {group.requirements.length}
-              </MetricValue>
-              <RequirementStatus $hasFailed={
-                group.requirements.some(r => r.status === 'fail')
-              }>
-                {group.requirements.every(r => r.status === 'pass') ? 'All Pass' : 'Some Failed'}
-              </RequirementStatus>
-            </MetricCard>
-          )}
-        </MetricRow>
+      {/* Body */}
+      <NodeBody>
+        {/* Progress Overview */}
+        <ProgressSection>
+          <ProgressHeader>
+            <ProgressLabel>Overall Progress</ProgressLabel>
+            <ProgressText>{completedCount}/{totalCount} Complete</ProgressText>
+          </ProgressHeader>
+          <ProgressBar>
+            <ProgressFill 
+              $percentage={progressPercentage} 
+              $status={group.status}
+              $animated={group.status === 'running'}
+            />
+          </ProgressBar>
+        </ProgressSection>
 
-        <StatusSection>
-          <StatusLabel>Status</StatusLabel>
-          <StatusBadge $status={group.status}>
-            {group.status.toUpperCase()}
-          </StatusBadge>
-        </StatusSection>
-      </GroupBody>
+        {/* Status-specific content */}
+        {group.status === 'running' && runningAnalysis && (
+          <RunningSection>
+            <RunningLabel>
+              <Activity size={10} className="spin" />
+              Currently Running
+            </RunningLabel>
+            <RunningAnalysis>
+              {getAnalysisTypeIcon(runningAnalysis.type)}
+              <span>{runningAnalysis.name}</span>
+            </RunningAnalysis>
+          </RunningSection>
+        )}
 
-      <Handle type="source" position={Position.Right} style={{ opacity: 0 }} />
-    </GroupContainer>
+        {/* Analysis Breakdown */}
+        <AnalysisBreakdown>
+          <BreakdownHeader>Analysis Breakdown</BreakdownHeader>
+          <AnalysisList>
+            {group.analyses.slice(0, 3).map((analysis) => (
+              <AnalysisItem key={analysis.id} $status={analysis.status}>
+                <AnalysisIcon>{getAnalysisTypeIcon(analysis.type)}</AnalysisIcon>
+                <AnalysisName>{analysis.name}</AnalysisName>
+                <AnalysisStatus $status={analysis.status}>
+                  {analysis.status === 'completed' && <CheckCircle size={10} />}
+                  {analysis.status === 'failed' && <XCircle size={10} />}
+                  {analysis.status === 'running' && <Activity size={10} className="spin" />}
+                  {analysis.status === 'pending' && <Clock size={10} />}
+                </AnalysisStatus>
+              </AnalysisItem>
+            ))}
+            {group.analyses.length > 3 && (
+              <MoreIndicator>+{group.analyses.length - 3} more analyses</MoreIndicator>
+            )}
+          </AnalysisList>
+        </AnalysisBreakdown>
+
+        {/* Failed/Partial State Details */}
+        {(group.status === 'failed' || group.status === 'partial') && failedAnalyses.length > 0 && (
+          <FailedSection>
+            <FailedHeader>
+              <AlertTriangle size={12} />
+              Failed Analyses ({failedAnalyses.length})
+            </FailedHeader>
+            {failedAnalyses.map(analysis => (
+              <FailedAnalysisCard key={analysis.id}>
+                <FailedAnalysisName>
+                  <XCircle size={10} />
+                  {analysis.name}
+                </FailedAnalysisName>
+                {analysis.requirements && (
+                  <FailedRequirements>
+                    {analysis.requirements
+                      .filter(r => r.status === 'fail')
+                      .slice(0, 2)
+                      .map(req => (
+                        <RequirementItem key={req.id}>
+                          <ChevronRight size={8} />
+                          <span>{req.name}</span>
+                        </RequirementItem>
+                      ))}
+                  </FailedRequirements>
+                )}
+              </FailedAnalysisCard>
+            ))}
+          </FailedSection>
+        )}
+
+        {/* Summary Stats */}
+        {group.status === 'passed' && (
+          <SuccessMessage>
+            <CheckCircle size={12} />
+            All analyses completed successfully
+          </SuccessMessage>
+        )}
+
+        {pendingCount > 0 && group.status === 'pending' && (
+          <PendingMessage>
+            <Clock size={12} />
+            {pendingCount} analyses ready to run
+          </PendingMessage>
+        )}
+      </NodeBody>
+
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{
+          background: "var(--primary-alternate)",
+          border: "2px solid var(--bg-primary)",
+          width: 10,
+          height: 10,
+          right: -5,
+        }}
+      />
+    </NodeContainer>
   );
 };
 
+// Animations
+const pulse = keyframes`
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+`;
+
+const pulseRing = keyframes`
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.5); opacity: 0; }
+`;
+
+const shimmer = keyframes`
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+`;
+
 // Styled Components
-const GroupContainer = styled.div<{ $status: string }>`
-  background: var(--bg-secondary);
+const NodeContainer = styled.div<{ $status: string; $isActive?: boolean }>`
+  position: relative;
+  background: ${props => {
+    switch(props.$status) {
+      case 'passed': 
+        return 'linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%)';
+      case 'failed':
+      case 'partial':
+        return 'var(--bg-tertiary)';
+      case 'running':
+        return 'var(--bg-tertiary)';
+      default:
+        return 'var(--bg-secondary)';
+    }
+  }};
   border: 2px solid ${props => {
     switch(props.$status) {
       case 'passed': return 'var(--success)';
       case 'failed': return 'var(--error)';
-      case 'running': return 'var(--accent-primary)';
       case 'partial': return 'var(--accent-primary)';
+      case 'running': return 'var(--accent-primary)';
       default: return 'var(--border-outline)';
     }
   }};
-  border-radius: 16px;
-  padding: 0;
-  min-width: 300px;
-  box-shadow: 
-    0 10px 30px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  min-width: 280px;
+  max-width: 320px;
+  cursor: pointer;
   transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 
+  ${props => props.$isActive && css`
+    animation: ${pulse} 2s ease-in-out infinite;
+    box-shadow: 0 8px 24px rgba(var(--accent-primary-rgb), 0.4);
+  `}
+
   &:hover {
-    transform: translateY(-3px);
-    box-shadow: 
-      0 15px 40px rgba(0, 0, 0, 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
   }
 
   .spin {
@@ -127,58 +271,90 @@ const GroupContainer = styled.div<{ $status: string }>`
   }
 `;
 
-const GroupHeader = styled.div`
-  display: flex;
-  align-items: center;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(10px);
+const ActivePulse = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  border: 2px solid var(--accent-primary);
+  animation: ${pulseRing} 2s ease-out infinite;
+  pointer-events: none;
 `;
 
-const IconWrapper = styled.div`
+const NodeHeader = styled.div<{ $status: string }>`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: ${props => {
+    switch(props.$status) {
+      case 'passed': return 'rgba(16, 185, 129, 0.1)';
+      case 'failed': return 'rgba(239, 68, 68, 0.1)';
+      case 'partial': return 'rgba(var(--accent-primary-rgb), 0.1)';
+      case 'running': return 'rgba(var(--accent-primary-rgb), 0.1)';
+      default: return 'rgba(255, 255, 255, 0.03)';
+    }
+  }};
+`;
+
+const HeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+`;
+
+const GroupIconWrapper = styled.div`
   width: 32px;
   height: 32px;
-  border-radius: 10px;
-  background: var(--primary-alternate);
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--primary-action) 0%, var(--primary-alternate) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-inverted);
-  margin-right: 12px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  color: white;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
 
-const HeaderContent = styled.div`
-  flex: 1;
+const HeaderText = styled.div`
   display: flex;
   flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
 `;
 
-const GroupTitle = styled.h3`
-  margin: 0;
-  font-size: 15px;
+const GroupName = styled.div`
+  font-size: 13px;
   font-weight: 700;
   color: var(--text-primary);
+  line-height: 1.2;
 `;
 
-const GroupSubtitle = styled.span`
-  font-size: 11px;
+const GroupType = styled.div`
+  font-size: 9px;
   color: var(--text-muted);
   font-weight: 500;
-  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 `;
 
-const StatusIcon = styled.div<{ $status: string }>`
+const StatusIconWrapper = styled.div<{ $status: string }>`
   color: ${props => {
     switch(props.$status) {
       case 'passed': return 'var(--success)';
       case 'failed': return 'var(--error)';
-      case 'running': return 'var(--accent-primary)';
       case 'partial': return 'var(--accent-primary)';
+      case 'running': return 'var(--accent-primary)';
       default: return 'var(--text-muted)';
     }
   }};
-  opacity: 0.9;
+  flex-shrink: 0;
 `;
 
 const Divider = styled.div`
@@ -186,116 +362,257 @@ const Divider = styled.div`
   background: var(--border-outline);
 `;
 
-const GroupBody = styled.div`
-  padding: 16px;
+const NodeBody = styled.div`
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-`;
-
-const MetricRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 10px;
 `;
 
-const MetricCard = styled.div`
-  padding: 10px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-outline);
-  border-radius: 8px;
-  backdrop-filter: blur(5px);
+// Progress Section
+const ProgressSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 `;
 
-const MetricLabel = styled.div`
+const ProgressHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const ProgressLabel = styled.div`
   font-size: 10px;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
+  letter-spacing: 0.3px;
 `;
 
-const MetricValue = styled.div`
-  font-size: 18px;
-  font-weight: 700;
+const ProgressText = styled.div`
+  font-size: 11px;
+  font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 6px;
 `;
 
-const MiniProgressBar = styled.div`
-  height: 4px;
+const ProgressBar = styled.div`
+  height: 6px;
   background: var(--bg-primary);
-  border-radius: 2px;
+  border-radius: 3px;
   overflow: hidden;
   position: relative;
 `;
 
-const MiniProgressFill = styled.div<{ $percentage: number; $status: string }>`
+const ProgressFill = styled.div<{ $percentage: number; $status: string; $animated?: boolean }>`
   height: 100%;
   width: ${props => props.$percentage}%;
-  background: linear-gradient(90deg,
-    ${props => {
-      switch(props.$status) {
-        case 'passed': return 'var(--success)';
-        case 'failed': return 'var(--error)';
-        case 'running': return 'var(--accent-primary)';
-        default: return 'var(--primary-alternate)';
-      }
-    }} 0%,
-    ${props => {
-      switch(props.$status) {
-        case 'passed': return '#10b981';
-        case 'failed': return '#dc2626';
-        case 'running': return 'var(--accent-secondary)';
-        default: return 'var(--primary-action)';
-      }
-    }} 100%
-  );
-  transition: width 0.5s ease;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  background: ${props => {
+    switch(props.$status) {
+      case 'passed': return 'linear-gradient(90deg, var(--success) 0%, #10b981 100%)';
+      case 'failed': return 'linear-gradient(90deg, var(--error) 0%, #dc2626 100%)';
+      case 'partial': return '#f59e0b';
+      default: return 'linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)';
+    }
+  }};
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  position: relative;
+
+  ${props => props.$animated && css`
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      right: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      animation: ${shimmer} 1.5s ease-in-out infinite;
+    }
+  `}
 `;
 
-const RequirementStatus = styled.div<{ $hasFailed: boolean }>`
-  font-size: 10px;
-  font-weight: 600;
-  color: ${props => props.$hasFailed ? 'var(--error)' : 'var(--success)'};
-  margin-top: 2px;
-`;
-
-const StatusSection = styled.div`
+// Analysis Breakdown
+const AnalysisBreakdown = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 8px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
   border: 1px solid var(--border-bg);
 `;
 
-const StatusLabel = styled.span`
-  font-size: 11px;
+const BreakdownHeader = styled.div`
+  font-size: 9px;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 `;
 
-const StatusBadge = styled.div<{ $status: string }>`
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+const AnalysisList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const AnalysisItem = styled.div<{ $status: string }>`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
   background: ${props => {
     switch(props.$status) {
-      case 'passed': return 'linear-gradient(135deg, var(--success) 0%, #10b981 100%)';
-      case 'failed': return 'linear-gradient(135deg, var(--error) 0%, #dc2626 100%)';
-      case 'running': return 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)';
-      case 'partial': return 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)';
-      default: return 'linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%)';
+      case 'completed': return 'rgba(var(--success-rgb), 0.05)';
+      case 'failed': return 'rgba(var(--error-rgb), 0.05)';
+      case 'running': return 'rgba(var(--accent-primary-rgb), 0.05)';
+      default: return 'transparent';
     }
   }};
-  color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  font-size: 10px;
+`;
+
+const AnalysisIcon = styled.div`
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+`;
+
+const AnalysisName = styled.div`
+  flex: 1;
+  color: var(--text-primary);
+  font-weight: 500;
+`;
+
+const AnalysisStatus = styled.div<{ $status: string }>`
+  color: ${props => {
+    switch(props.$status) {
+      case 'completed': return 'var(--success)';
+      case 'failed': return 'var(--error)';
+      case 'running': return 'var(--accent-primary)';
+      default: return 'var(--text-muted)';
+    }
+  }};
+`;
+
+// Failed Section
+const FailedSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: rgba(var(--error-rgb), 0.05);
+  border: 1px solid var(--error);
+  border-radius: 6px;
+`;
+
+const FailedHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--error);
+`;
+
+const FailedAnalysisCard = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+`;
+
+const FailedAnalysisName = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--error);
+`;
+
+const FailedRequirements = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 14px;
+`;
+
+const RequirementItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  color: var(--text-muted);
+  
+  svg {
+    color: var(--error);
+  }
+`;
+
+// Running Section
+const RunningSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  background: rgba(var(--accent-primary-rgb), 0.05);
+  border-radius: 6px;
+  border: 1px solid rgba(var(--accent-primary-rgb), 0.2);
+`;
+
+const RunningLabel = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-primary);
+`;
+
+const RunningAnalysis = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-primary);
+  font-weight: 500;
+  padding-left: 16px;
+`;
+
+// Messages
+const SuccessMessage = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: rgba(var(--success-rgb), 0.1);
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--success);
+`;
+
+const PendingMessage = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 500;
+`;
+
+const MoreIndicator = styled.div`
+  font-size: 9px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 2px 6px;
 `;

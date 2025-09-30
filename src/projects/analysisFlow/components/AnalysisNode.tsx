@@ -3,10 +3,10 @@ import React from "react";
 import { Handle, NodeProps, Position } from "@xyflow/react";
 import styled, { keyframes, css } from "styled-components";
 import { Analysis } from "../../versionNodes/utils/VersionInterfaces";
-import { 
-  Activity, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Activity,
+  CheckCircle,
+  XCircle,
   Clock,
   Zap,
   BarChart3,
@@ -14,68 +14,71 @@ import {
   AlertTriangle,
   PlayCircle,
   RotateCcw,
-  FileText
+  FileText,
 } from "lucide-react";
 
-interface AnalysisNodeData extends Analysis {
-  isActive?: boolean;
-  isCompleted?: boolean;
-  isFailed?: boolean;
-}
-
 export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
-  const analysis = data as AnalysisNodeData;
-  
+  // We know this is safe because we control what data is passed
+  const analysis = data as unknown as Analysis & { onAnimateNode?: () => void };
+  const nodeStatus = analysis.status;
+
   const getStatusIcon = () => {
-    if (analysis.isActive || analysis.status === 'running') return <Activity size={14} className="spin" />;
-    if (analysis.isCompleted || analysis.status === 'completed') return <CheckCircle size={14} />;
-    if (analysis.isFailed || analysis.status === 'failed') return <XCircle size={14} />;
-    return <Clock size={14} />;
+    switch (analysis.status) {
+      case "running":
+        return <Activity size={14} className="spin" />;
+      case "completed":
+        return <CheckCircle size={14} />;
+      case "failed":
+        return <XCircle size={14} />;
+      default:
+        return <Clock size={14} />;
+    }
   };
 
   const getTypeIcon = (type: string) => {
-    if (type.includes('thermal')) return <Zap size={16} />;
-    if (type.includes('modal') || type.includes('frequency') || type.includes('harmonic')) return <Activity size={16} />;
-    if (type.includes('stress') || type.includes('deformation') || type.includes('safety') || type.includes('buckling')) return <Settings size={16} />;
+    if (type.includes("thermal")) return <Zap size={16} />;
+    if (
+      type.includes("modal") ||
+      type.includes("frequency") ||
+      type.includes("harmonic")
+    )
+      return <Activity size={16} />;
+    if (
+      type.includes("stress") ||
+      type.includes("deformation") ||
+      type.includes("safety") ||
+      type.includes("buckling")
+    )
+      return <Settings size={16} />;
     return <BarChart3 size={16} />;
   };
 
-  const getNodeStatus = () => {
-    if (analysis.isActive) return 'running';
-    if (analysis.isCompleted) return 'completed';
-    if (analysis.isFailed) return 'failed';
-    return analysis.status;
-  };
-
-  const nodeStatus = getNodeStatus();
-  const failedRequirements = analysis.requirements?.filter(r => r.status === 'fail') || [];
-  const passedRequirements = analysis.requirements?.filter(r => r.status === 'pass') || [];
+  const failedRequirements =
+    analysis.requirements?.filter((r) => r.status === "fail") || [];
+  const passedRequirements =
+    analysis.requirements?.filter((r) => r.status === "pass") || [];
 
   return (
-    <NodeContainer 
+    <NodeContainer
       $status={nodeStatus}
-      $isActive={analysis.isActive || analysis.status === 'running'}
+      $isActive={analysis.status === "running"}
     >
-      <Handle 
-        type="target" 
-        position={Position.Left} 
-        style={{ 
-          background: 'var(--primary-alternate)',
-          border: '2px solid var(--bg-primary)',
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{
+          background: "var(--primary-alternate)",
+          border: "2px solid var(--bg-primary)",
           width: 10,
           height: 10,
-          left: -5
-        }} 
+          left: -5,
+        }}
       />
-      
-      {(analysis.isActive || analysis.status === 'running') && <ActivePulse />}
-      
+
       {/* Header - Similar to Group Node */}
       <NodeHeader $status={nodeStatus}>
         <HeaderLeft>
-          <TypeIconWrapper>
-            {getTypeIcon(analysis.type)}
-          </TypeIconWrapper>
+          <TypeIconWrapper>{getTypeIcon(analysis.type)}</TypeIconWrapper>
           <HeaderText>
             <AnalysisName>{analysis.name}</AnalysisName>
             <AnalysisType>{analysis.type}</AnalysisType>
@@ -91,7 +94,7 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
       {/* Main Content - Changes based on status */}
       <NodeBody>
         {/* PENDING STATE */}
-        {nodeStatus === 'pending' && (
+        {nodeStatus === "pending" && (
           <PendingContent>
             <InfoSection>
               <InfoLabel>Requirements</InfoLabel>
@@ -99,13 +102,19 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
             </InfoSection>
             <StatusMessage>
               <Clock size={12} />
-              Ready to analyze
+              Pending analysis
             </StatusMessage>
           </PendingContent>
         )}
 
+        {/* {analysis.onAnimateNode && nodeStatus === "pending" && (
+          <TestButton onClick={analysis.onAnimateNode}>
+            Test Analysis Animation
+          </TestButton>
+        )} */}
+
         {/* RUNNING STATE */}
-        {nodeStatus === 'running' && (
+        {nodeStatus === "running" && (
           <RunningContent>
             <ProgressSection>
               <ProgressLabel>
@@ -119,15 +128,19 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
             </ProgressSection>
             <RunningInfo>
               <InfoRow>
-                <InfoIcon><FileText size={10} /></InfoIcon>
-                <InfoText>Evaluating {analysis.requirements?.length || 0} requirements</InfoText>
+                <InfoIcon>
+                  <FileText size={10} />
+                </InfoIcon>
+                <InfoText>
+                  Evaluating {analysis.requirements?.length || 0} requirements
+                </InfoText>
               </InfoRow>
             </RunningInfo>
           </RunningContent>
         )}
 
         {/* COMPLETED STATE */}
-        {nodeStatus === 'completed' && (
+        {nodeStatus === "completed" && (
           <CompletedContent>
             <MetricsGrid>
               <MetricCard>
@@ -136,26 +149,29 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
               </MetricCard>
               <MetricCard>
                 <MetricLabel>Passed</MetricLabel>
-                <MetricValue $status="pass">{passedRequirements.length}</MetricValue>
+                <MetricValue $status="pass">
+                  {passedRequirements.length}
+                </MetricValue>
               </MetricCard>
             </MetricsGrid>
             {analysis.warnings && analysis.warnings.length > 0 && (
               <WarningBadge>
                 <AlertTriangle size={10} />
-                {analysis.warnings.length} warning{analysis.warnings.length > 1 ? 's' : ''}
+                {analysis.warnings.length} warning
+                {analysis.warnings.length > 1 ? "s" : ""}
               </WarningBadge>
             )}
           </CompletedContent>
         )}
 
         {/* FAILED STATE */}
-        {nodeStatus === 'failed' && (
+        {nodeStatus === "failed" && (
           <FailedContent>
             <FailedHeader>
               <XCircle size={12} />
               Analysis Failed
             </FailedHeader>
-            
+
             {failedRequirements.length > 0 && (
               <FailedRequirements>
                 <FailedReqLabel>Failed Requirements:</FailedReqLabel>
@@ -166,14 +182,18 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
                   </FailedReqItem>
                 ))}
                 {failedRequirements.length > 2 && (
-                  <MoreIndicator>+{failedRequirements.length - 2} more</MoreIndicator>
+                  <MoreIndicator>
+                    +{failedRequirements.length - 2} more
+                  </MoreIndicator>
                 )}
               </FailedRequirements>
             )}
 
             {analysis.errors && analysis.errors.length > 0 && (
               <ErrorSummary>
-                <ErrorIcon><AlertTriangle size={10} /></ErrorIcon>
+                <ErrorIcon>
+                  <AlertTriangle size={10} />
+                </ErrorIcon>
                 <ErrorText>{analysis.errors[0]}</ErrorText>
               </ErrorSummary>
             )}
@@ -185,14 +205,14 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
 
       {/* Action Buttons */}
       <ActionBar>
-        {nodeStatus === 'pending' && (
-          <ActionButton $variant="primary" $small>
+        {nodeStatus === "pending" && (
+          <ActionButton $variant="primary" $small onClick={analysis.onAnimateNode}>
             <PlayCircle size={12} />
             Run
           </ActionButton>
         )}
-        
-        {nodeStatus === 'completed' && (
+
+        {nodeStatus === "completed" && (
           <>
             <ActionButton $variant="secondary" $small>
               <FileText size={12} />
@@ -203,8 +223,8 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
             </ActionButton>
           </>
         )}
-        
-        {nodeStatus === 'failed' && (
+
+        {nodeStatus === "failed" && (
           <>
             <ActionButton $variant="primary" $small>
               <RotateCcw size={12} />
@@ -217,7 +237,7 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
           </>
         )}
 
-        {nodeStatus === 'running' && (
+        {nodeStatus === "running" && (
           <RunningIndicator>
             <Activity size={10} className="spin" />
             Running...
@@ -225,16 +245,16 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
         )}
       </ActionBar>
 
-      <Handle 
-        type="source" 
-        position={Position.Right} 
-        style={{ 
-          background: 'var(--primary-alternate)',
-          border: '2px solid var(--bg-primary)',
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{
+          background: "var(--primary-alternate)",
+          border: "2px solid var(--bg-primary)",
           width: 10,
           height: 10,
-          right: -5
-        }} 
+          right: -5,
+        }}
       />
     </NodeContainer>
   );
@@ -262,27 +282,36 @@ const pulseRing = keyframes`
 `;
 
 // Styled Components
-const NodeContainer = styled.div<{ 
-  $status: string; 
+const NodeContainer = styled.div<{
+  $status: string;
   $isActive?: boolean;
 }>`
   position: relative;
-  background: ${props => {
-    switch(props.$status) {
-      case 'completed': return 'linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%)';
-      case 'failed': return 'var(--bg-tertiary)';
-      case 'running': return 'var(--bg-tertiary)';
-      default: return 'var(--bg-secondary)';
+  background: ${(props) => {
+    switch (props.$status) {
+      case "completed":
+        return "linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%)";
+      case "failed":
+        return "var(--bg-tertiary)";
+      case "running":
+        return "var(--bg-tertiary)";
+      default:
+        return "var(--bg-secondary)";
     }
   }};
-  border: 2px solid ${props => {
-    switch(props.$status) {
-      case 'completed': return 'var(--success)';
-      case 'failed': return 'var(--error)';
-      case 'running': return 'var(--accent-primary)';
-      default: return 'var(--border-outline)';
-    }
-  }};
+  border: 2px solid
+    ${(props) => {
+      switch (props.$status) {
+        case "completed":
+          return "var(--success)";
+        case "failed":
+          return "var(--error)";
+        case "running":
+          return "var(--accent-primary)";
+        default:
+          return "var(--border-outline)";
+      }
+    }};
   border-radius: 12px;
   min-width: 220px;
   max-width: 250px;
@@ -290,11 +319,13 @@ const NodeContainer = styled.div<{
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  
-  ${props => props.$isActive && css`
-    animation: ${pulse} 2s ease-in-out infinite;
-    box-shadow: 0 8px 24px rgba(var(--accent-primary-rgb), 0.4);
-  `}
+  animation: all 0.3s ease;
+
+  ${(props) =>
+    props.$isActive &&
+    css`
+      border-image-repeat
+    `}
 
   &:hover {
     transform: translateY(-2px);
@@ -306,8 +337,12 @@ const NodeContainer = styled.div<{
   }
 
   @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 `;
 
@@ -329,12 +364,16 @@ const NodeHeader = styled.div<{ $status: string }>`
   justify-content: space-between;
   align-items: center;
   padding: 12px;
-  background: ${props => {
-    switch(props.$status) {
-      case 'completed': return 'rgba(16, 185, 129, 0.1)';
-      case 'failed': return 'rgba(239, 68, 68, 0.1)';
-      case 'running': return 'rgba(var(--accent-primary-rgb), 0.1)';
-      default: return 'rgba(255, 255, 255, 0.03)';
+  background: ${(props) => {
+    switch (props.$status) {
+      case "completed":
+        return "rgba(16, 185, 129, 0.1)";
+      case "failed":
+        return "rgba(239, 68, 68, 0.1)";
+      case "running":
+        return "rgba(var(--accent-primary-rgb), 0.1)";
+      default:
+        return "rgba(255, 255, 255, 0.03)";
     }
   }};
 `;
@@ -351,7 +390,11 @@ const TypeIconWrapper = styled.div`
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: linear-gradient(135deg, var(--primary-action) 0%, var(--primary-alternate) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--primary-action) 0%,
+    var(--primary-alternate) 100%
+  );
   display: flex;
   align-items: center;
   justify-content: center;
@@ -387,12 +430,16 @@ const AnalysisType = styled.div`
 `;
 
 const StatusIconWrapper = styled.div<{ $status: string }>`
-  color: ${props => {
-    switch(props.$status) {
-      case 'completed': return 'var(--success)';
-      case 'failed': return 'var(--error)';
-      case 'running': return 'var(--accent-primary)';
-      default: return 'var(--text-muted)';
+  color: ${(props) => {
+    switch (props.$status) {
+      case "completed":
+        return "var(--success)";
+      case "failed":
+        return "var(--error)";
+      case "running":
+        return "var(--accent-primary)";
+      default:
+        return "var(--text-muted)";
     }
   }};
   flex-shrink: 0;
@@ -481,20 +528,29 @@ const ProgressBar = styled.div`
 
 const ProgressFill = styled.div<{ $progress: number }>`
   height: 100%;
-  width: ${props => props.$progress}%;
-  background: linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+  width: ${(props) => props.$progress}%;
+  background: linear-gradient(
+    90deg,
+    var(--accent-primary) 0%,
+    var(--accent-secondary) 100%
+  );
   border-radius: 3px;
   transition: width 0.3s ease;
   position: relative;
-  
+
   &::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
     bottom: 0;
     right: 0;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.3),
+      transparent
+    );
     animation: ${progressAnimation} 1.5s ease-in-out infinite;
   }
 `;
@@ -565,11 +621,14 @@ const MetricLabel = styled.div`
 const MetricValue = styled.div<{ $status?: string }>`
   font-size: 16px;
   font-weight: 700;
-  color: ${props => {
-    switch(props.$status) {
-      case 'pass': return 'var(--success)';
-      case 'fail': return 'var(--error)';
-      default: return 'var(--text-primary)';
+  color: ${(props) => {
+    switch (props.$status) {
+      case "pass":
+        return "var(--success)";
+      case "fail":
+        return "var(--error)";
+      default:
+        return "var(--text-primary)";
     }
   }};
 `;
@@ -632,11 +691,11 @@ const FailedReqItem = styled.div`
   font-size: 10px;
   color: var(--error);
   font-weight: 500;
-  
+
   svg {
     flex-shrink: 0;
   }
-  
+
   span {
     white-space: nowrap;
     overflow: hidden;
@@ -653,6 +712,7 @@ const MoreIndicator = styled.div`
 
 const ErrorSummary = styled.div`
   display: flex;
+  align-items: center;
   gap: 6px;
   padding: 6px 8px;
   background: rgba(var(--error-rgb), 0.05);
@@ -662,7 +722,6 @@ const ErrorSummary = styled.div`
 const ErrorIcon = styled.div`
   color: var(--error);
   flex-shrink: 0;
-  margin-top: 1px;
 `;
 
 const ErrorText = styled.div`
@@ -689,7 +748,7 @@ const ActionButton = styled.button<{
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: ${props => props.$small ? '6px 10px' : '8px 12px'};
+  padding: ${(props) => (props.$small ? "6px 10px" : "8px 12px")};
   border-radius: 6px;
   font-size: 10px;
   font-weight: 600;
@@ -745,4 +804,28 @@ const RunningIndicator = styled.div`
   font-weight: 600;
   color: var(--accent-primary);
   flex: 1;
+`;
+
+// Add this styled component at the bottom with the others
+const TestButton = styled.button`
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 8px;
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
 `;

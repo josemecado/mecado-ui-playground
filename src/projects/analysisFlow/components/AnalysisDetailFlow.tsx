@@ -1,5 +1,11 @@
 // views/AnalysisDetailFlow.tsx
-import React, { useMemo, useEffect, useCallback, useImperativeHandle, forwardRef } from "react";
+import React, {
+  useMemo,
+  useEffect,
+  useCallback,
+  useImperativeHandle,
+  forwardRef,
+} from "react";
 import {
   ReactFlow,
   Node,
@@ -14,128 +20,147 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import styled from "styled-components";
-import { AnalysisGroup, Analysis } from "../../versionNodes/utils/VersionInterfaces";
-import { AnalysisIndividualNode } from "./AnalysisNode";
+import {
+  AnalysisGroup,
+  Analysis,
+} from "../../versionNodes/utils/VersionInterfaces";
+import { AnalysisIndividualNode } from "../components/AnalysisNode";
 import { useAnalysisAnimation } from "../hooks/useAnalysisAnimation";
-import { AnalysisDetailsFooter } from "./AnalysisFooter";
-import { RequirementsModal } from "./requirements/RequirementsModal";
+import { AnalysisDetailsFooter } from "../components/AnalysisFooter";
 import { RefreshCw, Maximize2, Minimize2 } from "lucide-react";
 
 interface AnalysisDetailFlowProps {
   analysisGroup: AnalysisGroup;
   onAnalysisClick?: (analysis: Analysis) => void;
+  onUpdateGroup: (updatedGroup: AnalysisGroup) => void; // NEW
   onAnimationComplete?: () => void;
 }
 
 export interface AnalysisDetailFlowRef {
   startAnimation: () => void;
   stopAnimation: () => void;
+  resetAnimation: () => void; // NEW
 }
 
 const nodeTypes: NodeTypes = {
   analysis: AnalysisIndividualNode,
 };
 
-export const AnalysisDetailFlow = forwardRef<AnalysisDetailFlowRef, AnalysisDetailFlowProps>(
-  ({ analysisGroup, onAnalysisClick, onAnimationComplete }, ref) => {
+export const AnalysisDetailFlow = forwardRef<
+  AnalysisDetailFlowRef,
+  AnalysisDetailFlowProps
+>(
+  (
+    { analysisGroup, onAnalysisClick, onUpdateGroup, onAnimationComplete },
+    ref
+  ) => {
     const [isFullscreen, setIsFullscreen] = React.useState(false);
-    const [selectedAnalysis, setSelectedAnalysis] = React.useState<Analysis | null>(null);
+    const [selectedAnalysis, setSelectedAnalysis] =
+      React.useState<Analysis | null>(null);
 
-    // Generate nodes and edges for the analysis pipeline (without group node)
-    const { nodes: initialNodes, edges: initialEdges } = useMemo(() => {
-      const nodes: Node[] = [];
-      const edges: Edge[] = [];
+    // Use the new animation hook
+    const {
+      isRunning,
+      currentAnalysisId,
+      startAnimation,
+      stopAnimation,
+      resetAnimation,
+      animateSingleAnalysis
+    } = useAnalysisAnimation({
+      analysisGroup,
+      onUpdateGroup,
+      onAnimationComplete,
+    });
 
-      // Add only analysis nodes in a horizontal pipeline
+    // Generate nodes with the animation function
+    const nodes: Node[] = useMemo(() => {
       const analysisSpacing = 300;
       const startX = 200;
       const centerY = 250;
       
-      analysisGroup.analyses.forEach((analysis, index) => {
-        const nodeId = `${analysisGroup.id}-${analysis.id}`;
-        
-        nodes.push({
-          id: nodeId,
-          type: 'analysis',
-          position: { 
-            x: startX + (index * analysisSpacing),
-            y: centerY
-          },
-          data: { 
-            ...analysis,
-            isActive: false,
-            isCompleted: false,
-            isFailed: false
-          },
-        });
+      return analysisGroup.analyses.map((analysis, index) => ({
+        id: `${analysisGroup.id}-${analysis.id}`,
+        type: 'analysis',
+        position: { 
+          x: startX + (index * analysisSpacing),
+          y: centerY
+        },
+        data: {
+          ...analysis,
+          onAnimateNode: () => animateSingleAnalysis(analysis.id), // NEW: Pass function
+        },
+      }));
+    }, [analysisGroup, animateSingleAnalysis]);
 
-        // Create edges between sequential analyses
+    // Generate edges
+    const edges: Edge[] = useMemo(() => {
+      const edgeList: Edge[] = [];
+
+      analysisGroup.analyses.forEach((analysis, index) => {
         if (index > 0) {
-          const prevNodeId = `${analysisGroup.id}-${analysisGroup.analyses[index - 1].id}`;
-          edges.push({
-            id: `edge-${prevNodeId}-${nodeId}`,
+          const prevAnalysis = analysisGroup.analyses[index - 1];
+          const prevNodeId = `${analysisGroup.id}-${prevAnalysis.id}`;
+          const currentNodeId = `${analysisGroup.id}-${analysis.id}`;
+
+          // Determine edge styling based on completion
+          const isCompleted =
+            prevAnalysis.status === "completed" ||
+            prevAnalysis.status === "failed";
+          const isFailed = prevAnalysis.status === "failed";
+          const isActive = currentAnalysisId === analysis.id;
+
+          edgeList.push({
+            id: `edge-${prevNodeId}-${currentNodeId}`,
             source: prevNodeId,
-            target: nodeId,
-            type: 'smoothstep',
-            animated: false,
-            style: { 
-              stroke: 'var(--text-muted)',
+            target: currentNodeId,
+            type: "smoothstep",
+            animated: isActive,
+            style: {
+              stroke: isFailed
+                ? "var(--text-muted)"
+                : isCompleted
+                ? "var(--success)"
+                : "var(--text-muted)",
               strokeWidth: 2,
-              strokeDasharray: '5 5',
-              opacity: 0.5
+              strokeDasharray: isCompleted ? "0" : "5 5",
+              opacity: isCompleted ? 1 : 0.5,
             },
           });
         }
       });
 
-      return { nodes, edges };
-    }, [analysisGroup]);
+      return edgeList;
+    }, [JSON.stringify(analysisGroup.analyses), currentAnalysisId]);
 
-    const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-    const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+    const [flowNodes, , onNodesChange] = useNodesState(nodes);
+    const [flowEdges, , onEdgesChange] = useEdgesState(edges);
 
-    // Animation hook
-    const {
-      isRunning,
-      currentAnalysisIndex,
-      startAnimation,
-      stopAnimation,
-      resetAnimation,
-    } = useAnalysisAnimation({
-      nodes,
-      edges,
-      onNodesChange: setNodes,
-      onEdgesChange: setEdges,
-      onAnalysisComplete: (analysisId) => {
-        console.log(`Analysis ${analysisId} completed`);
-      },
-      onAnimationComplete: () => {
-        console.log("Animation completed");
-        onAnimationComplete?.();
-      },
-    });
-
-    // Expose animation controls to parent via ref
-    useImperativeHandle(ref, () => ({
-      startAnimation,
-      stopAnimation,
-    }), [startAnimation, stopAnimation]);
-
-    // Update nodes when data changes
+    // Update flow nodes/edges when data changes
     useEffect(() => {
-      setNodes(initialNodes);
-      setEdges(initialEdges);
-    }, [initialNodes, initialEdges, setNodes, setEdges]);
+      // React Flow will handle updates automatically through props
+    }, [nodes, edges]);
 
-    const handleNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-      if (node.type === 'analysis') {
-        const analysisData = node.data.analysis || node.data;
-        setSelectedAnalysis(analysisData);
-        onAnalysisClick?.(analysisData);
-      }
-    }, [onAnalysisClick]);
+    // Expose methods to parent
+    useImperativeHandle(
+      ref,
+      () => ({
+        startAnimation,
+        stopAnimation,
+        resetAnimation,
+      }),
+      [startAnimation, stopAnimation, resetAnimation]
+    );
 
-    const analysisNodes = nodes.filter(n => n.type === 'analysis');
+    const handleNodeClick = useCallback(
+      (event: React.MouseEvent, node: Node) => {
+        if (node.type === "analysis") {
+          const analysis = node.data as Analysis;
+          setSelectedAnalysis(analysis);
+          onAnalysisClick?.(analysis);
+        }
+      },
+      [onAnalysisClick]
+    );
 
     return (
       <DetailContainer $fullscreen={isFullscreen}>
@@ -143,12 +168,10 @@ export const AnalysisDetailFlow = forwardRef<AnalysisDetailFlowRef, AnalysisDeta
           <ReactFlow
             nodes={nodes}
             edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
             onNodeClick={handleNodeClick}
             nodeTypes={nodeTypes}
             fitView
-            fitViewOptions={{ 
+            fitViewOptions={{
               padding: 0.3,
               maxZoom: 1.2,
             }}
@@ -159,22 +182,26 @@ export const AnalysisDetailFlow = forwardRef<AnalysisDetailFlowRef, AnalysisDeta
               <ControlButton onClick={resetAnimation} title="Reset pipeline">
                 <RefreshCw size={16} />
               </ControlButton>
-              <ControlButton 
+              <ControlButton
                 onClick={() => setIsFullscreen(!isFullscreen)}
                 title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
               >
-                {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                {isFullscreen ? (
+                  <Minimize2 size={16} />
+                ) : (
+                  <Maximize2 size={16} />
+                )}
               </ControlButton>
             </StyledControls>
-            <Background 
-              variant={BackgroundVariant.Dots} 
-              gap={20} 
-              size={1.5}
-              color="var(--border-bg)"
-            />
+          <Background 
+            variant={BackgroundVariant.Dots} 
+            gap={60} 
+            size={1.5}
+            color="var(--text-muted)"
+          />
           </ReactFlow>
         </FlowWrapper>
-        
+
         {isRunning && (
           <StatusOverlay>
             <StatusCard>
@@ -182,28 +209,14 @@ export const AnalysisDetailFlow = forwardRef<AnalysisDetailFlowRef, AnalysisDeta
               <StatusContent>
                 <StatusTitle>Analyzing {analysisGroup.name}</StatusTitle>
                 <StatusProgress>
-                  Step {currentAnalysisIndex + 1} of {analysisNodes.length}
+                  Running:{" "}
+                  {analysisGroup.analyses.find(
+                    (a) => a.id === currentAnalysisId
+                  )?.name || "..."}
                 </StatusProgress>
-                <ProgressBar>
-                  <ProgressFill 
-                    $percentage={((currentAnalysisIndex + 1) / analysisNodes.length) * 100} 
-                  />
-                </ProgressBar>
-                <CurrentAnalysis>
-                  {currentAnalysisIndex >= 0 && currentAnalysisIndex < analysisNodes.length && (
-                    <>Current: {analysisNodes[currentAnalysisIndex].data.name}</>
-                  )}
-                </CurrentAnalysis>
               </StatusContent>
             </StatusCard>
           </StatusOverlay>
-        )}
-
-        {analysisGroup.requirements && analysisGroup.requirements.length > 0 && (
-          <RequirementsModal
-            requirements={analysisGroup.requirements}
-            groupName={analysisGroup.name}
-          />
         )}
 
         {selectedAnalysis && (
@@ -217,7 +230,7 @@ export const AnalysisDetailFlow = forwardRef<AnalysisDetailFlowRef, AnalysisDeta
   }
 );
 
-AnalysisDetailFlow.displayName = 'AnalysisDetailFlow';
+AnalysisDetailFlow.displayName = "AnalysisDetailFlow";
 
 // Styled Components
 const DetailContainer = styled.div<{ $fullscreen: boolean }>`
@@ -225,8 +238,10 @@ const DetailContainer = styled.div<{ $fullscreen: boolean }>`
   flex-direction: column;
   width: 100%;
   height: 100%;
-  position: ${props => props.$fullscreen ? 'fixed' : 'relative'};
-  ${props => props.$fullscreen && `
+  position: ${(props) => (props.$fullscreen ? "fixed" : "relative")};
+  ${(props) =>
+    props.$fullscreen &&
+    `
     top: 0;
     left: 0;
     right: 0;
@@ -239,7 +254,7 @@ const DetailContainer = styled.div<{ $fullscreen: boolean }>`
 const FlowWrapper = styled.div`
   flex: 1;
   position: relative;
-  
+
   .react-flow__renderer {
     background: transparent;
   }
@@ -326,10 +341,7 @@ const StatusOverlay = styled.div`
 const StatusCard = styled.div`
   position: relative;
   padding: 16px 20px;
-  background: linear-gradient(135deg, 
-    rgba(var(--accent-primary-rgb), 0.95) 0%, 
-    rgba(var(--accent-secondary-rgb), 0.95) 100%
-  );
+  background: var(--bg-secondary);
   backdrop-filter: blur(10px);
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
@@ -344,15 +356,16 @@ const StatusPulse = styled.div`
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: white;
+  background: var(--primary-alternate);
   animation: statusPulse 1.5s ease-in-out infinite;
-  
+
   @keyframes statusPulse {
-    0%, 100% { 
+    0%,
+    100% {
       transform: scale(1);
       opacity: 1;
     }
-    50% { 
+    50% {
       transform: scale(1.5);
       opacity: 0.5;
     }
@@ -366,14 +379,14 @@ const StatusContent = styled.div`
 `;
 
 const StatusTitle = styled.div`
-  color: white;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.3px;
 `;
 
 const StatusProgress = styled.div`
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-muted);
   font-size: 11px;
   font-weight: 500;
 `;
@@ -397,7 +410,7 @@ const ProgressBar = styled.div`
 
 const ProgressFill = styled.div<{ $percentage: number }>`
   height: 100%;
-  width: ${props => props.$percentage}%;
+  width: ${(props) => props.$percentage}%;
   background: white;
   border-radius: 2px;
   transition: width 0.5s ease;
