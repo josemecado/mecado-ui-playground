@@ -105,13 +105,6 @@ export const AnalysisDetailsFooter: React.FC<AnalysisDetailsFooterProps> = ({
               </InfoValue>
             </InfoCard>
 
-            <InfoCard>
-              <InfoValue>
-                <Settings size={12} />
-                <span>{analysis.type}</span>
-              </InfoValue>
-            </InfoCard>
-
             {analysis.progress !== undefined && (
               <InfoCard>
                 <InfoValue>
@@ -173,12 +166,8 @@ export const AnalysisDetailsFooter: React.FC<AnalysisDetailsFooterProps> = ({
               </TableHeader>
               <TableBody>
                 {sortedRequirements.map((req) => (
-                  <TableRow
-                    key={req.id}
-                    $status={req.status}
-                    $expanded={req.status === "fail"}
-                  >
-                    <TableCell>
+                  <TableRow key={req.id} $status={req.status}>
+                    <TableCell $width="40%">
                       <RequirementNameCell>
                         <StatusIconCell $status={req.status}>
                           {getRequirementStatusIcon(req.status)}
@@ -190,25 +179,26 @@ export const AnalysisDetailsFooter: React.FC<AnalysisDetailsFooterProps> = ({
                           {req.status === "fail" && (
                             <FailureReason>
                               Expected {req.comparator} {req.targetValue}{" "}
-                              {req.unit}, got {req.currentValue} {req.unit}
+                              {req.unit}, got {req.currentValue?.toFixed(2)}{" "}
+                              {req.unit}
                             </FailureReason>
                           )}
                         </RequirementDetails>
                       </RequirementNameCell>
                     </TableCell>
-                    <TableCell>
+                    <TableCell $width="20%">
                       <TargetValue>
                         {req.comparator} {req.targetValue} {req.unit}
                       </TargetValue>
                     </TableCell>
-                    <TableCell>
+                    <TableCell $width="20%">
                       <CurrentValue $status={req.status}>
                         {req.currentValue !== undefined
                           ? `${req.currentValue.toFixed(2)} ${req.unit}`
                           : "—"}
                       </CurrentValue>
                     </TableCell>
-                    <TableCell>
+                    <TableCell $width="20%">
                       <PriorityBadge $priority={req.priority}>
                         {req.priority}
                       </PriorityBadge>
@@ -234,35 +224,10 @@ export const AnalysisDetailsFooter: React.FC<AnalysisDetailsFooterProps> = ({
                 <AlertTriangle size={14} />
                 Warnings ({analysis.warnings.length})
               </>
-            ) : analysis.metrics && analysis.metrics.length > 0 ? (
-              <>
-                <Activity size={14} />
-                Results Metrics ({analysis.metrics.length})
-              </>
             ) : null}
           </SectionTitle>
 
           <RightSectionContent>
-            {/* Metrics */}
-            {analysis.metrics && analysis.metrics.length > 0 && (
-              <MetricsSection>
-                <MetricsList>
-                  {analysis.metrics.map((metric, index) => (
-                    <MetricItem key={index}>
-                      <MetricName>{metric.title}</MetricName>
-                      <MetricValue>
-                        {metric.values && metric.values[0]
-                          ? `${metric.values[0].value.toExponential(2)} ${
-                              metric.values[0].unit || ""
-                            }`
-                          : "N/A"}
-                      </MetricValue>
-                    </MetricItem>
-                  ))}
-                </MetricsList>
-              </MetricsSection>
-            )}
-
             {analysis.status === "failed" && analysis.requirements && (
               <ErrorSection>
                 <ErrorHeader>
@@ -521,14 +486,14 @@ const CloseButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  padding: 4px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-outline);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
   color: var(--text-muted);
+  margin-left: 8px;
 
   &:hover {
     background: var(--hover-bg);
@@ -610,6 +575,8 @@ const SortButton = styled.button`
   }
 `;
 
+// components/AnalysisDetailsFooter.tsx - Update the table structure
+
 const RequirementsTable = styled.div`
   background: var(--bg-tertiary);
   border: 1px solid var(--border-outline);
@@ -649,10 +616,10 @@ const TableBody = styled.div`
   }
 `;
 
-const TableRow = styled.div<{ $status?: string; $expanded?: boolean }>`
+const TableRow = styled.div<{ $status?: string }>`
   display: flex;
-  align-items: ${(props) => (props.$expanded ? "flex-start" : "center")};
-  padding: ${(props) => (props.$expanded ? "12px" : "8px 12px")};
+  align-items: center;
+  padding: 8px 12px; /* Match header padding */
   border-bottom: 1px solid var(--border-bg);
   transition: all 0.2s ease;
   background: ${(props) =>
@@ -670,8 +637,8 @@ const TableRow = styled.div<{ $status?: string; $expanded?: boolean }>`
   }
 `;
 
-const TableCell = styled.div<{ $width?: string }>`
-  flex: ${(props) => (props.$width ? `0 0 ${props.$width}` : 1)};
+const TableCell = styled.div<{ $width: string }>`
+  flex: 0 0 ${(props) => props.$width};
   font-size: 11px;
   color: var(--text-primary);
   display: flex;
@@ -786,33 +753,6 @@ const RightSectionContent = styled.div`
   gap: 12px;
 `;
 
-const MetricsList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 8px;
-`;
-
-const MetricItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 8px;
-  background: var(--bg-secondary);
-  border-radius: 4px;
-`;
-
-const MetricName = styled.div`
-  font-size: 11px;
-  color: var(--text-muted);
-`;
-
-const MetricValue = styled.div`
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-primary);
-`;
-
 const ErrorSection = styled.div`
   background: var(--bg-tertiary);
   border: 1px solid var(--error);
@@ -830,41 +770,11 @@ const ErrorHeader = styled.div`
   margin-bottom: 8px;
 `;
 
-const ErrorList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const ErrorItem = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 4px;
-  font-size: 10px;
-  color: var(--error);
-  line-height: 1.4;
-
-  svg {
-    margin-top: 2px;
-    flex-shrink: 0;
-  }
-`;
-
 const WarningSection = styled.div`
   background: var(--bg-tertiary);
   border: 1px solid var(--accent-primary);
   border-radius: 8px;
   padding: 10px;
-`;
-
-const WarningHeader = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--accent-primary);
-  font-size: 11px;
-  font-weight: 600;
-  margin-bottom: 8px;
 `;
 
 const WarningList = styled.div`
@@ -886,7 +796,6 @@ const WarningItem = styled.div`
     flex-shrink: 0;
   }
 `;
-
 
 const FailedRequirementsSummary = styled.div`
   display: flex;
