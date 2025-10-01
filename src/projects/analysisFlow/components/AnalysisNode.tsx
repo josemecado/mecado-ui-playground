@@ -8,14 +8,15 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Zap,
   BarChart3,
   Settings,
   AlertTriangle,
   PlayCircle,
   RotateCcw,
   FileText,
-  Calculator
+  Calculator,
+  AudioLines,
+  Flame
 } from "lucide-react";
 
 export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
@@ -37,13 +38,13 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
   };
 
   const getTypeIcon = (type: string) => {
-    if (type.includes("thermal")) return <Zap size={16} />;
+    if (type.includes("thermal")) return <Flame size={16} />;
     if (
       type.includes("modal") ||
       type.includes("frequency") ||
       type.includes("harmonic")
     )
-      return <LoaderCircle size={16} />;
+      return <AudioLines size={16} />;
     if (
       type.includes("stress") ||
       type.includes("deformation") ||
@@ -82,7 +83,7 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
           <TypeIconWrapper>{getTypeIcon(analysis.type)}</TypeIconWrapper>
           <HeaderText>
             <AnalysisName>{analysis.name}</AnalysisName>
-            <AnalysisType>{analysis.type}</AnalysisType>
+            <AnalysisType>Analysis</AnalysisType>
           </HeaderText>
         </HeaderLeft>
         <StatusIconWrapper $status={nodeStatus}>
@@ -388,18 +389,14 @@ const HeaderLeft = styled.div`
 `;
 
 const TypeIconWrapper = styled.div`
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(
-    135deg,
-    var(--primary-action) 0%,
-    var(--primary-alternate) 100%
-  );
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--primary-alternate);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--text-inverted);
   flex-shrink: 0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
@@ -416,7 +413,6 @@ const AnalysisName = styled.div`
   font-size: 13px;
   font-weight: 700;
   color: var(--text-primary);
-  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -426,7 +422,6 @@ const AnalysisType = styled.div`
   font-size: 9px;
   color: var(--text-muted);
   font-weight: 500;
-  text-transform: uppercase;
   letter-spacing: 0.3px;
 `;
 

@@ -16,6 +16,7 @@ import {
   Settings,
   X,
   ArrowUpDown,
+  AlertCircle,
 } from "lucide-react";
 
 interface AnalysisDetailsFooterProps {
@@ -55,6 +56,22 @@ export const AnalysisDetailsFooter: React.FC<AnalysisDetailsFooterProps> = ({
       default:
         return <Clock size={12} />;
     }
+  };
+
+  // Helper to calculate difference between actual and target
+  const calculateDifference = (
+    req: Requirement
+  ): { value: number; percentage: number; isGood: boolean } | null => {
+    if (req.currentValue === undefined) return null;
+
+    const diff = req.currentValue - req.targetValue;
+    const percentage =
+      req.targetValue !== 0 ? (diff / req.targetValue) * 100 : 0;
+
+    // Determine if difference is "good" based on comparator and whether requirement passed
+    const isGood = req.status === "pass";
+
+    return { value: diff, percentage, isGood };
   };
 
   // Sort requirements based on selected option
@@ -104,15 +121,6 @@ export const AnalysisDetailsFooter: React.FC<AnalysisDetailsFooterProps> = ({
                 <span>{analysis.status}</span>
               </InfoValue>
             </InfoCard>
-
-            {analysis.progress !== undefined && (
-              <InfoCard>
-                <InfoValue>
-                  <ProgressMini $progress={analysis.progress} />
-                  <span>{analysis.progress}%</span>
-                </InfoValue>
-              </InfoCard>
-            )}
           </InfoCardsRow>
         </HeaderLeft>
 
@@ -159,52 +167,64 @@ export const AnalysisDetailsFooter: React.FC<AnalysisDetailsFooterProps> = ({
             </SectionHeader>
             <RequirementsTable>
               <TableHeader>
-                <HeaderCell $width="40%">Requirement</HeaderCell>
-                <HeaderCell $width="20%">Target</HeaderCell>
-                <HeaderCell $width="20%">Actual</HeaderCell>
-                <HeaderCell $width="20%">Priority</HeaderCell>
+                <HeaderCell $width="24%">Requirement</HeaderCell>
+                <HeaderCell $width="19%">Target</HeaderCell>
+                <HeaderCell $width="19%">Actual</HeaderCell>
+                <HeaderCell $width="19%">Difference</HeaderCell>
+                <HeaderCell $width="19%">Priority</HeaderCell>
               </TableHeader>
               <TableBody>
-                {sortedRequirements.map((req) => (
-                  <TableRow key={req.id} $status={req.status}>
-                    <TableCell $width="40%">
-                      <RequirementNameCell>
-                        <StatusIconCell $status={req.status}>
-                          {getRequirementStatusIcon(req.status)}
-                        </StatusIconCell>
-                        <RequirementDetails>
-                          <RequirementName $status={req.status}>
-                            {req.name}
-                          </RequirementName>
-                          {req.status === "fail" && (
-                            <FailureReason>
-                              Expected {req.comparator} {req.targetValue}{" "}
-                              {req.unit}, got {req.currentValue?.toFixed(2)}{" "}
-                              {req.unit}
-                            </FailureReason>
-                          )}
-                        </RequirementDetails>
-                      </RequirementNameCell>
-                    </TableCell>
-                    <TableCell $width="20%">
-                      <TargetValue>
-                        {req.comparator} {req.targetValue} {req.unit}
-                      </TargetValue>
-                    </TableCell>
-                    <TableCell $width="20%">
-                      <CurrentValue $status={req.status}>
-                        {req.currentValue !== undefined
-                          ? `${req.currentValue.toFixed(2)} ${req.unit}`
-                          : "—"}
-                      </CurrentValue>
-                    </TableCell>
-                    <TableCell $width="20%">
-                      <PriorityBadge $priority={req.priority}>
-                        {req.priority}
-                      </PriorityBadge>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {sortedRequirements.map((req) => {
+                  const difference = calculateDifference(req);
+                  return (
+                    <TableRow key={req.id} $status={req.status}>
+                      <TableCell $width="24%">
+                        <RequirementNameCell>
+                          <StatusIconCell $status={req.status}>
+                            {getRequirementStatusIcon(req.status)}
+                          </StatusIconCell>
+                          <RequirementDetails>
+                            <RequirementName $status={req.status}>
+                              {req.name}
+                            </RequirementName>
+                          </RequirementDetails>
+                        </RequirementNameCell>
+                      </TableCell>
+                      <TableCell $width="19%">
+                        <TargetValue>
+                          {req.comparator} {req.targetValue.toFixed(2)}{" "}
+                          {req.unit}
+                        </TargetValue>
+                      </TableCell>
+                      <TableCell $width="19%">
+                        <CurrentValue $status={req.status}>
+                          {req.currentValue !== undefined
+                            ? `${req.currentValue.toFixed(2)} ${req.unit}`
+                            : "—"}
+                        </CurrentValue>
+                      </TableCell>
+                      <TableCell $width="19%">
+                        {difference ? (
+                          <DifferenceValue $isGood={difference.isGood}>
+                            {difference.value > 0 ? "+" : ""}
+                            {difference.value.toFixed(2)} {req.unit}
+                            <DifferencePercentage $isGood={difference.isGood}>
+                              ({difference.percentage > 0 ? "+" : ""}
+                              {difference.percentage.toFixed(1)}%)
+                            </DifferencePercentage>
+                          </DifferenceValue>
+                        ) : (
+                          <DifferenceValue $isGood={false}>—</DifferenceValue>
+                        )}
+                      </TableCell>
+                      <TableCell $width="19%">
+                        <PriorityBadge $priority={req.priority}>
+                          {req.priority}
+                        </PriorityBadge>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </RequirementsTable>
           </RequirementsSection>
@@ -212,23 +232,24 @@ export const AnalysisDetailsFooter: React.FC<AnalysisDetailsFooterProps> = ({
 
         {/* Metrics & Errors/Warnings - Right Side */}
         <RightSection>
-          {/* Dynamic Title based on what's displayed */}
-          <SectionTitle>
-            {analysis.errors && analysis.errors.length > 0 ? (
-              <>
-                <XCircle size={14} />
-                Errors ({analysis.errors.length})
-              </>
-            ) : analysis.warnings && analysis.warnings.length > 0 ? (
-              <>
-                <AlertTriangle size={14} />
-                Warnings ({analysis.warnings.length})
-              </>
-            ) : null}
-          </SectionTitle>
+          <SectionHeader>
+            <SectionTitle>
+              {analysis.errors && analysis.errors.length > 0 ? (
+                <>
+                  <XCircle size={14} />
+                  Errors ({analysis.errors.length})
+                </>
+              ) : (
+                <>
+                  <AlertCircle size={14} />
+                  Errors
+                </>
+              )}
+            </SectionTitle>
+          </SectionHeader>
 
           <RightSectionContent>
-            {analysis.status === "failed" && analysis.requirements && (
+            {analysis.status === "failed" && analysis.requirements ? (
               <ErrorSection>
                 <ErrorHeader>
                   <XCircle size={12} />
@@ -242,31 +263,65 @@ export const AnalysisDetailsFooter: React.FC<AnalysisDetailsFooterProps> = ({
                         <ChevronRight size={10} />
                         <span>
                           <strong>{req.name}:</strong> Expected {req.comparator}{" "}
-                          {req.targetValue} {req.unit}, got{" "}
-                          {req.currentValue?.toFixed(2)} {req.unit}
+                          <TargetValueHighlight>
+                            {req.targetValue.toFixed(2)} {req.unit}
+                          </TargetValueHighlight>
+                          , got{" "}
+                          <CurrentValueHighlight>
+                            {req.currentValue?.toFixed(2)} {req.unit}
+                          </CurrentValueHighlight>
                         </span>
                       </FailedRequirementItem>
                     ))}
                 </FailedRequirementsSummary>
               </ErrorSection>
-            )}
-
-            {/* Warnings */}
-            {analysis.warnings && analysis.warnings.length > 0 && (
-              <WarningSection>
-                <WarningList>
-                  {analysis.warnings.map((warning, index) => (
-                    <WarningItem key={index}>
-                      <ChevronRight size={12} />
-                      <span>{warning}</span>
-                    </WarningItem>
-                  ))}
-                </WarningList>
-              </WarningSection>
+            ) : (
+              <EmptyErrorState>
+                <ErrorStateTitle>
+                  <EmptyIcon>
+                    <CheckCircle size={18} />
+                  </EmptyIcon>
+                  <EmptyTitle>No Errors</EmptyTitle>
+                </ErrorStateTitle>
+                <EmptyDescription>
+                  {analysis.status === "completed"
+                    ? "Analysis completed successfully"
+                    : analysis.status === "running"
+                    ? "Analysis in progress..."
+                    : "No errors to report"}
+                </EmptyDescription>
+              </EmptyErrorState>
             )}
           </RightSectionContent>
         </RightSection>
       </FooterContent>
+
+      {/* Warnings */}
+      <BottomSection>
+        <SectionHeader>
+          <SectionTitle>
+            {analysis.warnings && analysis.warnings.length > 0 && (
+              <>
+                <AlertTriangle size={14} />
+                Warnings ({analysis.warnings.length})
+              </>
+            )}
+          </SectionTitle>
+        </SectionHeader>
+
+        {analysis.warnings && analysis.warnings.length > 0 && (
+          <WarningSection>
+            <WarningList>
+              {analysis.warnings.map((warning, index) => (
+                <WarningItem key={index}>
+                  <ChevronRight size={12} />
+                  <span>{warning}</span>
+                </WarningItem>
+              ))}
+            </WarningList>
+          </WarningSection>
+        )}
+      </BottomSection>
     </FooterContainer>
   );
 };
@@ -307,7 +362,7 @@ const FooterHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
+  padding: 12px;
   border-radius: 12px 12px 0px 0px;
   background: var(--bg-tertiary);
   border-bottom: 1px solid var(--border-bg);
@@ -360,6 +415,7 @@ const InfoCard = styled.div`
   border: 1px solid var(--border-outline);
   color: var(--text-primary);
   white-space: nowrap;
+  text-transform: capitalize;
 `;
 
 const InfoValue = styled.div<{ $status?: string }>`
@@ -383,26 +439,6 @@ const InfoValue = styled.div<{ $status?: string }>`
 
   svg {
     opacity: 0.8;
-  }
-`;
-
-const ProgressMini = styled.div<{ $progress: number }>`
-  width: 30px;
-  height: 4px;
-  background: var(--bg-primary);
-  border-radius: 2px;
-  overflow: hidden;
-  position: relative;
-
-  &::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    width: ${(props) => props.$progress}%;
-    background: var(--accent-primary);
-    transition: width 0.3s ease;
   }
 `;
 
@@ -504,8 +540,7 @@ const CloseButton = styled.button`
 
 const FooterContent = styled.div`
   display: flex;
-  flex-direction: column;
-  padding: 16px;
+  padding: 12px;
   gap: 16px;
   max-height: 320px;
   overflow-y: auto;
@@ -536,6 +571,13 @@ const RightSection = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
+`;
+
+const BottomSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0px 16px 16px 16px;
 `;
 
 const SectionHeader = styled.div`
@@ -740,13 +782,6 @@ const PriorityBadge = styled.div<{ $priority: string }>`
   }};
 `;
 
-const MetricsSection = styled.div`
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-outline);
-  border-radius: 8px;
-  padding: 12px;
-`;
-
 const RightSectionContent = styled.div`
   display: flex;
   flex-direction: column;
@@ -771,8 +806,10 @@ const ErrorHeader = styled.div`
 `;
 
 const WarningSection = styled.div`
-  background: var(--bg-tertiary);
-  border: 1px solid var(--accent-primary);
+  display: flex;
+  justify-content: stretch;
+  background: var(--bg-secondary);
+  border: 1px solid var(--caution);
   border-radius: 8px;
   padding: 10px;
 `;
@@ -788,7 +825,7 @@ const WarningItem = styled.div`
   align-items: flex-start;
   gap: 4px;
   font-size: 10px;
-  color: var(--accent-primary);
+  color: var(--caution);
   line-height: 1.4;
 
   svg {
@@ -824,4 +861,72 @@ const FailedRequirementItem = styled.div`
     color: var(--error);
     font-weight: 600;
   }
+`;
+
+// Add new styled components for difference column
+const DifferenceValue = styled.div<{ $isGood: boolean }>`
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: ${(props) => (props.$isGood ? "var(--success)" : "var(--error)")};
+`;
+
+const DifferencePercentage = styled.span<{ $isGood: boolean }>`
+  font-size: 9px;
+  font-weight: 500;
+  opacity: 0.8;
+`;
+
+// Add styled components for color-coded values in failed requirements
+const TargetValueHighlight = styled.span`
+  color: var(--success);
+  font-weight: 600;
+`;
+
+const CurrentValueHighlight = styled.span`
+  color: var(--error);
+  font-weight: 600;
+`;
+
+// Add empty state components
+const EmptyErrorState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-outline);
+  border-radius: 8px;
+  text-align: center;
+`;
+
+const ErrorStateTitle = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: red;
+`;
+
+const EmptyIcon = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--success);
+  opacity: 0.6;
+`;
+
+const EmptyTitle = styled.div`
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+`;
+
+const EmptyDescription = styled.div`
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
 `;

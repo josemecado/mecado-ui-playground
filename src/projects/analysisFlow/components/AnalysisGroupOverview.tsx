@@ -40,17 +40,17 @@ export const AnalysisGroupsOverview: React.FC<AnalysisGroupsOverviewProps> = ({
     const nodes: Node[] = [];
     const edges: Edge[] = [];
     const columns = 3;
-    
+
     analysisGroups.forEach((group, index) => {
       const col = index % columns;
       const row = Math.floor(index / columns);
-      
+
       nodes.push({
         id: group.id,
-        type: 'analysisGroup',
-        position: { 
-          x: 100 + col * 400, 
-          y: 100 + row * 300 
+        type: "analysisGroup",
+        position: {
+          x: 100 + col * 400,
+          y: 100 + row * 300,
         },
         data: { group },
         draggable: true,
@@ -64,12 +64,12 @@ export const AnalysisGroupsOverview: React.FC<AnalysisGroupsOverviewProps> = ({
             id: `${prevGroupId}-${group.id}`,
             source: prevGroupId,
             target: group.id,
-            animated: group.status === 'running',
-            style: { 
+            animated: group.status === "running",
+            style: {
               stroke: getEdgeColor(group.status),
-              strokeWidth: 2 
+              strokeWidth: 2,
             },
-            type: 'smoothstep',
+            type: "smoothstep",
           });
         }
       }
@@ -87,22 +87,25 @@ export const AnalysisGroupsOverview: React.FC<AnalysisGroupsOverviewProps> = ({
     setEdges(initialEdges);
   }, [initialNodes, initialEdges, setNodes, setEdges]);
 
-  const handleNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    if (node.type === 'analysisGroup') {
-      onGroupSelect(node.data.group);
-    }
-  }, [onGroupSelect]);
+  const handleNodeClick = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      if (node.type === "analysisGroup") {
+        onGroupSelect(node.data.group);
+      }
+    },
+    [onGroupSelect]
+  );
 
   // Collect all requirements from all groups
   const allRequirements = useMemo(() => {
-    return analysisGroups.flatMap(g => g.requirements || []);
+    return analysisGroups.flatMap((g) => g.requirements || []);
   }, [analysisGroups]);
 
   return (
     <OverviewContainer $fullscreen={isFullscreen}>
       <FlowWrapper>
         {showRequirements && allRequirements.length > 0 && (
-          <RequirementsModal 
+          <RequirementsModal
             requirements={allRequirements}
             groupName="All Groups"
           />
@@ -116,7 +119,7 @@ export const AnalysisGroupsOverview: React.FC<AnalysisGroupsOverviewProps> = ({
           onNodeClick={handleNodeClick}
           nodeTypes={nodeTypes}
           fitView
-          fitViewOptions={{ 
+          fitViewOptions={{
             padding: 0.2,
             maxZoom: 1.0,
             minZoom: 0.5,
@@ -128,41 +131,41 @@ export const AnalysisGroupsOverview: React.FC<AnalysisGroupsOverviewProps> = ({
           panOnDrag={true}
         >
           <Controls>
-            <button 
+            <button
               onClick={() => setIsFullscreen(!isFullscreen)}
               title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
               style={{
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-outline)',
-                borderRadius: '8px',
-                padding: '6px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                background: "var(--bg-secondary)",
+                border: "1px solid var(--border-outline)",
+                borderRadius: "8px",
+                padding: "6px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
               {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
             </button>
           </Controls>
-          
-          <Background 
-            variant={BackgroundVariant.Dots} 
-            gap={60} 
+
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={60}
             size={1.5}
             color="var(--text-muted)"
           />
-          
-          <MiniMap 
+
+          <MiniMap
             nodeColor={(node) => {
               const group = node.data.group as AnalysisGroup;
               return getMiniMapColor(group.status);
             }}
             maskColor="rgba(0, 0, 0, 0.6)"
             style={{
-              background: 'var(--bg-tertiary)',
-              border: '1px solid var(--border-bg)',
-              borderRadius: '8px',
+              background: "var(--bg-tertiary)",
+              border: "1px solid var(--border-bg)",
+              borderRadius: "8px",
             }}
           />
         </ReactFlow>
@@ -173,22 +176,32 @@ export const AnalysisGroupsOverview: React.FC<AnalysisGroupsOverviewProps> = ({
 
 // Helper functions
 const getEdgeColor = (status: string): string => {
-  switch(status) {
-    case 'passed': return '#10b981';
-    case 'failed': return '#ef4444';
-    case 'running': return 'var(--primary-alternate)';
-    case 'partial': return '#f59e0b';
-    default: return 'var(--border-outline)';
+  switch (status) {
+    case "passed":
+      return "#10b981";
+    case "failed":
+      return "var(--error)";
+    case "running":
+      return "var(--primary-alternate)";
+    case "partial":
+      return "var(--caution)";
+    default:
+      return "var(--border-outline)";
   }
 };
 
 const getMiniMapColor = (status: string): string => {
-  switch(status) {
-    case 'passed': return '#10b981';
-    case 'failed': return '#ef4444';
-    case 'running': return 'var(--accent-alternate)';
-    case 'partial': return '#f59e0b';
-    default: return 'var(--text-muted)';
+  switch (status) {
+    case "passed":
+      return "#10b981";
+    case "failed":
+      return "var(--error)";
+    case "running":
+      return "var(--primary-alternate)";
+    case "partial":
+      return "var(--caution)";
+    default:
+      return "var(--text-muted)";
   }
 };
 
@@ -198,8 +211,10 @@ const OverviewContainer = styled.div<{ $fullscreen: boolean }>`
   flex-direction: column;
   width: 100%;
   height: 100%;
-  position: ${props => props.$fullscreen ? 'fixed' : 'relative'};
-  ${props => props.$fullscreen && `
+  position: ${(props) => (props.$fullscreen ? "fixed" : "relative")};
+  ${(props) =>
+    props.$fullscreen &&
+    `
     top: 0;
     left: 0;
     right: 0;
@@ -212,31 +227,31 @@ const OverviewContainer = styled.div<{ $fullscreen: boolean }>`
 const FlowWrapper = styled.div`
   flex: 1;
   position: relative;
-  
+
   .react-flow__renderer {
     background: transparent;
   }
-  
+
   .react-flow__node {
     cursor: pointer;
     transition: transform 0.2s ease;
-    
+
     &:hover {
       transform: scale(1.02);
     }
   }
-  
+
   .react-flow__attribution {
     display: none;
   }
-  
+
   .react-flow__controls {
     background: var(--bg-tertiary);
     border: 1px solid var(--border-bg);
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
-  
+
   .react-flow__controls-button {
     background: var(--bg-secondary);
     border: 1px solid var(--border-outline);
@@ -245,12 +260,12 @@ const FlowWrapper = styled.div`
     width: 32px;
     height: 32px;
     margin: 4px;
-    
+
     &:hover {
       background: var(--hover-bg);
       border-color: var(--primary-alternate);
     }
-    
+
     svg {
       fill: currentColor;
     }

@@ -7,14 +7,15 @@ import {
   Activity, 
   CheckCircle, 
   XCircle, 
-  AlertCircle,
   Clock,
   Layers,
   AlertTriangle,
   ChevronRight,
-  Zap,
   Settings,
-  BarChart3
+  BarChart3,
+  Flame,
+  AudioLines, 
+  FileChartColumn
 } from "lucide-react";
 
 export const AnalysisGroupNode: React.FC<NodeProps> = ({ data }) => {
@@ -31,8 +32,8 @@ export const AnalysisGroupNode: React.FC<NodeProps> = ({ data }) => {
   };
 
   const getAnalysisTypeIcon = (type: string) => {
-    if (type.includes("thermal")) return <Zap size={12} />;
-    if (type.includes("modal") || type.includes("frequency")) return <Activity size={12} />;
+    if (type.includes("thermal")) return <Flame size={12} />;
+    if (type.includes("modal") || type.includes("frequency") || type.includes("harmonic")) return <AudioLines size={12} />;
     if (type.includes("stress") || type.includes("deformation") || type.includes("safety")) 
       return <Settings size={12} />;
     return <BarChart3 size={12} />;
@@ -73,7 +74,7 @@ export const AnalysisGroupNode: React.FC<NodeProps> = ({ data }) => {
       <NodeHeader $status={group.status}>
         <HeaderLeft>
           <GroupIconWrapper>
-            <Layers size={16} />
+            <FileChartColumn size={16} />
           </GroupIconWrapper>
           <HeaderText>
             <GroupName>{group.name}</GroupName>
@@ -309,14 +310,14 @@ const HeaderLeft = styled.div`
 `;
 
 const GroupIconWrapper = styled.div`
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 8px;
-  background: linear-gradient(135deg, var(--primary-action) 0%, var(--primary-alternate) 100%);
+  background: var(--primary-alternate);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--text-inverted);
   flex-shrink: 0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;

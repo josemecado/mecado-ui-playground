@@ -1,142 +1,117 @@
 // utils/mockAnalysisData.ts
-import {
-  Metric,
-  Requirement,
-  Analysis,
-  AnalysisGroup,
-} from "../../versionNodes/utils/VersionInterfaces";
+import { Metric, Requirement, Analysis, AnalysisGroup } from "../../versionNodes/utils/VersionInterfaces";
 
 // utils/mockAnalysisData.ts - Updated MOCK_METRICS section
 
 // Define specific metric values for each analysis type - ONLY matching requirements
 export const MOCK_METRICS: Record<string, Metric[]> = {
-  "analysis-static-structural": [
-    {
-      title: "Von Mises Stress",
-      type: "structural_stress",
-      values: [
-        { label: "Maximum", value: 180e6, unit: "Pa" }, // Will pass (< 250e6)
-        { label: "Minimum", value: 2.1, unit: "" }, // For Yield Safety Margin (> 1.5)
-      ],
-      primaryValueLabel: "Maximum",
-      optimizationTarget: "minimize" as const,
-    },
-  ],
-
-  "analysis-deformation": [
-    {
-      title: "Total Deformation",
-      type: "displacement",
-      values: [
-        { label: "Maximum", value: 0.0018, unit: "m" }, // Will pass (< 0.002)
-        { label: "Minimum", value: 0.85, unit: "" }, // For Displacement Uniformity (> 0.8)
-      ],
-      primaryValueLabel: "Maximum",
-      optimizationTarget: "minimize" as const,
-    },
-  ],
-
-  "analysis-safety-factor": [
-    {
-      title: "Safety Factor",
-      type: "safety_factor",
-      values: [
-        { label: "Minimum", value: 2.5, unit: "" }, // Will pass (> 2.0)
-      ],
-      primaryValueLabel: "Minimum",
-      optimizationTarget: "maximize" as const,
-    },
-  ],
-
-  "analysis-steady-state-thermal": [
-    {
-      title: "Temperature Distribution",
-      type: "temperature",
-      values: [
-        { label: "Maximum", value: 95, unit: "°C" }, // Will pass (< 100)
-        { label: "Minimum", value: 0.88, unit: "" }, // For Temperature Uniformity (> 0.85)
-      ],
-      primaryValueLabel: "Maximum",
-      optimizationTarget: "minimize" as const,
-    },
-  ],
-
-  "analysis-transient-thermal": [
-    {
-      title: "Temperature Analysis",
-      type: "temperature",
-      values: [
-        { label: "Maximum", value: 45, unit: "°C/min" }, // Rate of Change - Will pass (< 50)
-        { label: "Settling Time", value: 280, unit: "s" }, // Will pass (< 300)
-      ],
-      primaryValueLabel: "Maximum",
-      optimizationTarget: "minimize" as const,
-    },
-  ],
-
-  "analysis-thermal-stress": [
-    {
-      title: "Thermal Stress",
-      type: "thermal_stress",
-      values: [
-        { label: "Maximum", value: 180e6, unit: "Pa" }, // Will fail (> 150e6)
-        { label: "Gradient", value: 120, unit: "°C/m" }, // Will fail (> 100)
-      ],
-      primaryValueLabel: "Maximum",
-      optimizationTarget: "minimize" as const,
-    },
-  ],
-
-  "analysis-heat-transfer": [
-    {
-      title: "Heat Dissipation",
-      type: "heat_transfer",
-      values: [
-        { label: "Minimum", value: 450, unit: "W" }, // Will fail (< 500)
-      ],
-      primaryValueLabel: "Rate",
-      optimizationTarget: "maximize" as const,
-    },
-  ],
-
-  "analysis-natural-frequency": [
-    {
-      title: "Natural Frequency",
-      type: "frequency",
-      values: [
-        { label: "Minimum", value: 55, unit: "Hz" }, // First Natural Frequency - Will pass (> 50)
-        { label: "Separation", value: 12, unit: "%" }, // Will pass (> 10)
-        { label: "Mass Participation", value: 0.92, unit: "" }, // Will pass (> 0.9)
-      ],
-      primaryValueLabel: "First Mode",
-      optimizationTarget: "maximize" as const,
-    },
-  ],
-
-  "analysis-mode-shapes": [
-    {
-      title: "Mode Shape Analysis",
-      type: "modal_shape",
-      values: [
-        { label: "Minimum", value: 0.97, unit: "" }, // Mode Shape Linearity - Will pass (> 0.95)
-      ],
-      primaryValueLabel: "Linearity",
-      optimizationTarget: "maximize" as const,
-    },
-  ],
-
-  "analysis-harmonic-response": [
-    {
-      title: "Harmonic Response",
-      type: "harmonic",
-      values: [
-        { label: "Maximum", value: 6.2, unit: "mm" }, // Peak Amplitude - Will fail (> 5.0)
-        { label: "Minimum", value: 0.025, unit: "" }, // Damping Ratio - Will pass (> 0.02)
-      ],
-      primaryValueLabel: "Peak Amplitude",
-      optimizationTarget: "minimize" as const,
-    },
-  ],
+  "analysis-static-structural": [{
+    title: "Von Mises Stress",
+    type: "structural_stress",
+    values: [
+      { label: "Maximum", value: 180e6, unit: "Pa" }, // Will pass (< 250e6)
+      { label: "Minimum", value: 2.1, unit: "" }, // For Yield Safety Margin (> 1.5)
+    ],
+    primaryValueLabel: "Maximum",
+    optimizationTarget: "minimize" as const,
+  }],
+  
+  "analysis-deformation": [{
+    title: "Total Deformation",
+    type: "displacement",
+    values: [
+      { label: "Maximum", value: 0.0018, unit: "m" }, // Will pass (< 0.002)
+      { label: "Minimum", value: 0.85, unit: "" }, // For Displacement Uniformity (> 0.8)
+    ],
+    primaryValueLabel: "Maximum",
+    optimizationTarget: "minimize" as const,
+  }],
+  
+  "analysis-safety-factor": [{
+    title: "Safety Factor",
+    type: "safety_factor",
+    values: [
+      { label: "Minimum", value: 2.5, unit: "" }, // Will pass (> 2.0)
+    ],
+    primaryValueLabel: "Minimum",
+    optimizationTarget: "maximize" as const,
+  }],
+  
+  "analysis-steady-state-thermal": [{
+    title: "Temperature Distribution",
+    type: "temperature",
+    values: [
+      { label: "Maximum", value: 95, unit: "°C" }, // Will pass (< 100)
+      { label: "Minimum", value: 0.88, unit: "" }, // For Temperature Uniformity (> 0.85)
+    ],
+    primaryValueLabel: "Maximum",
+    optimizationTarget: "minimize" as const,
+  }],
+  
+  "analysis-transient-thermal": [{
+    title: "Temperature Analysis",
+    type: "temperature",
+    values: [
+      { label: "Maximum", value: 45, unit: "°C/min" }, // Rate of Change - Will pass (< 50)
+      { label: "Settling Time", value: 280, unit: "s" }, // Will pass (< 300)
+    ],
+    primaryValueLabel: "Maximum",
+    optimizationTarget: "minimize" as const,
+  }],
+  
+  "analysis-thermal-stress": [{
+    title: "Thermal Stress",
+    type: "thermal_stress",
+    values: [
+      { label: "Maximum", value: 180e6, unit: "Pa" }, // Will fail (> 150e6)
+      { label: "Gradient", value: 120, unit: "°C/m" }, // Will fail (> 100)
+    ],
+    primaryValueLabel: "Maximum",
+    optimizationTarget: "minimize" as const,
+  }],
+  
+  "analysis-heat-transfer": [{
+    title: "Heat Dissipation",
+    type: "heat_transfer",
+    values: [
+      { label: "Minimum", value: 450, unit: "W" }, // Will fail (< 500)
+    ],
+    primaryValueLabel: "Rate",
+    optimizationTarget: "maximize" as const,
+  }],
+  
+  "analysis-natural-frequency": [{
+    title: "Natural Frequency",
+    type: "frequency",
+    values: [
+      { label: "Minimum", value: 55, unit: "Hz" }, // First Natural Frequency - Will pass (> 50)
+      { label: "Separation", value: 12, unit: "%" }, // Will pass (> 10)
+      { label: "Mass Participation", value: 0.92, unit: "" }, // Will pass (> 0.9)
+    ],
+    primaryValueLabel: "First Mode",
+    optimizationTarget: "maximize" as const,
+  }],
+  
+  "analysis-mode-shapes": [{
+    title: "Mode Shape Analysis",
+    type: "modal_shape",
+    values: [
+      { label: "Minimum", value: 0.97, unit: "" }, // Mode Shape Linearity - Will pass (> 0.95)
+    ],
+    primaryValueLabel: "Linearity",
+    optimizationTarget: "maximize" as const,
+  }],
+  
+  "analysis-harmonic-response": [{
+    title: "Harmonic Response",
+    type: "harmonic",
+    values: [
+      { label: "Maximum", value: 6.2, unit: "mm" }, // Peak Amplitude - Will fail (> 5.0)
+      { label: "Minimum", value: 0.025, unit: "" }, // Damping Ratio - Will pass (> 0.02)
+    ],
+    primaryValueLabel: "Peak Amplitude",
+    optimizationTarget: "minimize" as const,
+  }],
 };
 
 // Export function to get metrics for a specific analysis
@@ -149,87 +124,67 @@ export const evaluateRequirementsWithMockData = (
   analysis: Analysis
 ): Requirement[] | undefined => {
   if (!analysis.requirements) return undefined;
-
+  
   const metrics = getMockMetricsForAnalysis(analysis.id);
   if (metrics.length === 0) return analysis.requirements;
-
+  
   return analysis.requirements.map((req) => {
     const metric = metrics[0];
     if (!metric || !metric.values) return req;
-
+    
     // Get the appropriate metric value based on requirement name and comparator
     let metricValue: number | undefined;
-
+    
     // For "less than" comparisons, use Maximum values
     if (req.comparator === "<" || req.comparator === "<=") {
       // Special cases first
       if (req.name.toLowerCase().includes("rate")) {
-        metricValue = metric.values.find((v) => v.label === "Maximum")?.value;
+        metricValue = metric.values.find(v => v.label === "Maximum")?.value;
       } else if (req.name.toLowerCase().includes("settling")) {
-        metricValue = metric.values.find(
-          (v) => v.label === "Settling Time"
-        )?.value;
+        metricValue = metric.values.find(v => v.label === "Settling Time")?.value;
       } else if (req.name.toLowerCase().includes("gradient")) {
-        metricValue = metric.values.find((v) => v.label === "Gradient")?.value;
+        metricValue = metric.values.find(v => v.label === "Gradient")?.value;
       } else if (req.name.toLowerCase().includes("amplitude")) {
-        metricValue = metric.values.find((v) => v.label === "Maximum")?.value;
+        metricValue = metric.values.find(v => v.label === "Maximum")?.value;
       } else {
-        metricValue = metric.values.find((v) => v.label === "Maximum")?.value;
+        metricValue = metric.values.find(v => v.label === "Maximum")?.value;
       }
-    }
+    } 
     // For "greater than" comparisons, use Minimum values
     else if (req.comparator === ">" || req.comparator === ">=") {
       // Special cases first
       if (req.name.toLowerCase().includes("separation")) {
-        metricValue = metric.values.find(
-          (v) => v.label === "Separation"
-        )?.value;
+        metricValue = metric.values.find(v => v.label === "Separation")?.value;
       } else if (req.name.toLowerCase().includes("mass participation")) {
-        metricValue = metric.values.find(
-          (v) => v.label === "Mass Participation"
-        )?.value;
+        metricValue = metric.values.find(v => v.label === "Mass Participation")?.value;
       } else if (req.name.toLowerCase().includes("damping")) {
-        metricValue = metric.values.find((v) => v.label === "Minimum")?.value;
+        metricValue = metric.values.find(v => v.label === "Minimum")?.value;
       } else {
-        metricValue = metric.values.find((v) => v.label === "Minimum")?.value;
+        metricValue = metric.values.find(v => v.label === "Minimum")?.value;
       }
     }
-
+    
     // If still no value found, log warning and return unchanged
     if (metricValue === undefined) {
-      console.warn(
-        `No metric value found for requirement: ${req.name} (${req.comparator})`
-      );
+      console.warn(`No metric value found for requirement: ${req.name} (${req.comparator})`);
       return req;
     }
-
+    
     // Evaluate pass/fail
     let passed = false;
     switch (req.comparator) {
-      case ">":
-        passed = metricValue > req.targetValue;
-        break;
-      case "<":
-        passed = metricValue < req.targetValue;
-        break;
-      case ">=":
-        passed = metricValue >= req.targetValue;
-        break;
-      case "<=":
-        passed = metricValue <= req.targetValue;
-        break;
-      case "==":
-        passed = metricValue === req.targetValue;
-        break;
-      case "!=":
-        passed = metricValue !== req.targetValue;
-        break;
+      case ">": passed = metricValue > req.targetValue; break;
+      case "<": passed = metricValue < req.targetValue; break;
+      case ">=": passed = metricValue >= req.targetValue; break;
+      case "<=": passed = metricValue <= req.targetValue; break;
+      case "==": passed = metricValue === req.targetValue; break;
+      case "!=": passed = metricValue !== req.targetValue; break;
     }
-
+    
     return {
       ...req,
       currentValue: metricValue,
-      status: passed ? ("pass" as const) : ("fail" as const),
+      status: passed ? "pass" as const : "fail" as const,
     };
   });
 };
@@ -259,7 +214,7 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
               comparator: "<",
               category: "structural",
               priority: "critical",
-              status: "pending",
+              status: "pending"
             },
             {
               id: "req-stress-2",
@@ -270,9 +225,9 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
               comparator: ">",
               category: "structural",
               priority: "important",
-              status: "pending",
-            },
-          ],
+              status: "pending"
+            }
+          ]
         },
         {
           id: "analysis-deformation",
@@ -290,7 +245,7 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
               comparator: "<",
               category: "structural",
               priority: "critical",
-              status: "pending",
+              status: "pending"
             },
             {
               id: "req-deform-2",
@@ -301,9 +256,9 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
               comparator: ">",
               category: "structural",
               priority: "standard",
-              status: "pending",
-            },
-          ],
+              status: "pending"
+            }
+          ]
         },
         {
           id: "analysis-safety-factor",
@@ -321,13 +276,13 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
               comparator: ">",
               category: "structural",
               priority: "critical",
-              status: "pending",
-            },
-          ],
-        },
-      ],
+              status: "pending"
+            }
+          ]
+        }
+      ]
     },
-
+    
     // THERMAL GROUP - Mixed results (thermal stress and heat transfer will fail)
     {
       id: "thermal-group",
@@ -350,7 +305,7 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
               comparator: "<",
               category: "thermal",
               priority: "critical",
-              status: "pending",
+              status: "pending"
             },
             {
               id: "req-thermal-2",
@@ -361,9 +316,9 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
               comparator: ">",
               category: "thermal",
               priority: "important",
-              status: "pending",
-            },
-          ],
+              status: "pending"
+            }
+          ]
         },
         {
           id: "analysis-transient-thermal",
@@ -381,7 +336,7 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
               comparator: "<",
               category: "thermal",
               priority: "important",
-              status: "pending",
+              status: "pending"
             },
             {
               id: "req-transient-2",
@@ -392,9 +347,9 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
               comparator: "<",
               category: "thermal",
               priority: "standard",
-              status: "pending",
-            },
-          ],
+              status: "pending"
+            }
+          ]
         },
         {
           id: "analysis-thermal-stress",
@@ -412,7 +367,7 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
               comparator: "<",
               category: "thermal",
               priority: "important",
-              status: "pending",
+              status: "pending"
             },
             {
               id: "req-thermal-stress-2",
@@ -423,13 +378,13 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
               comparator: "<",
               category: "thermal",
               priority: "critical",
-              status: "pending",
-            },
+              status: "pending"
+            }
           ],
           warnings: [
             "Material properties may vary at extreme temperatures",
-            "Consider adding thermal barriers in high-stress regions",
-          ],
+            "Consider adding thermal barriers in high-stress regions"
+          ]
         },
         {
           id: "analysis-heat-transfer",
@@ -447,13 +402,13 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
               comparator: ">",
               category: "thermal",
               priority: "critical",
-              status: "pending",
-            },
-          ],
-        },
-      ],
+              status: "pending"
+            }
+          ]
+        }
+      ]
     },
-
+    
     // MODAL GROUP - Harmonic response will partially fail
     {
       id: "modal-group",
@@ -476,7 +431,7 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
               comparator: ">",
               category: "modal",
               priority: "critical",
-              status: "pending",
+              status: "pending"
             },
             {
               id: "req-freq-2",
@@ -487,7 +442,7 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
               comparator: ">",
               category: "modal",
               priority: "important",
-              status: "pending",
+              status: "pending"
             },
             {
               id: "req-freq-3",
@@ -498,9 +453,9 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
               comparator: ">",
               category: "modal",
               priority: "standard",
-              status: "pending",
-            },
-          ],
+              status: "pending"
+            }
+          ]
         },
         {
           id: "analysis-mode-shapes",
@@ -518,9 +473,9 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
               comparator: ">",
               category: "modal",
               priority: "standard",
-              status: "pending",
-            },
-          ],
+              status: "pending"
+            }
+          ]
         },
         {
           id: "analysis-harmonic-response",
@@ -538,7 +493,7 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
               comparator: "<",
               category: "modal",
               priority: "critical",
-              status: "pending",
+              status: "pending"
             },
             {
               id: "req-harmonic-2",
@@ -549,15 +504,15 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
               comparator: ">",
               category: "modal",
               priority: "important",
-              status: "pending",
-            },
+              status: "pending"
+            }
           ],
           warnings: [
             "Potential resonance detected near operating frequency",
-            "Consider damping mechanism",
-          ],
-        },
-      ],
-    },
+            "Consider damping mechanism"
+          ]
+        }
+      ]
+    }
   ];
 };

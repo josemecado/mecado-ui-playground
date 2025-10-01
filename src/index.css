@@ -12,7 +12,7 @@
   --theme-darkBgPrimary: #000000;
 
   --theme-darkBgSecondary: #262626;
-    /* --theme-darkBgSecondary: #191e24; */
+  /* --theme-darkBgSecondary: #191e24; */
 
   --theme-darkBgTertiary: #2f3033;
 
@@ -26,7 +26,7 @@
   --theme-darkAccentNeutral: #738491;
 
   --theme-darkTextPrimary: #fff;
-  --theme-darkTextMuted: #B1BEC9;
+  --theme-darkTextMuted: #b1bec9;
   --theme-darkTextInverted: #1a1d21;
 
   --theme-darkBorderBg: #0b0e16;
@@ -36,7 +36,7 @@
   --theme-darkError: #ef4444;
   --theme-darkSuccess: #22c55e;
   --theme-darkDisabled: #6b7280;
-
+  --theme-darkCaution: #f59e0b;
 
   /* Light Theme Colors */
   --theme-lightBgPrimary: #edf0f2;
@@ -63,7 +63,7 @@
   --theme-lightError: #ef4444;
   --theme-lightSuccess: #22c55e;
   --theme-lightDisabled: #6b7280;
-
+  --theme-lightCaution: #f59e0b;
 
   /* Default: Light theme */
   --bg-primary: var(--theme-lightBgPrimary);
@@ -92,6 +92,7 @@
   --success: var(--theme-lightSuccess);
   --error: var(--theme-lightError);
   --disabled: var(--theme-lightDisabled);
+  --caution: var(--theme-lightCaution);
 }
 
 /* Dark Theme Overrides */
@@ -122,7 +123,7 @@
   --success: var(--theme-darkSuccess);
   --error: var(--theme-darkError);
   --disabled: var(--theme-darkDisabled);
-
+  --caution: var(--theme-darkCaution);
 }
 
 body {

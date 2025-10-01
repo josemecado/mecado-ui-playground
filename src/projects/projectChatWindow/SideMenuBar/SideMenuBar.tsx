@@ -36,7 +36,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
 }) => {
   const [isCollapsed, setCollapse] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const effectiveCollapsed = isCollapsed && !isHovered;
+  const effectiveCollapsed = true;
 
   // Add this useEffect to handle responsive collapse
   useEffect(() => {

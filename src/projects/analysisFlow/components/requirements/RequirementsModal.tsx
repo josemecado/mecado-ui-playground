@@ -9,7 +9,7 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
-  FileText,
+  Calculator
 } from "lucide-react";
 
 interface RequirementsModalProps {
@@ -61,10 +61,10 @@ export const RequirementsModal: React.FC<RequirementsModalProps> = ({
       <ModalHeader onClick={() => setIsExpanded(!isExpanded)}>
         <HeaderLeft>
           <IconWrapper>
-            <FileText size={16} />
+            <Calculator size={16} />
           </IconWrapper>
           <HeaderContent>
-            <ModalTitle>{displayName}</ModalTitle>
+            <ModalTitle>Group Requirements</ModalTitle>
             <StatusSummary>
               <StatusItem $color="var(--success)">
                 <CheckCircle size={12} />
@@ -153,9 +153,9 @@ const HeaderLeft = styled.div`
 `;
 
 const IconWrapper = styled.div`
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
   background: var(--primary-alternate);
   display: flex;
   align-items: center;
