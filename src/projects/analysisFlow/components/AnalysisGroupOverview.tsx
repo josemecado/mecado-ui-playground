@@ -16,7 +16,6 @@ import "@xyflow/react/dist/style.css";
 import styled from "styled-components";
 import { AnalysisGroup } from "../../versionNodes/utils/VersionInterfaces";
 import { AnalysisGroupNode } from "../components/AnalysisGroupNode";
-import { RequirementsModal } from "./requirements/RequirementsModal";
 import { Maximize2, Minimize2 } from "lucide-react";
 
 interface AnalysisGroupsOverviewProps {
@@ -35,7 +34,6 @@ export const AnalysisGroupsOverview: React.FC<AnalysisGroupsOverviewProps> = ({
   onGroupSelect,
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showRequirements, setShowRequirements] = useState(true);
 
   // Generate nodes and edges
   const { initialNodes, initialEdges } = useMemo(() => {
@@ -98,21 +96,9 @@ export const AnalysisGroupsOverview: React.FC<AnalysisGroupsOverviewProps> = ({
     [onGroupSelect]
   );
 
-  // Collect all requirements from all groups
-  const allRequirements = useMemo(() => {
-    return analysisGroups.flatMap((g) => g.requirements || []);
-  }, [analysisGroups]);
-
   return (
     <OverviewContainer $fullscreen={isFullscreen}>
       <FlowWrapper>
-        {showRequirements && allRequirements.length > 0 && (
-          <RequirementsModal
-            requirements={allRequirements}
-            groupName="All Groups"
-          />
-        )}
-
         <ReactFlow
           nodes={nodes}
           edges={edges}

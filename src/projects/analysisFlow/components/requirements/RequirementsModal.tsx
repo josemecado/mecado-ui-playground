@@ -1,7 +1,10 @@
 // components/RequirementsModal.tsx
 import React, { useState, useMemo } from "react";
 import styled from "styled-components";
-import { Requirement, AnalysisGroup } from "../../../versionNodes/utils/VersionInterfaces";
+import {
+  Requirement,
+  AnalysisGroup,
+} from "../../../versionNodes/utils/VersionInterfaces";
 import { RequirementCell } from "./RequirementCell";
 import {
   CheckCircle,
@@ -9,7 +12,7 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
-  Calculator
+  Calculator,
 } from "lucide-react";
 
 interface RequirementsModalProps {
@@ -32,29 +35,49 @@ export const RequirementsModal: React.FC<RequirementsModalProps> = ({
 
     if (selectedGroup) {
       // Detail view: Show group requirements + all analysis requirements
-      const analysisReqs = selectedGroup.analyses?.flatMap(a => a.requirements || []) || [];
+      const analysisReqs =
+        selectedGroup.analyses?.flatMap((a) => a.requirements || []) || [];
       const groupReqs = selectedGroup.requirements || [];
       return [...groupReqs, ...analysisReqs];
     } else {
       // Overview: Show all group requirements + all analysis requirements
-      return analysisGroups.flatMap(g => [
+      return analysisGroups.flatMap((g) => [
         ...(g.requirements || []),
-        ...(g.analyses?.flatMap(a => a.requirements || []) || [])
+        ...(g.analyses?.flatMap((a) => a.requirements || []) || []),
       ]);
     }
   }, [analysisGroups, selectedGroup]);
 
-  const passedCount = aggregatedRequirements.filter((r) => r.status === "pass").length;
-  const failedCount = aggregatedRequirements.filter((r) => r.status === "fail").length;
-  const pendingCount = aggregatedRequirements.filter((r) => r.status === "pending").length;
+  const passedCount = aggregatedRequirements.filter(
+    (r) => r.status === "pass"
+  ).length;
+  const failedCount = aggregatedRequirements.filter(
+    (r) => r.status === "fail"
+  ).length;
+  const pendingCount = aggregatedRequirements.filter(
+    (r) => r.status === "pending"
+  ).length;
 
-  const displayName = selectedGroup ? selectedGroup.name : "All Groups";
+  const requirementToAnalysisMap = useMemo(() => {
+    const map = new Map<string, string>();
+
+    const groupsToProcess = selectedGroup ? [selectedGroup] : analysisGroups;
+
+    groupsToProcess.forEach((group) => {
+      group.analyses?.forEach((analysis) => {
+        analysis.requirements?.forEach((req) => {
+          map.set(req.id, analysis.name);
+        });
+      });
+    });
+
+    return map;
+  }, [analysisGroups, selectedGroup]);
 
   // Don't render if no requirements
   if (aggregatedRequirements.length === 0) {
     return null;
   }
-
 
   return (
     <ModalContainer>
@@ -93,7 +116,11 @@ export const RequirementsModal: React.FC<RequirementsModalProps> = ({
           <RequirementsList>
             {aggregatedRequirements.length > 0 ? (
               aggregatedRequirements.map((req) => (
-                <RequirementCell key={req.id} requirement={req} />
+                <RequirementCell
+                  key={req.id}
+                  requirement={req}
+                  analysisName={requirementToAnalysisMap.get(req.id)} // NEW
+                />
               ))
             ) : (
               <EmptyState>No requirements defined</EmptyState>
@@ -115,7 +142,7 @@ const ModalContainer = styled.div`
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   z-index: 100;
-  width: 225px;
+  width: 250px;
   backdrop-filter: blur(10px);
   animation: fadeIn 0.3s ease;
 
