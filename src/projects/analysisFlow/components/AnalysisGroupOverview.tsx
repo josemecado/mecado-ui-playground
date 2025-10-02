@@ -118,24 +118,7 @@ export const AnalysisGroupsOverview: React.FC<AnalysisGroupsOverviewProps> = ({
           elementsSelectable={true}
           panOnDrag={true}
         >
-          <Controls>
-            <button
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-              style={{
-                background: "var(--bg-secondary)",
-                border: "1px solid var(--border-outline)",
-                borderRadius: "8px",
-                padding: "6px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-            </button>
-          </Controls>
+          <Controls />
 
           <Background
             variant={BackgroundVariant.Dots}

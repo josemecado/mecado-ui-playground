@@ -2,7 +2,7 @@
 import React from "react";
 import { Handle, NodeProps, Position } from "@xyflow/react";
 import styled, { keyframes, css } from "styled-components";
-import { Analysis } from "../../versionNodes/utils/VersionInterfaces";
+import { Analysis, AnalysisStep } from "../../versionNodes/utils/VersionInterfaces";
 import {
   LoaderCircle,
   CheckCircle,
@@ -16,11 +16,13 @@ import {
   FileText,
   Calculator,
   AudioLines,
-  Flame
+  Flame,
+  Cpu,
+  GitBranch,
+  Activity
 } from "lucide-react";
 
 export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
-  // We know this is safe because we control what data is passed
   const analysis = data as unknown as Analysis & { onAnimateNode?: () => void };
   const nodeStatus = analysis.status;
 
@@ -55,6 +57,19 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
     return <BarChart3 size={16} />;
   };
 
+  const getStepIcon = (stepId: string) => {
+    switch (stepId) {
+      case "preprocessing":
+        return <Cpu size={10} />;
+      case "fea-setup":
+        return <GitBranch size={10} />;
+      case "solving":
+        return <Activity size={10} />;
+      default:
+        return <Calculator size={10} />;
+    }
+  };
+
   const failedRequirements =
     analysis.requirements?.filter((r) => r.status === "fail") || [];
   const passedRequirements =
@@ -77,7 +92,7 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
         }}
       />
 
-      {/* Header - Similar to Group Node */}
+      {/* Header */}
       <NodeHeader $status={nodeStatus}>
         <HeaderLeft>
           <TypeIconWrapper>{getTypeIcon(analysis.type)}</TypeIconWrapper>
@@ -93,7 +108,7 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
 
       <Divider />
 
-      {/* Main Content - Changes based on status */}
+      {/* Main Content */}
       <NodeBody>
         {/* PENDING STATE */}
         {nodeStatus === "pending" && (
@@ -109,25 +124,83 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
           </PendingContent>
         )}
 
-        {/* {analysis.onAnimateNode && nodeStatus === "pending" && (
-          <TestButton onClick={analysis.onAnimateNode}>
-            Test Analysis Animation
-          </TestButton>
-        )} */}
-
-        {/* RUNNING STATE */}
+        {/* RUNNING STATE WITH STEPS */}
         {nodeStatus === "running" && (
           <RunningContent>
-            <ProgressSection>
-              <ProgressLabel>
-                <Calculator size={10}/>
-                Computing results...
-              </ProgressLabel>
-              <ProgressBar>
-                <ProgressFill $progress={analysis.progress || 0} />
-              </ProgressBar>
-              <ProgressText>{analysis.progress || 0}%</ProgressText>
-            </ProgressSection>
+            {analysis.steps && analysis.steps.length > 0 ? (
+              <SteppedProgressSection>
+                <CurrentStepLabel>
+                  <ActivityIndicator>
+                    <LoaderCircle size={10} className="spin" />
+                  </ActivityIndicator>
+                  {analysis.steps[analysis.currentStepIndex || 0]?.name || "Processing..."}
+                </CurrentStepLabel>
+                
+                <StepsFlow>
+                  {analysis.steps.map((step, index) => {
+                    const isCompleted = step.status === "completed";
+                    const isActive = step.status === "running";
+                    const isPending = step.status === "pending";
+                    const isLast = index === analysis.steps!.length - 1;
+                    
+                    return (
+                      <StepFlowItem key={step.id} $isLast={isLast}>
+                        <StepNode 
+                          $isCompleted={isCompleted}
+                          $isActive={isActive}
+                          $isPending={isPending}
+                        >
+                          {isCompleted ? (
+                            <CheckMark>✓</CheckMark>
+                          ) : isActive ? (
+                            <ActivityIndicator>
+                              <LoaderCircle size={8} className="spin" />
+                            </ActivityIndicator>
+                          ) : (
+                            <StepNumber>{index + 1}</StepNumber>
+                          )}
+                        </StepNode>
+                        
+                        <StepContent>
+                          <StepFlowLabel 
+                            $isCompleted={isCompleted}
+                            $isActive={isActive}
+                            $isPending={isPending}
+                          >
+                            {step.name}
+                          </StepFlowLabel>
+                          {isActive && step.progress !== undefined && (
+                            <MiniProgressBar>
+                              <MiniProgressFill $progress={step.progress} />
+                            </MiniProgressBar>
+                          )}
+                        </StepContent>
+                        
+                        {!isLast && (
+                          <StepConnector 
+                            $isCompleted={isCompleted}
+                            $isActive={index === (analysis.currentStepIndex || 0) - 1}
+                          />
+                        )}
+                      </StepFlowItem>
+                    );
+                  })}
+                </StepsFlow>
+              </SteppedProgressSection>
+            ) : (
+              // Fallback to simple progress if no steps defined
+              <ProgressSection>
+                <ProgressLabel>
+                  <Calculator size={10}/>
+                  Computing results...
+                </ProgressLabel>
+                <ProgressBar>
+                  <ProgressFill $progress={analysis.progress || 0} />
+                </ProgressBar>
+                <ProgressText>{analysis.progress || 0}%</ProgressText>
+              </ProgressSection>
+            )}
+            
             <RunningInfo>
               <InfoRow>
                 <InfoIcon>
@@ -156,6 +229,19 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
                 </MetricValue>
               </MetricCard>
             </MetricsGrid>
+            
+            {/* Show completed steps summary */}
+            {analysis.steps && (
+              <CompletedSteps>
+                {analysis.steps.map(step => (
+                  <CompletedStep key={step.id}>
+                    <CheckCircle size={8} />
+                    {step.name}
+                  </CompletedStep>
+                ))}
+              </CompletedSteps>
+            )}
+            
             {analysis.warnings && analysis.warnings.length > 0 && (
               <WarningBadge>
                 <AlertTriangle size={10} />
@@ -262,15 +348,17 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
   );
 };
 
+// Helper component for empty circle
+const Circle: React.FC<{ size: number }> = ({ size }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="10" />
+  </svg>
+);
+
 // Animations
 const pulse = keyframes`
   0%, 100% { opacity: 0.8; }
   50% { opacity: 1; }
-`;
-
-const glow = keyframes`
-  0%, 100% { box-shadow: 0 0 20px rgba(var(--accent-primary-rgb), 0.3); }
-  50% { box-shadow: 0 0 40px rgba(var(--accent-primary-rgb), 0.6); }
 `;
 
 const progressAnimation = keyframes`
@@ -278,12 +366,7 @@ const progressAnimation = keyframes`
   100% { transform: translateX(400%); }
 `;
 
-const pulseRing = keyframes`
-  0% { transform: scale(1); opacity: 1; }
-  100% { transform: scale(1.5); opacity: 0; }
-`;
-
-// Styled Components
+// Styled Components (keeping all existing ones and adding new ones for steps)
 const NodeContainer = styled.div<{
   $status: string;
   $isActive?: boolean;
@@ -315,19 +398,12 @@ const NodeContainer = styled.div<{
       }
     }};
   border-radius: 12px;
-  min-width: 220px;
-  max-width: 250px;
+  min-width: 260px;
+  max-width: 280px;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  animation: all 0.3s ease;
-
-  ${(props) =>
-    props.$isActive &&
-    css`
-      border-image-repeat
-    `}
 
   &:hover {
     transform: translateY(-2px);
@@ -348,19 +424,186 @@ const NodeContainer = styled.div<{
   }
 `;
 
-const ActivePulse = styled.div`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 100%;
-  height: 100%;
-  border-radius: 12px;
-  border: 2px solid var(--accent-primary);
-  animation: ${pulseRing} 2s ease-out infinite;
-  pointer-events: none;
+// New styled components for vertical step flow (matching AIStepFlowPanel style)
+const SteppedProgressSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 `;
 
+const CurrentStepLabel = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-primary);
+  padding: 6px 8px;
+  background: rgba(var(--accent-primary-rgb), 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(var(--accent-primary-rgb), 0.2);
+`;
+
+const StepsFlow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: relative;
+  padding: 4px 0;
+`;
+
+const StepFlowItem = styled.div<{ $isLast: boolean }>`
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  position: relative;
+  min-height: ${props => props.$isLast ? '20px' : '32px'};
+`;
+
+const StepNode = styled.div<{
+  $isCompleted: boolean;
+  $isActive: boolean;
+  $isPending: boolean;
+}>`
+  width: 14px;
+  height: 14px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 600;
+  flex-shrink: 0;
+  z-index: 2;
+  position: relative;
+  margin-top: 2px;
+  
+  background: ${props => {
+    if (props.$isCompleted) return 'var(--success)';
+    if (props.$isActive) return 'var(--accent-primary)';
+    return 'var(--bg-tertiary)';
+  }};
+  
+  color: ${props => {
+    if (props.$isCompleted || props.$isActive) return 'white';
+    return 'var(--text-muted)';
+  }};
+  
+  border: 1.5px solid ${props => {
+    if (props.$isCompleted) return 'var(--success)';
+    if (props.$isActive) return 'var(--accent-primary)';
+    return 'var(--border-outline)';
+  }};
+  
+  transition: all 0.3s ease;
+`;
+
+const ActivityIndicator = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  .spin {
+    animation: spin 1s linear infinite;
+  }
+`;
+
+const CheckMark = styled.div`
+  font-size: 8px;
+  font-weight: bold;
+  line-height: 1;
+`;
+
+const StepNumber = styled.div`
+  font-size: 8px;
+  font-weight: 600;
+  line-height: 1;
+`;
+
+const StepContent = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-top: 1px;
+`;
+
+const StepFlowLabel = styled.div<{
+  $isCompleted: boolean;
+  $isActive: boolean;
+  $isPending: boolean;
+}>`
+  font-size: 10px;
+  font-weight: ${props => props.$isActive ? '600' : '500'};
+  color: ${props => {
+    if (props.$isCompleted) return 'var(--text-primary)';
+    if (props.$isActive) return 'var(--accent-primary)';
+    return 'var(--text-muted)';
+  }};
+  line-height: 1.3;
+  transition: color 0.3s ease;
+`;
+
+const StepConnector = styled.div<{
+  $isCompleted: boolean;
+  $isActive: boolean;
+}>`
+  position: absolute;
+  left: 6px;
+  top: 18px;
+  width: 2px;
+  height: 14px;
+  background: ${props => {
+    if (props.$isCompleted) return 'var(--success)';
+    if (props.$isActive) return 'var(--accent-primary)';
+    return 'var(--border-outline)';
+  }};
+  transition: background 0.3s ease;
+  z-index: 1;
+`;
+
+const MiniProgressBar = styled.div`
+  height: 3px;
+  background: var(--bg-primary);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+  margin-right: 8px;
+`;
+
+const MiniProgressFill = styled.div<{ $progress: number }>`
+  height: 100%;
+  width: ${props => props.$progress}%;
+  background: var(--accent-primary);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 4px rgba(var(--accent-primary-rgb), 0.4);
+`;
+
+const CompletedSteps = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  background: rgba(var(--success-rgb), 0.05);
+  border-radius: 6px;
+  margin-top: 4px;
+`;
+
+const CompletedStep = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  color: var(--success);
+  font-weight: 500;
+  
+  svg {
+    flex-shrink: 0;
+  }
+`;
+
+// Keep all the existing styled components
 const NodeHeader = styled.div<{ $status: string }>`
   display: flex;
   justify-content: space-between;
@@ -448,7 +691,7 @@ const Divider = styled.div`
 
 const NodeBody = styled.div`
   padding: 12px;
-  min-height: 80px;
+  min-height: 100px;
 `;
 
 // Pending State
@@ -492,7 +735,7 @@ const StatusMessage = styled.div`
   border-radius: 6px;
 `;
 
-// Running State
+// Running State (keeping fallback components)
 const RunningContent = styled.div`
   display: flex;
   flex-direction: column;
@@ -800,28 +1043,4 @@ const RunningIndicator = styled.div`
   font-weight: 600;
   color: var(--accent-primary);
   flex: 1;
-`;
-
-// Add this styled component at the bottom with the others
-const TestButton = styled.button`
-  width: 100%;
-  padding: 8px;
-  margin-bottom: 8px;
-  background: var(--accent-primary);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
 `;

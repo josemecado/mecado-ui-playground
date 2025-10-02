@@ -161,7 +161,22 @@ export interface AnalysisGroup {
   requirements?: Requirement[]; // Group-level requirements
 }
 
-// NEW: Individual Analysis interface
+// Step definition for analysis progress
+export interface AnalysisStep {
+  id: string;
+  name: string;
+  status: "pending" | "running" | "completed";
+  progress?: number; // 0-100 for the current step
+}
+
+// Predefined analysis steps
+export const DEFAULT_ANALYSIS_STEPS: AnalysisStep[] = [
+  { id: "preprocessing", name: "Pre-processing", status: "pending" },
+  { id: "fea-setup", name: "FEA Setup", status: "pending" },
+  { id: "solving", name: "Solving", status: "pending" }
+];
+
+// UPDATE: Individual Analysis interface with steps support
 export interface Analysis {
   id: string;
   name: string;
@@ -171,8 +186,10 @@ export interface Analysis {
   metrics: Metric[];
   requirements?: Requirement[];
   
-  // Only if running
-  progress?: number; // 0-100
+  // Progress tracking - now with steps
+  progress?: number; // Overall 0-100, kept for backward compatibility
+  steps?: AnalysisStep[]; // NEW: Step-based progress tracking
+  currentStepIndex?: number; // NEW: Which step is currently active (0-based)
   
   // Only if failed
   errors?: string[];
