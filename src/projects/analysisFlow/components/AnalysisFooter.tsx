@@ -908,7 +908,7 @@ const ErrorStateTitle = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: red;
+  gap: 4px;
 `;
 
 const EmptyIcon = styled.div`

@@ -68,8 +68,6 @@ export const AnalysisGroupNode: React.FC<NodeProps> = ({ data }) => {
         }}
       />
       
-      {group.status === 'running' && <ActivePulse />}
-
       {/* Header */}
       <NodeHeader $status={group.status}>
         <HeaderLeft>

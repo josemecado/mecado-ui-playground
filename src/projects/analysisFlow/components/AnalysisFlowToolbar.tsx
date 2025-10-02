@@ -61,7 +61,6 @@ export const AnalysisToolbar: React.FC<AnalysisToolbarProps> = ({
           <BaseTabButton
             $active={activeTab === "all"}
             onClick={() => onTabChange("all")}
-            disabled={isRunning}
           >
             <TabLabel>Overview</TabLabel>
             <TabCount $active={activeTab === "all"}>
@@ -74,7 +73,6 @@ export const AnalysisToolbar: React.FC<AnalysisToolbarProps> = ({
               key={group.id}
               $active={activeTab === group.id}
               onClick={() => onTabChange(group.id)}
-              disabled={isRunning}
             >
               <TabLabel>{group.name}</TabLabel>
               <StatusIndicator 

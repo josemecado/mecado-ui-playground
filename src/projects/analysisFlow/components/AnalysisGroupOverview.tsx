@@ -22,6 +22,8 @@ import { Maximize2, Minimize2 } from "lucide-react";
 interface AnalysisGroupsOverviewProps {
   analysisGroups: AnalysisGroup[];
   onGroupSelect: (group: AnalysisGroup) => void;
+  currentGroupId?: string | null;
+  currentAnalysisId?: string | null;
 }
 
 const nodeTypes: NodeTypes = {

@@ -26,15 +26,16 @@ import {
   Analysis,
 } from "../../versionNodes/utils/VersionInterfaces";
 import { AnalysisIndividualNode } from "../components/AnalysisNode";
-import { useAnalysisAnimation } from "../hooks/useAnalysisAnimation";
 import { AnalysisDetailsFooter } from "../components/AnalysisFooter";
 import { RefreshCw, Maximize2, Minimize2 } from "lucide-react";
 
 interface AnalysisDetailFlowProps {
   analysisGroup: AnalysisGroup;
   onAnalysisClick?: (analysis: Analysis) => void;
-  onUpdateGroup: (updatedGroup: AnalysisGroup) => void; // NEW
+  onUpdateGroup: (updatedGroup: AnalysisGroup) => void;
   onAnimationComplete?: () => void;
+  isAnimating?: boolean; // NEW: Passed from parent
+  currentAnalysisId?: string | null; // NEW: Passed from parent
 }
 
 export interface AnalysisDetailFlowRef {
@@ -46,20 +47,24 @@ export interface AnalysisDetailFlowRef {
 const nodeTypes: NodeTypes = {
   analysis: AnalysisIndividualNode,
 };
-
 export const AnalysisDetailFlow = forwardRef<
   AnalysisDetailFlowRef,
   AnalysisDetailFlowProps
 >(
   (
-    { analysisGroup, onAnalysisClick, onUpdateGroup, onAnimationComplete },
+    {
+      analysisGroup,
+      onAnalysisClick,
+      onUpdateGroup,
+      onAnimationComplete,
+      isAnimating = false, // NEW
+      currentAnalysisId = null, // NEW
+    },
     ref
   ) => {
     const [isFullscreen, setIsFullscreen] = React.useState(false);
     const [selectedAnalysis, setSelectedAnalysis] =
       React.useState<Analysis | null>(null);
-
-    // Track previous analysis states to detect failures
     const prevAnalysesRef = useRef<Analysis[]>([]);
 
     // Detect when an analysis fails and auto-show footer
@@ -71,7 +76,6 @@ export const AnalysisDetailFlow = forwardRef<
       currentAnalyses.forEach((currentAnalysis, index) => {
         const prevAnalysis = prevAnalyses[index];
 
-        // If this analysis just transitioned to failed status
         if (
           prevAnalysis &&
           prevAnalysis.status !== "failed" &&
@@ -83,22 +87,8 @@ export const AnalysisDetailFlow = forwardRef<
         }
       });
 
-      // Update ref for next comparison
       prevAnalysesRef.current = [...currentAnalyses];
     }, [analysisGroup.analyses, onAnalysisClick]);
-
-    const {
-      isRunning,
-      currentAnalysisId,
-      startAnimation,
-      stopAnimation,
-      resetAnimation,
-      animateSingleAnalysis,
-    } = useAnalysisAnimation({
-      analysisGroup,
-      onUpdateGroup,
-      onAnimationComplete,
-    });
 
     // Generate nodes with the animation function
     const nodes: Node[] = useMemo(() => {
@@ -113,14 +103,11 @@ export const AnalysisDetailFlow = forwardRef<
           x: startX + (index * analysisSpacing),
           y: centerY
         },
-        data: {
-          ...analysis,
-          onAnimateNode: () => animateSingleAnalysis(analysis.id),
-        },
+        data: analysis,
       }));
-    }, [analysisGroup, animateSingleAnalysis]);
+    }, [analysisGroup]);
 
-    // Generate edges
+    // Generate edges - use passed currentAnalysisId
     const edges: Edge[] = useMemo(() => {
       const edgeList: Edge[] = [];
 
@@ -130,7 +117,6 @@ export const AnalysisDetailFlow = forwardRef<
           const prevNodeId = `${analysisGroup.id}-${prevAnalysis.id}`;
           const currentNodeId = `${analysisGroup.id}-${analysis.id}`;
 
-          // Determine edge styling based on completion
           const isCompleted =
             prevAnalysis.status === "completed" ||
             prevAnalysis.status === "failed";
@@ -158,26 +144,8 @@ export const AnalysisDetailFlow = forwardRef<
       });
 
       return edgeList;
-    }, [JSON.stringify(analysisGroup.analyses), currentAnalysisId]);
+    }, [analysisGroup.analyses, currentAnalysisId]);
 
-    const [flowNodes, , onNodesChange] = useNodesState(nodes);
-    const [flowEdges, , onEdgesChange] = useEdgesState(edges);
-
-    // Update flow nodes/edges when data changes
-    useEffect(() => {
-      // React Flow will handle updates automatically through props
-    }, [nodes, edges]);
-
-    // Expose methods to parent
-    useImperativeHandle(
-      ref,
-      () => ({
-        startAnimation,
-        stopAnimation,
-        resetAnimation,
-      }),
-      [startAnimation, stopAnimation, resetAnimation]
-    );
 
     const handleNodeClick = useCallback(
       (event: React.MouseEvent, node: Node) => {
@@ -207,18 +175,11 @@ export const AnalysisDetailFlow = forwardRef<
             maxZoom={2}
           >
             <StyledControls>
-              <ControlButton onClick={resetAnimation} title="Reset pipeline">
-                <RefreshCw size={16} />
-              </ControlButton>
               <ControlButton
                 onClick={() => setIsFullscreen(!isFullscreen)}
                 title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
               >
-                {isFullscreen ? (
-                  <Minimize2 size={16} />
-                ) : (
-                  <Maximize2 size={16} />
-                )}
+                {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
               </ControlButton>
             </StyledControls>
             <Background
@@ -230,7 +191,7 @@ export const AnalysisDetailFlow = forwardRef<
           </ReactFlow>
         </FlowWrapper>
 
-        {isRunning && (
+        {isAnimating && (
           <StatusOverlay>
             <StatusCard>
               <StatusPulse />
