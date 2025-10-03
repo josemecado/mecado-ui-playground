@@ -31,7 +31,7 @@ import { Maximize2, Minimize2, GitBranch } from "lucide-react";
 
 interface AnalysisDetailFlowProps {
   analysisGroup: AnalysisGroup;
-  allAnalysisGroups?: AnalysisGroup[]; // NEW: All groups to find shared analyses
+  allAnalysisGroups?: AnalysisGroup[];
   onAnalysisClick?: (analysis: Analysis) => void;
   onUpdateGroup: (updatedGroup: AnalysisGroup) => void;
   onAnimationComplete?: () => void;
@@ -69,6 +69,11 @@ export const AnalysisDetailFlow = forwardRef<
     const [selectedAnalysis, setSelectedAnalysis] =
       React.useState<Analysis | null>(null);
     const prevAnalysesRef = useRef<Analysis[]>([]);
+
+    // Use React Flow state management
+    // Use React Flow state management - PROPERLY TYPED
+    const [nodes, setNodes, onNodesChange] = useNodesState<Node<any>[]>([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
     // Detect when an analysis fails and auto-show footer
     useEffect(() => {
@@ -124,11 +129,35 @@ export const AnalysisDetailFlow = forwardRef<
       [analysisGroup, allAnalysisGroups]
     );
 
-    // Generate nodes including ghost nodes for shared analyses
-    const nodes: Node[] = useMemo(() => {
+    // Replace the existing useEffect with this one:
+
+    // Create a stable key that represents the actual state of analyses
+    const analysesStateKey = useMemo(() => {
+      return analysisGroup.analyses
+        .map(
+          (a) =>
+            `${a.id}-${a.status}-${a.sharedStepRunning}-${a.currentStepIndex}-${a.progress}`
+        )
+        .join("|");
+    }, [analysisGroup.analyses]);
+
+    // Update nodes whenever analysisGroup changes OR the analyses state changes
+    useEffect(() => {
       const analysisSpacing = 300;
       const startX = 200;
       const centerY = 250;
+
+      // console.log("🔄 NODES UPDATE EFFECT TRIGGERED");
+      // console.log("📊 Analyses state key:", analysesStateKey);
+
+      // // Log what we're about to render
+      // analysisGroup.analyses.forEach((a) => {
+      //   console.log(`  📦 Creating node for ${a.id}:`, {
+      //     status: a.status,
+      //     sharedStepRunning: a.sharedStepRunning,
+      //     currentStepIndex: a.currentStepIndex,
+      //   });
+      // });
 
       // Main group nodes
       const mainNodes: Node[] = analysisGroup.analyses.map(
@@ -139,11 +168,15 @@ export const AnalysisDetailFlow = forwardRef<
             x: startX + index * analysisSpacing,
             y: centerY,
           },
-          data: analysis,
+          data: {
+            ...analysis,
+            // Add a key that changes when sharedStepRunning changes
+            _updateKey: `${analysis.sharedStepRunning}-${analysis.currentStepIndex}`,
+          },
         })
       );
 
-      // If there's a currently running analysis, add ghost nodes for shared analyses
+      // Ghost nodes logic...
       if (currentAnalysisId && isAnimating) {
         const sharedAnalyses =
           findSharedAnalysesFromOtherGroups(currentAnalysisId);
@@ -153,18 +186,18 @@ export const AnalysisDetailFlow = forwardRef<
 
         if (currentAnalysisIndex !== -1 && sharedAnalyses.length > 0) {
           const currentNodeX = startX + currentAnalysisIndex * analysisSpacing;
-          const ghostNodeY = centerY + 180; // Below the main node
+          const ghostNodeY = centerY + 180;
 
           const ghostNodes: Node[] = sharedAnalyses.map((analysis, index) => ({
             id: `ghost-${analysis.id}`,
             type: "analysis",
             position: {
-              x: currentNodeX + (index - sharedAnalyses.length / 2 + 0.5) * 200, // Spread horizontally
+              x: currentNodeX + (index - sharedAnalyses.length / 2 + 0.5) * 200,
               y: ghostNodeY,
             },
             data: {
               ...analysis,
-              isGhostNode: true, // NEW: Flag for styling
+              isGhostNode: true,
             },
             style: {
               opacity: 0.6,
@@ -172,20 +205,22 @@ export const AnalysisDetailFlow = forwardRef<
             },
           }));
 
-          return [...mainNodes, ...ghostNodes];
+          setNodes([...mainNodes, ...ghostNodes]);
+          return;
         }
       }
 
-      return mainNodes;
+      setNodes(mainNodes);
     }, [
-      analysisGroup,
+      analysesStateKey, // Use the state key instead of analysisGroup
       currentAnalysisId,
       isAnimating,
       findSharedAnalysesFromOtherGroups,
+      setNodes,
     ]);
 
-    // Generate edges including connections to ghost nodes
-    const edges: Edge[] = useMemo(() => {
+    // Update edges whenever analysisGroup or animation state changes
+    useEffect(() => {
       const edgeList: Edge[] = [];
 
       // Main edges between analyses in the group
@@ -254,12 +289,13 @@ export const AnalysisDetailFlow = forwardRef<
         });
       }
 
-      return edgeList;
+      setEdges(edgeList);
     }, [
       analysisGroup.analyses,
       currentAnalysisId,
       isAnimating,
       findSharedAnalysesFromOtherGroups,
+      setEdges,
     ]);
 
     const handleNodeClick = useCallback(
@@ -279,6 +315,8 @@ export const AnalysisDetailFlow = forwardRef<
           <ReactFlow
             nodes={nodes}
             edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
             onNodeClick={handleNodeClick}
             nodeTypes={nodeTypes}
             fitView
@@ -356,6 +394,8 @@ export const AnalysisDetailFlow = forwardRef<
 );
 
 AnalysisDetailFlow.displayName = "AnalysisDetailFlow";
+
+// ... (rest of styled components remain the same)
 
 // Styled Components
 const DetailContainer = styled.div<{ $fullscreen: boolean }>`

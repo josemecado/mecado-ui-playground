@@ -304,18 +304,23 @@ export const useAnalysisAnimation = ({
               // FIXED: Set sharedStepRunning for ALL analyses in a shared step
               const isParticipatingInSharedStep = analysesToUpdate.length > 1;
 
+              console.log(`    ${isPrimary ? "👑" : "🔗"} ${aId}:`);
+              console.log(`       - status: ${newStatus}`);
               console.log(
-                `    ${
-                  isPrimary ? "👑" : "🔗"
-                } ${aId} - Status: ${newStatus} (${
-                  isPrimary ? "primary" : "shared participant"
-                }), sharedStepRunning: ${isParticipatingInSharedStep}`
+                `       - sharedStepRunning: ${isParticipatingInSharedStep}`
+              );
+              console.log(`       - currentStepIndex: ${stepIndex}`);
+              console.log(
+                `       - step[${stepIndex}].status: ${updatedSteps[stepIndex].status}`
+              );
+              console.log(
+                `       - step[${stepIndex}].progress: ${updatedSteps[stepIndex].progress}`
               );
 
               return {
                 ...a,
                 status: newStatus,
-                sharedStepRunning: isParticipatingInSharedStep, // TRUE for all shared step participants
+                sharedStepRunning: isParticipatingInSharedStep,
                 steps: updatedSteps,
                 currentStepIndex: stepIndex,
                 progress: Math.round((stepIndex / steps.length) * 100),
@@ -325,16 +330,49 @@ export const useAnalysisAnimation = ({
           }),
         };
 
+        // After each onUpdateGroup call, add verification logging
         if (gId) {
           allGroupsRef.current = allGroupsRef.current.map((g) =>
             g.id === gId ? runningStepGroup : g
           );
           onUpdateGroup(gId, runningStepGroup);
+
+          // VERIFY: Check what was actually stored
+          const verifyGroup = allGroupsRef.current.find((g) => g.id === gId);
+          const verifyAnalysis = verifyGroup?.analyses.find(
+            (a) => a.id === aId
+          );
+          console.log(`    🔍 VERIFY ${aId} in ref:`);
+          console.log(`       - ref.status: ${verifyAnalysis?.status}`);
+          console.log(
+            `       - ref.sharedStepRunning: ${verifyAnalysis?.sharedStepRunning}`
+          );
+          console.log(
+            `       - ref.currentStepIndex: ${verifyAnalysis?.currentStepIndex}`
+          );
         } else {
           currentGroupRef.current = runningStepGroup;
           onUpdateGroup(runningStepGroup);
+
+          // VERIFY: Check what was actually stored
+          const verifyAnalysis = currentGroupRef.current?.analyses.find(
+            (a) => a.id === aId
+          );
+          console.log(`    🔍 VERIFY ${aId} in ref:`);
+          console.log(`       - ref.status: ${verifyAnalysis?.status}`);
+          console.log(
+            `       - ref.sharedStepRunning: ${verifyAnalysis?.sharedStepRunning}`
+          );
+          console.log(
+            `       - ref.currentStepIndex: ${verifyAnalysis?.currentStepIndex}`
+          );
         }
+
+        // Verify the update
+        console.log(`    ✅ Update applied for ${aId}`);
       });
+
+      console.log(`  ⏸️  Starting progress animation...`);
 
       // Animate step progress
       const stepProgressInterval = setInterval(() => {
@@ -411,7 +449,7 @@ export const useAnalysisAnimation = ({
             onUpdateGroup(progressGroup);
           }
         });
-        // In animateStep function, around line 407-487
+
         if (currentProgress >= 100) {
           console.log(`  ✅ Step ${stepIndex} completed - Finalizing...`);
 
@@ -447,23 +485,27 @@ export const useAnalysisAnimation = ({
 
                     const isPrimary = aId === analysisId;
 
-                    // FIXED LOGIC:
-                    // - Primary stays "running" through all steps
-                    // - Shared analyses also stay "running" during shared step execution
-                    // - After shared step completes, shared analyses go to special "pending" state
-                    //   BUT they keep their completed steps visible via sharedStepsCompleted
                     let newStatus: Analysis["status"];
                     if (isPrimary) {
                       newStatus = "running"; // Primary always stays running
                     } else {
-                      // Shared analysis: mark as "pending" but with completed steps tracked
                       newStatus = "pending";
                     }
 
                     console.log(
-                      `    ${
-                        isPrimary ? "👑" : "🔗"
-                      } ${aId} - Finalized: status=${newStatus}, sharedStepRunning=false`
+                      `    ${isPrimary ? "👑" : "🔗"} ${aId} FINALIZED:`
+                    );
+                    console.log(`       - status: ${newStatus}`);
+                    console.log(`       - sharedStepRunning: false`);
+                    console.log(`       - currentStepIndex: undefined`);
+                    console.log(
+                      `       - sharedStepsCompleted: ${
+                        isPrimary
+                          ? (a.sharedStepsCompleted || []).join(",") || "none"
+                          : [...(a.sharedStepsCompleted || []), stepIndex].join(
+                              ","
+                            )
+                      }`
                     );
 
                     return {
@@ -472,7 +514,6 @@ export const useAnalysisAnimation = ({
                       currentStepIndex: undefined,
                       status: newStatus,
                       sharedStepRunning: false,
-                      // Track completed shared steps for non-primary analyses
                       sharedStepsCompleted: isPrimary
                         ? a.sharedStepsCompleted
                         : [...(a.sharedStepsCompleted || []), stepIndex],
@@ -517,7 +558,6 @@ export const useAnalysisAnimation = ({
     });
   };
 
-  // Add logging to animateSingleAnalysis
   const animateSingleAnalysis = useCallback(
     (analysisId: string, groupId?: string): Promise<boolean> => {
       return new Promise(async (resolve) => {
@@ -548,11 +588,52 @@ export const useAnalysisAnimation = ({
           return;
         }
 
-        console.log(`  📝 Analysis: ${analysis.name}`);
-        console.log(`  🔗 Shared steps: ${analysis.sharedSteps?.length || 0}`);
+        // IMPORTANT: Reset the analysis state before starting
+        // This ensures we're not trying to animate an already-completed analysis
+        const resetGroup = {
+          ...targetGroup,
+          analyses: targetGroup.analyses.map((a) =>
+            a.id === analysisId
+              ? {
+                  ...a,
+                  status: "pending" as const, // Reset to pending
+                  progress: 0,
+                  steps: undefined,
+                  currentStepIndex: undefined,
+                  sharedStepRunning: false,
+                  sharedStepsCompleted: [],
+                  metrics: [],
+                  errors: undefined,
+                  warnings: undefined,
+                }
+              : a
+          ),
+        };
+
+        // Apply the reset immediately
+        if (groupId) {
+          allGroupsRef.current = allGroupsRef.current.map((g) =>
+            g.id === groupId ? resetGroup : g
+          );
+          onUpdateGroup(groupId, resetGroup);
+        } else {
+          currentGroupRef.current = resetGroup;
+          onUpdateGroup(resetGroup);
+        }
+
+        // Now get the reset analysis
+        const resetAnalysis = resetGroup.analyses.find(
+          (a) => a.id === analysisId
+        )!;
+
+        console.log(`  📝 Analysis: ${resetAnalysis.name}`);
+        console.log(`  📊 Initial status: ${resetAnalysis.status}`);
+        console.log(
+          `  🔗 Shared steps: ${resetAnalysis.sharedSteps?.length || 0}`
+        );
         console.log(
           `  ✅ Completed shared steps: ${
-            analysis.sharedStepsCompleted?.length || 0
+            resetAnalysis.sharedStepsCompleted?.length || 0
           }`
         );
 
@@ -563,22 +644,29 @@ export const useAnalysisAnimation = ({
         const initialSteps = createFreshSteps();
         console.log(`  📋 Total steps to run: ${initialSteps.length}`);
 
-        const runningGroup = {
-          ...targetGroup,
-          status: "running" as const,
-          analyses: targetGroup.analyses.map((a) =>
-            a.id === analysisId
-              ? {
-                  ...a,
-                  status: "running" as const,
-                  progress: 0,
-                  steps: initialSteps,
-                  currentStepIndex: 0,
-                }
-              : a
-          ),
-        };
+        // Check if the first step is a shared step
+        const hasSharedFirstStep = resetAnalysis.sharedSteps?.some(
+          (s) => s.stepIndex === 0
+        );
 
+        // NOW set it to running
+const runningGroup = {
+  ...resetGroup,
+  status: "running" as const,
+  analyses: resetGroup.analyses.map((a) =>
+    a.id === analysisId
+      ? {
+          ...a,
+          status: "running" as const,
+          progress: 0,
+          steps: initialSteps,
+          currentStepIndex: 0,
+          // Set sharedStepRunning if the first step is shared
+          sharedStepRunning: hasSharedFirstStep || false,
+        }
+      : a
+  ),
+};
         if (groupId) {
           allGroupsRef.current = allGroupsRef.current.map((g) =>
             g.id === groupId ? runningGroup : g
@@ -694,12 +782,42 @@ export const useAnalysisAnimation = ({
   // Sequential animation for single group
   const runSequentialAnimation = useCallback(async () => {
     isStoppedRef.current = false;
-    completedSharedStepsRef.current.clear(); // Clear shared steps tracking
+    completedSharedStepsRef.current.clear();
 
     const currentGroup = currentGroupRef.current;
     if (!currentGroup) return;
 
-    for (let i = 0; i < currentGroup.analyses.length; i++) {
+    // Reset all analyses in the group before starting
+    const resetGroup: AnalysisGroup = {
+      ...currentGroup,
+      status: "pending",
+      analyses: currentGroup.analyses.map((a) => ({
+        ...a,
+        status: "pending" as const,
+        progress: 0,
+        steps: undefined,
+        currentStepIndex: undefined,
+        sharedStepRunning: false,
+        sharedStepsCompleted: [],
+        metrics: [],
+        errors: undefined,
+        warnings: undefined,
+        requirements: a.requirements?.map((r) => ({
+          ...r,
+          currentValue: undefined,
+          status: "pending" as const,
+        })),
+      })),
+    };
+
+    currentGroupRef.current = resetGroup;
+    onUpdateGroup(resetGroup);
+
+    // Small delay to let the reset propagate
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    // Now proceed with animation
+    for (let i = 0; i < resetGroup.analyses.length; i++) {
       if (isStoppedRef.current) break;
 
       currentIndexRef.current = i;

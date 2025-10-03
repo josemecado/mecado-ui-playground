@@ -1,10 +1,8 @@
 // hooks/useAnalysisData.ts
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import {
   AnalysisGroup,
-  Analysis,
   Requirement,
-  Metric,
 } from "../versionNodes/utils/VersionInterfaces";
 import { createMockAnalysisGroups } from "./utils/mockAnalysisData";
 
@@ -20,7 +18,7 @@ interface UseAnalysisDataReturn {
   requirements: Requirement[];
   isLoading: boolean;
   error: string | null;
-  updateAnalysisGroup: (groupId: string, updatedGroup: AnalysisGroup) => void;
+  // REMOVED: updateAnalysisGroup
 }
 
 export const useAnalysisData = ({
@@ -34,22 +32,18 @@ export const useAnalysisData = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load analysis data
+  // Load analysis data - READ ONLY
   useEffect(() => {
     if (useMockData) {
-      // Import from centralized mock data
       const mockGroups = createMockAnalysisGroups();
       setAnalysisGroups(mockGroups);
 
-      // Aggregate ALL requirements from all analyses across all groups
       const allRequirements = mockGroups.flatMap((g) =>
         g.analyses.flatMap((a) => a.requirements || [])
       );
       setRequirements(allRequirements);
     } else {
-      // Real data fetching logic would go here
       setIsLoading(true);
-      // TODO: Fetch real data from API
       setTimeout(() => {
         setAnalysisGroups([]);
         setRequirements([]);
@@ -58,32 +52,11 @@ export const useAnalysisData = ({
     }
   }, [projectId, versionId, refreshKey, useMockData]);
 
-  const updateAnalysisGroup = useCallback(
-    (groupId: string, updatedGroup: AnalysisGroup) => {
-      setAnalysisGroups((prev) => {
-        const updated = prev.map((g) => (g.id === groupId ? updatedGroup : g));
-
-        // Update aggregated requirements using the UPDATED groups
-        const allRequirements = updated.flatMap((g) =>
-          g.analyses.flatMap((a) => a.requirements || [])
-        );
-        setRequirements(allRequirements);
-
-        return updated;
-      });
-    },
-    []
-  );
-
   return {
     analysisGroups,
     requirements,
     isLoading,
     error,
-    updateAnalysisGroup,
+    // No updateAnalysisGroup - read only!
   };
-};
-
-export const clearAnalysisDataCache = () => {
-  // TODO: Implement cache clearing if needed
 };

@@ -3,7 +3,11 @@ import React, { useState, useEffect, useCallback } from "react";
 import { VersionMiniSelector } from "./components/VersionMiniSelector";
 import VersionFlowVisualization from "./views/VersionFlow";
 import { ProjectAnalysisFlow } from "../analysisFlow/ProjectAnalysisFlow";
-import { ProjectVersion, Analysis, AnalysisGroup } from "./utils/VersionInterfaces";
+import {
+  ProjectVersion,
+  Analysis,
+  AnalysisGroup,
+} from "./utils/VersionInterfaces";
 import { Equation } from "../../reusable-components/models/vulcanModels";
 import { AddVersionModal } from "./components/AddVersionModal";
 import { useProjectVersions } from "./bootUpHooks/useProjectVersions";
@@ -48,7 +52,9 @@ export const VersionNodeBridge: React.FC<GraphBridgeProps> = ({
 }) => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedAnalysis, setSelectedAnalysis] = useState<Analysis | null>(null);
+  const [selectedAnalysis, setSelectedAnalysis] = useState<Analysis | null>(
+    null
+  );
 
   // Use the refactored hook for version data
   const { versions } = useProjectVersions({
@@ -62,17 +68,46 @@ export const VersionNodeBridge: React.FC<GraphBridgeProps> = ({
   });
 
   // Calculate active version ID
-  const activeVersionId = versions.find(v => v.title === `Version ${projectVersion}`)?.id 
-    || versions[versions.length - 1]?.id 
-    || "";
+  const activeVersionId =
+    versions.find((v) => v.title === `Version ${projectVersion}`)?.id ||
+    versions[versions.length - 1]?.id ||
+    "";
 
-  // Use analysis data hook for analysis mode
-  const analysisData = useAnalysisData({
+  // Use analysis data hook for INITIAL data only
+  const initialData = useAnalysisData({
     projectId,
     versionId: activeVersionId,
     refreshKey,
-    useMockData: true, // Always use mock data for now
+    useMockData: true,
   });
+
+  // Manage the actual state here so animation can update it
+  const [analysisGroups, setAnalysisGroups] = useState<AnalysisGroup[]>([]);
+  const [requirements, setRequirements] = useState<Requirement[]>([]);
+
+  // Initialize state from initial data
+  useEffect(() => {
+    setAnalysisGroups(initialData.analysisGroups);
+    setRequirements(initialData.requirements);
+  }, [initialData.analysisGroups, initialData.requirements]);
+
+  // Single update function that ONLY the animation hook will use
+  const handleUpdateGroup = useCallback(
+    (groupId: string, updatedGroup: AnalysisGroup) => {
+      setAnalysisGroups((prev) => {
+        const updated = prev.map((g) => (g.id === groupId ? updatedGroup : g));
+
+        // Update requirements if needed
+        const allRequirements = updated.flatMap((g) =>
+          g.analyses.flatMap((a) => a.requirements || [])
+        );
+        setRequirements(allRequirements);
+
+        return updated;
+      });
+    },
+    []
+  );
 
   useEffect(() => {
     if (refreshToken !== undefined) {
@@ -95,7 +130,7 @@ export const VersionNodeBridge: React.FC<GraphBridgeProps> = ({
   const handleVersionChange = useCallback(
     (id: string) => {
       // Extract version number from id (e.g., "v1" -> 1)
-      const versionNum = parseInt(id.replace(/[^0-9]/g, '')) || 1;
+      const versionNum = parseInt(id.replace(/[^0-9]/g, "")) || 1;
       onVersionChange(versionNum);
     },
     [onVersionChange]
@@ -165,12 +200,12 @@ export const VersionNodeBridge: React.FC<GraphBridgeProps> = ({
   if (mode === "analysis") {
     return (
       <ProjectAnalysisFlow
-        analysisGroups={analysisData.analysisGroups}
-        requirements={analysisData.requirements}
+        analysisGroups={analysisGroups} // Use state, not initialData
+        requirements={requirements} // Use state, not initialData
         activeVersionId={activeVersionId}
         onAnalysisClick={handleAnalysisClick}
         onRequirementsClick={handleRequirementsClick}
-        onUpdateGroup={analysisData.updateAnalysisGroup}
+        onUpdateGroup={handleUpdateGroup} // Only animation will call this
       />
     );
   }

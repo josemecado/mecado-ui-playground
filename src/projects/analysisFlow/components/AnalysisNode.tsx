@@ -28,8 +28,14 @@ import {
 export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
   const analysis = data as unknown as Analysis & {
     onAnimateNode?: () => void;
-    isGhostNode?: boolean; // NEW
+    isGhostNode?: boolean;
   };
+  
+  console.log(`🎨 RENDER ${analysis.id}:`, {
+    status: analysis.status,
+    sharedStepRunning: analysis.sharedStepRunning,
+    currentStepIndex: analysis.currentStepIndex,
+  });
   const nodeStatus = analysis.status;
   const isSharedStepRunning = analysis.sharedStepRunning || false;
   const isGhost = analysis.isGhostNode || false; // NEW
@@ -77,6 +83,7 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
     <NodeContainer
       $status={nodeStatus}
       $isActive={analysis.status === "running"}
+      $isSharedStepRunning={isSharedStepRunning} // ← ADD THIS LINE
       $isGhost={isGhost}
     >
       <Handle
