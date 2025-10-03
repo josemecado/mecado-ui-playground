@@ -1,5 +1,5 @@
 // views/ProjectAnalysisFlow.tsx
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback } from "react";
 import styled from "styled-components";
 import {
   AnalysisGroup,
@@ -38,7 +38,7 @@ export const ProjectAnalysisFlow: React.FC<ProjectAnalysisFlowProps> = ({
 
   const [showRequirements, setShowRequirements] = useState(true);
 
-  // Single animation instance at parent level - handles both overview and detail
+  // Single animation instance at parent level - handles ALL animations
   const animation = useAnalysisAnimation({
     analysisGroup: selectedGroup || undefined,
     analysisGroups: analysisGroups,
@@ -56,38 +56,38 @@ export const ProjectAnalysisFlow: React.FC<ProjectAnalysisFlowProps> = ({
 
   const activeTab = selectedGroup ? selectedGroup.id : "all";
 
-  const handleTabChange = useCallback(
-    (tabId: string | "all") => {
-      // Allow tab changes even during animation
-      if (tabId === "all") {
-        setSelectedGroupId(null);
-      } else {
-        setSelectedGroupId(tabId);
-      }
-    },
-    [] // No dependencies on isRunning
-  );
+  const handleTabChange = useCallback((tabId: string | "all") => {
+    if (tabId === "all") {
+      setSelectedGroupId(null);
+    } else {
+      setSelectedGroupId(tabId);
+    }
+  }, []);
 
   const handleGroupSelect = useCallback((group: AnalysisGroup) => {
-    // Allow group selection even during animation
     setSelectedGroupId(group.id);
   }, []);
 
   const handleToolbarRun = useCallback(() => {
     if (animation.isRunning) {
-      // Stop animation
       animation.stopAnimation();
     } else {
-      // Start animation based on current view
       if (selectedGroup) {
-        // Run single group
         animation.startAnimation();
       } else {
-        // Run all groups
         animation.runAllGroups();
       }
     }
   }, [selectedGroup, animation]);
+
+  const handleReset = useCallback(() => {
+    animation.resetAnimation();
+  }, [animation]);
+
+  // Check if animation is running for the currently selected group
+  const isCurrentGroupAnimating =
+    animation.isRunning &&
+    (selectedGroup ? animation.currentGroupId === selectedGroup.id : true);
 
   return (
     <MainContainer>
@@ -98,6 +98,7 @@ export const ProjectAnalysisFlow: React.FC<ProjectAnalysisFlowProps> = ({
         onTabChange={handleTabChange}
         onRequirementsClick={() => setShowRequirements(!showRequirements)}
         onRunAnalyses={handleToolbarRun}
+        onResetAnalyses={handleReset}
         isRunning={animation.isRunning}
       />
 
@@ -111,19 +112,13 @@ export const ProjectAnalysisFlow: React.FC<ProjectAnalysisFlowProps> = ({
 
         {selectedGroup ? (
           <AnalysisDetailFlow
-            key={selectedGroup.id}
+            key={`${selectedGroup.id}-detail`}
             analysisGroup={selectedGroup}
-            allAnalysisGroups={analysisGroups} // NEW: Pass all groups
+            allAnalysisGroups={analysisGroups}
             onAnalysisClick={onAnalysisClick}
-            onUpdateGroup={(updatedGroup) =>
-              onUpdateGroup(updatedGroup.id, updatedGroup)
-            }
-            onAnimationComplete={() => console.log("Detail flow complete")}
-            isAnimating={
-              animation.isRunning &&
-              animation.currentGroupId === selectedGroup.id
-            }
+            isAnimating={isCurrentGroupAnimating}
             currentAnalysisId={animation.currentAnalysisId}
+            currentStepInfo={animation.currentStepInfo} // NEW
           />
         ) : (
           <AnalysisGroupsOverview

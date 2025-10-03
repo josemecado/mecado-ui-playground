@@ -208,6 +208,17 @@ export interface SharedStepConfig {
   sharedStepId?: string; // Optional unique ID for the shared step across all analyses
 }
 
+export interface CurrentStepInfo {
+  primaryAnalysisId: string;
+  groupId: string;
+  stepIndex: number;
+  stepName: string;
+  isSharedStep: boolean;
+  sharedWithAnalysisIds: string[]; // Secondary analyses sharing this step
+  progress: number;
+  status: 'running' | 'completed' | 'pending';
+}
+
 // Utility type for metric value operations
 export type MetricValueOperation = "maximum" | "minimum" | "average" | "sum";
 

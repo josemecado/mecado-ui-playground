@@ -1,12 +1,5 @@
 // views/AnalysisDetailFlow.tsx
-import React, {
-  useMemo,
-  useEffect,
-  useCallback,
-  useImperativeHandle,
-  forwardRef,
-  useRef,
-} from "react";
+import React, { useMemo, useEffect, useCallback, useRef } from "react";
 import {
   ReactFlow,
   Node,
@@ -28,376 +21,337 @@ import {
 import { AnalysisIndividualNode } from "../components/AnalysisNode";
 import { AnalysisDetailsFooter } from "../components/AnalysisFooter";
 import { Maximize2, Minimize2, GitBranch } from "lucide-react";
+import { CurrentStepInfo } from "../../versionNodes/utils/VersionInterfaces";
 
 interface AnalysisDetailFlowProps {
   analysisGroup: AnalysisGroup;
   allAnalysisGroups?: AnalysisGroup[];
   onAnalysisClick?: (analysis: Analysis) => void;
-  onUpdateGroup: (updatedGroup: AnalysisGroup) => void;
-  onAnimationComplete?: () => void;
   isAnimating?: boolean;
   currentAnalysisId?: string | null;
-}
-
-export interface AnalysisDetailFlowRef {
-  startAnimation: () => void;
-  stopAnimation: () => void;
-  resetAnimation: () => void;
+  currentStepInfo?: CurrentStepInfo | null; // NEW
 }
 
 const nodeTypes: NodeTypes = {
   analysis: AnalysisIndividualNode,
 };
 
-export const AnalysisDetailFlow = forwardRef<
-  AnalysisDetailFlowRef,
-  AnalysisDetailFlowProps
->(
-  (
-    {
-      analysisGroup,
-      allAnalysisGroups = [],
-      onAnalysisClick,
-      onUpdateGroup,
-      onAnimationComplete,
-      isAnimating = false,
-      currentAnalysisId = null,
-    },
-    ref
-  ) => {
-    const [isFullscreen, setIsFullscreen] = React.useState(false);
-    const [selectedAnalysis, setSelectedAnalysis] =
-      React.useState<Analysis | null>(null);
-    const prevAnalysesRef = useRef<Analysis[]>([]);
+// REMOVED forwardRef - no longer needed since we don't control animation from here
+export const AnalysisDetailFlow: React.FC<AnalysisDetailFlowProps> = ({
+  analysisGroup,
+  allAnalysisGroups = [],
+  onAnalysisClick,
+  isAnimating = false,
+  currentAnalysisId = null,
+  currentStepInfo,
+}) => {
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
+  const [selectedAnalysis, setSelectedAnalysis] =
+    React.useState<Analysis | null>(null);
+  const prevAnalysesRef = useRef<Analysis[]>([]);
 
-    // Use React Flow state management
-    // Use React Flow state management - PROPERLY TYPED
-    const [nodes, setNodes, onNodesChange] = useNodesState<Node<any>[]>([]);
-    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node<any>[]>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-    // Detect when an analysis fails and auto-show footer
-    useEffect(() => {
-      const prevAnalyses = prevAnalysesRef.current;
-      const currentAnalyses = analysisGroup.analyses;
+  // Detect when an analysis fails and auto-show footer
+  useEffect(() => {
+    const prevAnalyses = prevAnalysesRef.current;
+    const currentAnalyses = analysisGroup.analyses;
 
-      currentAnalyses.forEach((currentAnalysis, index) => {
-        const prevAnalysis = prevAnalyses[index];
+    currentAnalyses.forEach((currentAnalysis, index) => {
+      const prevAnalysis = prevAnalyses[index];
 
-        if (
-          prevAnalysis &&
-          prevAnalysis.status !== "failed" &&
-          currentAnalysis.status === "failed"
-        ) {
-          console.log(`Analysis failed: ${currentAnalysis.name}`);
-          setSelectedAnalysis(currentAnalysis);
-          onAnalysisClick?.(currentAnalysis);
-        }
+      if (
+        prevAnalysis &&
+        prevAnalysis.status !== "failed" &&
+        currentAnalysis.status === "failed"
+      ) {
+        console.log(`Analysis failed: ${currentAnalysis.name}`);
+        setSelectedAnalysis(currentAnalysis);
+        onAnalysisClick?.(currentAnalysis);
+      }
+    });
+
+    prevAnalysesRef.current = [...currentAnalyses];
+  }, [analysisGroup.analyses, onAnalysisClick]);
+
+  // Helper: Find analyses from OTHER groups that share steps with the current analysis
+  const findSharedAnalysesFromOtherGroups = useCallback(
+    (currentAnalysisId: string): Analysis[] => {
+      const currentAnalysis = analysisGroup.analyses.find(
+        (a) => a.id === currentAnalysisId
+      );
+      if (!currentAnalysis?.sharedSteps) return [];
+
+      const sharedAnalyses: Analysis[] = [];
+
+      // Get all shared analysis IDs from current analysis
+      const sharedAnalysisIds = new Set<string>();
+      currentAnalysis.sharedSteps.forEach((config) => {
+        config.sharedWithAnalyses.forEach((id) => sharedAnalysisIds.add(id));
       });
 
-      prevAnalysesRef.current = [...currentAnalyses];
-    }, [analysisGroup.analyses, onAnalysisClick]);
+      // Find these analyses in OTHER groups
+      allAnalysisGroups.forEach((group) => {
+        if (group.id === analysisGroup.id) return; // Skip current group
 
-    // Helper: Find analyses from OTHER groups that share steps with the current analysis
-    const findSharedAnalysesFromOtherGroups = useCallback(
-      (currentAnalysisId: string): Analysis[] => {
-        const currentAnalysis = analysisGroup.analyses.find(
-          (a) => a.id === currentAnalysisId
-        );
-        if (!currentAnalysis?.sharedSteps) return [];
-
-        const sharedAnalyses: Analysis[] = [];
-
-        // Get all shared analysis IDs from current analysis
-        const sharedAnalysisIds = new Set<string>();
-        currentAnalysis.sharedSteps.forEach((config) => {
-          config.sharedWithAnalyses.forEach((id) => sharedAnalysisIds.add(id));
+        group.analyses.forEach((analysis) => {
+          if (sharedAnalysisIds.has(analysis.id)) {
+            sharedAnalyses.push(analysis);
+          }
         });
+      });
 
-        // Find these analyses in OTHER groups
-        allAnalysisGroups.forEach((group) => {
-          if (group.id === analysisGroup.id) return; // Skip current group
+      return sharedAnalyses;
+    },
+    [analysisGroup, allAnalysisGroups]
+  );
 
-          group.analyses.forEach((analysis) => {
-            if (sharedAnalysisIds.has(analysis.id)) {
-              sharedAnalyses.push(analysis);
-            }
-          });
-        });
+  // Create a stable key that represents the actual state of analyses
+  const analysesStateKey = useMemo(() => {
+    return analysisGroup.analyses
+      .map(
+        (a) =>
+          `${a.id}-${a.status}-${a.sharedStepRunning}-${a.currentStepIndex}-${a.progress}`
+      )
+      .join("|");
+  }, [analysisGroup.analyses]);
 
-        return sharedAnalyses;
+  // Update nodes whenever analysisGroup changes OR the analyses state changes
+  useEffect(() => {
+    const analysisSpacing = 300;
+    const startX = 200;
+    const centerY = 250;
+
+    // Main group nodes
+    const mainNodes: Node[] = analysisGroup.analyses.map((analysis, index) => ({
+      id: `${analysisGroup.id}-${analysis.id}`,
+      type: "analysis",
+      position: {
+        x: startX + index * analysisSpacing,
+        y: centerY,
       },
-      [analysisGroup, allAnalysisGroups]
-    );
+      data: {
+        ...analysis,
+        currentStepInfo, // Pass it down
+        _updateKey: `${analysis.id}-${currentStepInfo?.stepIndex}-${currentStepInfo?.progress}`,
+      },
+    }));
 
-    // Replace the existing useEffect with this one:
+    // Ghost nodes logic...
+    if (currentAnalysisId && isAnimating) {
+      const sharedAnalyses =
+        findSharedAnalysesFromOtherGroups(currentAnalysisId);
+      const currentAnalysisIndex = analysisGroup.analyses.findIndex(
+        (a) => a.id === currentAnalysisId
+      );
 
-    // Create a stable key that represents the actual state of analyses
-    const analysesStateKey = useMemo(() => {
-      return analysisGroup.analyses
-        .map(
-          (a) =>
-            `${a.id}-${a.status}-${a.sharedStepRunning}-${a.currentStepIndex}-${a.progress}`
-        )
-        .join("|");
-    }, [analysisGroup.analyses]);
+      if (currentAnalysisIndex !== -1 && sharedAnalyses.length > 0) {
+        const currentNodeX = startX + currentAnalysisIndex * analysisSpacing;
+        const ghostNodeY = centerY + 180;
 
-    // Update nodes whenever analysisGroup changes OR the analyses state changes
-    useEffect(() => {
-      const analysisSpacing = 300;
-      const startX = 200;
-      const centerY = 250;
-
-      // console.log("🔄 NODES UPDATE EFFECT TRIGGERED");
-      // console.log("📊 Analyses state key:", analysesStateKey);
-
-      // // Log what we're about to render
-      // analysisGroup.analyses.forEach((a) => {
-      //   console.log(`  📦 Creating node for ${a.id}:`, {
-      //     status: a.status,
-      //     sharedStepRunning: a.sharedStepRunning,
-      //     currentStepIndex: a.currentStepIndex,
-      //   });
-      // });
-
-      // Main group nodes
-      const mainNodes: Node[] = analysisGroup.analyses.map(
-        (analysis, index) => ({
-          id: `${analysisGroup.id}-${analysis.id}`,
+        const ghostNodes: Node[] = sharedAnalyses.map((analysis, index) => ({
+          id: `ghost-${analysis.id}`,
           type: "analysis",
           position: {
-            x: startX + index * analysisSpacing,
-            y: centerY,
+            x: currentNodeX + (index - sharedAnalyses.length / 2 + 0.5) * 200,
+            y: ghostNodeY,
           },
           data: {
             ...analysis,
-            // Add a key that changes when sharedStepRunning changes
-            _updateKey: `${analysis.sharedStepRunning}-${analysis.currentStepIndex}`,
+            isGhostNode: true,
           },
-        })
-      );
+          style: {
+            opacity: 0.6,
+            pointerEvents: "none" as const,
+          },
+        }));
 
-      // Ghost nodes logic...
-      if (currentAnalysisId && isAnimating) {
-        const sharedAnalyses =
-          findSharedAnalysesFromOtherGroups(currentAnalysisId);
-        const currentAnalysisIndex = analysisGroup.analyses.findIndex(
-          (a) => a.id === currentAnalysisId
-        );
-
-        if (currentAnalysisIndex !== -1 && sharedAnalyses.length > 0) {
-          const currentNodeX = startX + currentAnalysisIndex * analysisSpacing;
-          const ghostNodeY = centerY + 180;
-
-          const ghostNodes: Node[] = sharedAnalyses.map((analysis, index) => ({
-            id: `ghost-${analysis.id}`,
-            type: "analysis",
-            position: {
-              x: currentNodeX + (index - sharedAnalyses.length / 2 + 0.5) * 200,
-              y: ghostNodeY,
-            },
-            data: {
-              ...analysis,
-              isGhostNode: true,
-            },
-            style: {
-              opacity: 0.6,
-              pointerEvents: "none" as const,
-            },
-          }));
-
-          setNodes([...mainNodes, ...ghostNodes]);
-          return;
-        }
+        setNodes([...mainNodes, ...ghostNodes]);
+        return;
       }
+    }
 
-      setNodes(mainNodes);
-    }, [
-      analysesStateKey, // Use the state key instead of analysisGroup
-      currentAnalysisId,
-      isAnimating,
-      findSharedAnalysesFromOtherGroups,
-      setNodes,
-    ]);
+    setNodes(mainNodes);
+  }, [
+    analysesStateKey,
+    currentAnalysisId,
+    isAnimating,
+    findSharedAnalysesFromOtherGroups,
+    setNodes,
+    analysisGroup.id,
+  ]);
 
-    // Update edges whenever analysisGroup or animation state changes
-    useEffect(() => {
-      const edgeList: Edge[] = [];
+  // Update edges whenever analysisGroup or animation state changes
+  useEffect(() => {
+    const edgeList: Edge[] = [];
 
-      // Main edges between analyses in the group
-      analysisGroup.analyses.forEach((analysis, index) => {
-        if (index > 0) {
-          const prevAnalysis = analysisGroup.analyses[index - 1];
-          const prevNodeId = `${analysisGroup.id}-${prevAnalysis.id}`;
-          const currentNodeId = `${analysisGroup.id}-${analysis.id}`;
+    // Main edges between analyses in the group
+    analysisGroup.analyses.forEach((analysis, index) => {
+      if (index > 0) {
+        const prevAnalysis = analysisGroup.analyses[index - 1];
+        const prevNodeId = `${analysisGroup.id}-${prevAnalysis.id}`;
+        const currentNodeId = `${analysisGroup.id}-${analysis.id}`;
 
-          const isCompleted =
-            prevAnalysis.status === "completed" ||
-            prevAnalysis.status === "failed";
-          const isFailed = prevAnalysis.status === "failed";
-          const isActive = currentAnalysisId === analysis.id;
+        const isCompleted =
+          prevAnalysis.status === "completed" ||
+          prevAnalysis.status === "failed";
+        const isFailed = prevAnalysis.status === "failed";
+        const isActive = currentAnalysisId === analysis.id;
 
-          edgeList.push({
-            id: `edge-${prevNodeId}-${currentNodeId}`,
-            source: prevNodeId,
-            target: currentNodeId,
-            type: "smoothstep",
-            animated: isActive,
-            style: {
-              stroke: isFailed
-                ? "var(--text-muted)"
-                : isCompleted
-                ? "var(--success)"
-                : "var(--text-muted)",
-              strokeWidth: 2,
-              strokeDasharray: isCompleted ? "0" : "5 5",
-              opacity: isCompleted ? 1 : 0.5,
-            },
-          });
-        }
-      });
-
-      // Add edges to ghost nodes if current analysis is running
-      if (currentAnalysisId && isAnimating) {
-        const sharedAnalyses =
-          findSharedAnalysesFromOtherGroups(currentAnalysisId);
-        const currentNodeId = `${analysisGroup.id}-${currentAnalysisId}`;
-
-        sharedAnalyses.forEach((analysis) => {
-          edgeList.push({
-            id: `edge-ghost-${currentNodeId}-${analysis.id}`,
-            source: currentNodeId,
-            target: `ghost-${analysis.id}`,
-            type: "smoothstep",
-            animated: true,
-            label: "Shared Preprocessing",
-            labelBgStyle: {
-              fill: "var(--bg-secondary)",
-              fillOpacity: 0.9,
-            },
-            labelStyle: {
-              fill: "var(--accent-secondary)",
-              fontSize: 10,
-              fontWeight: 600,
-            },
-            style: {
-              stroke: "var(--accent-secondary)",
-              strokeWidth: 2,
-              strokeDasharray: "5 5",
-              opacity: 0.7,
-            },
-          });
+        edgeList.push({
+          id: `edge-${prevNodeId}-${currentNodeId}`,
+          source: prevNodeId,
+          target: currentNodeId,
+          type: "smoothstep",
+          animated: isActive,
+          style: {
+            stroke: isFailed
+              ? "var(--text-muted)"
+              : isCompleted
+              ? "var(--success)"
+              : "var(--text-muted)",
+            strokeWidth: 2,
+            strokeDasharray: isCompleted ? "0" : "5 5",
+            opacity: isCompleted ? 1 : 0.5,
+          },
         });
       }
+    });
 
-      setEdges(edgeList);
-    }, [
-      analysisGroup.analyses,
-      currentAnalysisId,
-      isAnimating,
-      findSharedAnalysesFromOtherGroups,
-      setEdges,
-    ]);
+    // Add edges to ghost nodes if current analysis is running
+    if (currentAnalysisId && isAnimating) {
+      const sharedAnalyses =
+        findSharedAnalysesFromOtherGroups(currentAnalysisId);
+      const currentNodeId = `${analysisGroup.id}-${currentAnalysisId}`;
 
-    const handleNodeClick = useCallback(
-      (event: React.MouseEvent, node: Node) => {
-        if (node.type === "analysis" && !node.data.isGhostNode) {
-          const analysis = node.data as Analysis;
-          setSelectedAnalysis(analysis);
-          onAnalysisClick?.(analysis);
-        }
-      },
-      [onAnalysisClick]
-    );
+      sharedAnalyses.forEach((analysis) => {
+        edgeList.push({
+          id: `edge-ghost-${currentNodeId}-${analysis.id}`,
+          source: currentNodeId,
+          target: `ghost-${analysis.id}`,
+          type: "smoothstep",
+          animated: true,
+          label: "Shared Preprocessing",
+          labelBgStyle: {
+            fill: "var(--bg-secondary)",
+            fillOpacity: 0.9,
+          },
+          labelStyle: {
+            fill: "var(--accent-secondary)",
+            fontSize: 10,
+            fontWeight: 600,
+          },
+          style: {
+            stroke: "var(--accent-secondary)",
+            strokeWidth: 2,
+            strokeDasharray: "5 5",
+            opacity: 0.7,
+          },
+        });
+      });
+    }
 
-    return (
-      <DetailContainer $fullscreen={isFullscreen}>
-        <FlowWrapper>
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onNodeClick={handleNodeClick}
-            nodeTypes={nodeTypes}
-            fitView
-            fitViewOptions={{
-              padding: 0.3,
-              maxZoom: 1.2,
-            }}
-            minZoom={0.4}
-            maxZoom={2}
-          >
-            <StyledControls>
-              <ControlButton
-                onClick={() => setIsFullscreen(!isFullscreen)}
-                title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-              >
-                {isFullscreen ? (
-                  <Minimize2 size={16} />
-                ) : (
-                  <Maximize2 size={16} />
-                )}
-              </ControlButton>
-            </StyledControls>
-            <Background
-              variant={BackgroundVariant.Dots}
-              gap={60}
-              size={1.5}
-              color="var(--text-muted)"
-            />
-          </ReactFlow>
-        </FlowWrapper>
+    setEdges(edgeList);
+  }, [
+    analysisGroup.analyses,
+    analysisGroup.id,
+    currentAnalysisId,
+    isAnimating,
+    findSharedAnalysesFromOtherGroups,
+    setEdges,
+  ]);
 
-        {isAnimating && (
-          <StatusOverlay>
-            <StatusCard>
-              <StatusPulse />
-              <StatusContent>
-                <StatusTitle>Analyzing {analysisGroup.name}</StatusTitle>
-                <StatusProgress>
-                  Running:{" "}
-                  {analysisGroup.analyses.find(
-                    (a) => a.id === currentAnalysisId
-                  )?.name || "..."}
-                </StatusProgress>
-                {currentAnalysisId &&
-                  findSharedAnalysesFromOtherGroups(currentAnalysisId).length >
-                    0 && (
-                    <SharedStepIndicator>
-                      <GitBranch size={10} />
-                      Shared with{" "}
-                      {
-                        findSharedAnalysesFromOtherGroups(currentAnalysisId)
-                          .length
-                      }{" "}
-                      other{" "}
-                      {findSharedAnalysesFromOtherGroups(currentAnalysisId)
-                        .length === 1
-                        ? "analysis"
-                        : "analyses"}
-                    </SharedStepIndicator>
-                  )}
-              </StatusContent>
-            </StatusCard>
-          </StatusOverlay>
-        )}
+  const handleNodeClick = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      if (node.type === "analysis" && !node.data.isGhostNode) {
+        const analysis = node.data as Analysis;
+        setSelectedAnalysis(analysis);
+        onAnalysisClick?.(analysis);
+      }
+    },
+    [onAnalysisClick]
+  );
 
-        {selectedAnalysis && (
-          <AnalysisDetailsFooter
-            analysis={selectedAnalysis}
-            onClose={() => setSelectedAnalysis(null)}
+  return (
+    <DetailContainer $fullscreen={isFullscreen}>
+      <FlowWrapper>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onNodeClick={handleNodeClick}
+          nodeTypes={nodeTypes}
+          fitView
+          fitViewOptions={{
+            padding: 0.3,
+            maxZoom: 1.2,
+          }}
+          minZoom={0.4}
+          maxZoom={2}
+        >
+          <StyledControls>
+            <ControlButton
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+            >
+              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </ControlButton>
+          </StyledControls>
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={60}
+            size={1.5}
+            color="var(--text-muted)"
           />
-        )}
-      </DetailContainer>
-    );
-  }
-);
+        </ReactFlow>
+      </FlowWrapper>
 
-AnalysisDetailFlow.displayName = "AnalysisDetailFlow";
+      {isAnimating && (
+        <StatusOverlay>
+          <StatusCard>
+            <StatusPulse />
+            <StatusContent>
+              <StatusTitle>Analyzing {analysisGroup.name}</StatusTitle>
+              <StatusProgress>
+                Running:{" "}
+                {analysisGroup.analyses.find((a) => a.id === currentAnalysisId)
+                  ?.name || "..."}
+              </StatusProgress>
+              {currentAnalysisId &&
+                findSharedAnalysesFromOtherGroups(currentAnalysisId).length >
+                  0 && (
+                  <SharedStepIndicator>
+                    <GitBranch size={10} />
+                    Shared with{" "}
+                    {
+                      findSharedAnalysesFromOtherGroups(currentAnalysisId)
+                        .length
+                    }{" "}
+                    other{" "}
+                    {findSharedAnalysesFromOtherGroups(currentAnalysisId)
+                      .length === 1
+                      ? "analysis"
+                      : "analyses"}
+                  </SharedStepIndicator>
+                )}
+            </StatusContent>
+          </StatusCard>
+        </StatusOverlay>
+      )}
 
-// ... (rest of styled components remain the same)
+      {selectedAnalysis && (
+        <AnalysisDetailsFooter
+          analysis={selectedAnalysis}
+          onClose={() => setSelectedAnalysis(null)}
+        />
+      )}
+    </DetailContainer>
+  );
+};
 
-// Styled Components
+// Styled Components (unchanged)
 const DetailContainer = styled.div<{ $fullscreen: boolean }>`
   display: flex;
   flex-direction: column;

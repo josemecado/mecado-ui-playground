@@ -14,6 +14,7 @@ interface AnalysisToolbarProps {
   onTabChange: (tabId: string | "all") => void;
   onRequirementsClick: () => void;
   onRunAnalyses?: () => void;
+  onResetAnalyses?: () => void;
   isRunning?: boolean;
 }
 
@@ -24,6 +25,7 @@ export const AnalysisToolbar: React.FC<AnalysisToolbarProps> = ({
   onTabChange,
   onRequirementsClick,
   onRunAnalyses,
+  onResetAnalyses,
   isRunning = false,
 }) => {
   const passedRequirements = requirements.filter(
@@ -46,7 +48,7 @@ export const AnalysisToolbar: React.FC<AnalysisToolbarProps> = ({
     <ToolbarContainer>
       <LeftSection>
         <RunButton 
-          onClick={onRunAnalyses}
+          onClick={isRunning ? onResetAnalyses : onRunAnalyses}
           $isRunning={isRunning}
         >
           <PlayIcon>
