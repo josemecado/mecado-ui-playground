@@ -43,9 +43,9 @@ export const ProjectAnalysisFlow: React.FC<ProjectAnalysisFlowProps> = ({
     analysisGroup: selectedGroup || undefined,
     analysisGroups: analysisGroups,
     onUpdateGroup: (groupIdOrGroup, updatedGroup) => {
-      if (typeof groupIdOrGroup === 'string' && updatedGroup) {
+      if (typeof groupIdOrGroup === "string" && updatedGroup) {
         onUpdateGroup(groupIdOrGroup, updatedGroup);
-      } else if (typeof groupIdOrGroup === 'object') {
+      } else if (typeof groupIdOrGroup === "object") {
         onUpdateGroup(groupIdOrGroup.id, groupIdOrGroup);
       }
     },
@@ -68,13 +68,10 @@ export const ProjectAnalysisFlow: React.FC<ProjectAnalysisFlowProps> = ({
     [] // No dependencies on isRunning
   );
 
-  const handleGroupSelect = useCallback(
-    (group: AnalysisGroup) => {
-      // Allow group selection even during animation
-      setSelectedGroupId(group.id);
-    },
-    []
-  );
+  const handleGroupSelect = useCallback((group: AnalysisGroup) => {
+    // Allow group selection even during animation
+    setSelectedGroupId(group.id);
+  }, []);
 
   const handleToolbarRun = useCallback(() => {
     if (animation.isRunning) {
@@ -114,15 +111,18 @@ export const ProjectAnalysisFlow: React.FC<ProjectAnalysisFlowProps> = ({
 
         {selectedGroup ? (
           <AnalysisDetailFlow
-            key={selectedGroup.id} // Force remount when switching groups
+            key={selectedGroup.id}
             analysisGroup={selectedGroup}
+            allAnalysisGroups={analysisGroups} // NEW: Pass all groups
             onAnalysisClick={onAnalysisClick}
             onUpdateGroup={(updatedGroup) =>
               onUpdateGroup(updatedGroup.id, updatedGroup)
             }
             onAnimationComplete={() => console.log("Detail flow complete")}
-            // Don't pass animation controls - parent manages it
-            isAnimating={animation.isRunning && animation.currentGroupId === selectedGroup.id}
+            isAnimating={
+              animation.isRunning &&
+              animation.currentGroupId === selectedGroup.id
+            }
             currentAnalysisId={animation.currentAnalysisId}
           />
         ) : (

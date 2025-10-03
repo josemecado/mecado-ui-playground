@@ -2,7 +2,10 @@
 import React from "react";
 import { Handle, NodeProps, Position } from "@xyflow/react";
 import styled, { keyframes, css } from "styled-components";
-import { Analysis, AnalysisStep } from "../../versionNodes/utils/VersionInterfaces";
+import {
+  Analysis,
+  AnalysisStep,
+} from "../../versionNodes/utils/VersionInterfaces";
 import {
   LoaderCircle,
   CheckCircle,
@@ -19,13 +22,17 @@ import {
   Flame,
   Cpu,
   GitBranch,
-  Activity
+  Activity,
 } from "lucide-react";
 
 export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
-  const analysis = data as unknown as Analysis & { onAnimateNode?: () => void };
+  const analysis = data as unknown as Analysis & {
+    onAnimateNode?: () => void;
+    isGhostNode?: boolean; // NEW
+  };
   const nodeStatus = analysis.status;
   const isSharedStepRunning = analysis.sharedStepRunning || false;
+  const isGhost = analysis.isGhostNode || false; // NEW
 
   const getStatusIcon = () => {
     if (isSharedStepRunning) {
@@ -61,19 +68,6 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
     return <BarChart3 size={16} />;
   };
 
-  const getStepIcon = (stepId: string) => {
-    switch (stepId) {
-      case "preprocessing":
-        return <Cpu size={10} />;
-      case "fea-setup":
-        return <GitBranch size={10} />;
-      case "solving":
-        return <Activity size={10} />;
-      default:
-        return <Calculator size={10} />;
-    }
-  };
-
   const failedRequirements =
     analysis.requirements?.filter((r) => r.status === "fail") || [];
   const passedRequirements =
@@ -83,7 +77,7 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
     <NodeContainer
       $status={nodeStatus}
       $isActive={analysis.status === "running"}
-      $isSharedStepRunning={isSharedStepRunning}
+      $isGhost={isGhost}
     >
       <Handle
         type="target"
@@ -103,7 +97,9 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
           <TypeIconWrapper>{getTypeIcon(analysis.type)}</TypeIconWrapper>
           <HeaderText>
             <AnalysisName>{analysis.name}</AnalysisName>
-            <AnalysisType>Analysis</AnalysisType>
+            <AnalysisType>
+              {isGhost ? "From Other Group" : "Analysis"}
+            </AnalysisType>
           </HeaderText>
         </HeaderLeft>
         <StatusIconWrapper $status={nodeStatus}>
@@ -115,8 +111,12 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
 
       {/* Main Content */}
       <NodeBody>
-        {/* SHARED STEP RUNNING STATE (when another analysis is running our shared step) */}
-        {isSharedStepRunning && nodeStatus === "pending" && analysis.steps && (
+        {/* ============================================
+      PENDING STATES (status === "pending")
+      ============================================ */}
+
+        {/* PENDING STATE 1: Actively participating in shared step */}
+        {nodeStatus === "pending" && isSharedStepRunning && analysis.steps && (
           <SharedStepContent>
             <SharedStepLabel>
               <ActivityIndicator>
@@ -124,17 +124,17 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
               </ActivityIndicator>
               Shared Preprocessing Active
             </SharedStepLabel>
-            
+
             <StepsFlow>
               {analysis.steps.map((step, index) => {
                 const isCompleted = step.status === "completed";
                 const isActive = step.status === "running";
                 const isPending = step.status === "pending";
                 const isLast = index === analysis.steps!.length - 1;
-                
+
                 return (
                   <StepFlowItem key={step.id} $isLast={isLast}>
-                    <StepNode 
+                    <StepNode
                       $isCompleted={isCompleted}
                       $isActive={isActive}
                       $isPending={isPending}
@@ -150,85 +150,178 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
                         <StepNumber>{index + 1}</StepNumber>
                       )}
                     </StepNode>
-                    
+
                     <StepContent>
-                      <StepFlowLabel 
+                      <StepFlowLabel
                         $isCompleted={isCompleted}
                         $isActive={isActive}
                         $isPending={isPending}
                         $isShared={index === 0 && isActive}
                       >
                         {step.name}
-                        {index === 0 && isActive && <SharedBadge>(Shared)</SharedBadge>}
+                        {index === 0 && isActive && (
+                          <SharedBadge>(Shared)</SharedBadge>
+                        )}
                       </StepFlowLabel>
                       {isActive && step.progress !== undefined && (
                         <MiniProgressBar>
-                          <MiniProgressFill $progress={step.progress} $isShared={true} />
+                          <MiniProgressFill
+                            $progress={step.progress}
+                            $isShared={true}
+                          />
                         </MiniProgressBar>
                       )}
                     </StepContent>
-                    
+
                     {!isLast && (
-                      <StepConnector 
+                      <StepConnector
                         $isCompleted={isCompleted}
-                        $isActive={index === (analysis.currentStepIndex || 0) - 1}
+                        $isActive={
+                          index === (analysis.currentStepIndex || 0) - 1
+                        }
                       />
                     )}
                   </StepFlowItem>
                 );
               })}
             </StepsFlow>
-            
+
             <SharedInfo>
               <InfoIcon>
                 <GitBranch size={10} />
               </InfoIcon>
-              <InfoText>
-                Preprocessing shared with other analyses
-              </InfoText>
+              <InfoText>Preprocessing shared with other analyses</InfoText>
             </SharedInfo>
           </SharedStepContent>
         )}
 
-        {/* PENDING STATE */}
-        {nodeStatus === "pending" && !isSharedStepRunning && (
-          <PendingContent>
-            <InfoSection>
-              <InfoLabel>Requirements</InfoLabel>
-              <InfoValue>{analysis.requirements?.length || 0} checks</InfoValue>
-            </InfoSection>
-            <StatusMessage>
-              <Clock size={12} />
-              Pending analysis
-            </StatusMessage>
-          </PendingContent>
-        )}
+        {/* PENDING STATE 2: Has completed shared steps, waiting to run */}
+        {nodeStatus === "pending" &&
+          !isSharedStepRunning &&
+          analysis.sharedStepsCompleted &&
+          analysis.sharedStepsCompleted.length > 0 &&
+          analysis.steps && (
+            <PendingWithCompletedStepsContent>
+              <SharedStepLabel>
+                <CheckCircle size={10} />
+                Shared Steps Completed
+              </SharedStepLabel>
 
-        {/* RUNNING STATE WITH STEPS */}
+              <StepsFlow>
+                {analysis.steps.map((step, index) => {
+                  const isCompletedViaSharing = Boolean(
+                    analysis.sharedStepsCompleted?.includes(index)
+                  );
+                  const isLast = index === analysis.steps!.length - 1;
+
+                  return (
+                    <StepFlowItem key={step.id} $isLast={isLast}>
+                      <StepNode
+                        $isCompleted={isCompletedViaSharing}
+                        $isActive={false}
+                        $isPending={!isCompletedViaSharing}
+                      >
+                        {isCompletedViaSharing ? (
+                          <CheckMark>✓</CheckMark>
+                        ) : (
+                          <StepNumber>{index + 1}</StepNumber>
+                        )}
+                      </StepNode>
+
+                      <StepContent>
+                        <StepFlowLabel
+                          $isCompleted={isCompletedViaSharing}
+                          $isActive={false}
+                          $isPending={!isCompletedViaSharing}
+                        >
+                          {step.name}
+                          {isCompletedViaSharing && (
+                            <SharedBadge>(Shared)</SharedBadge>
+                          )}
+                        </StepFlowLabel>
+                      </StepContent>
+
+                      {!isLast && (
+                        <StepConnector
+                          $isCompleted={isCompletedViaSharing}
+                          $isActive={false}
+                        />
+                      )}
+                    </StepFlowItem>
+                  );
+                })}
+              </StepsFlow>
+
+              <SharedInfo>
+                <InfoIcon>
+                  <GitBranch size={10} />
+                </InfoIcon>
+                <InfoText>
+                  Waiting to run - {analysis.sharedStepsCompleted.length} step
+                  {analysis.sharedStepsCompleted.length > 1 ? "s" : ""}{" "}
+                  completed via sharing
+                </InfoText>
+              </SharedInfo>
+            </PendingWithCompletedStepsContent>
+          )}
+
+        {/* PENDING STATE 3: Regular pending (no shared activity, no completed steps) */}
+        {nodeStatus === "pending" &&
+          !isSharedStepRunning &&
+          (!analysis.sharedStepsCompleted ||
+            analysis.sharedStepsCompleted.length === 0) && (
+            <PendingContent>
+              <InfoSection>
+                <InfoLabel>Requirements</InfoLabel>
+                <InfoValue>
+                  {analysis.requirements?.length || 0} checks
+                </InfoValue>
+              </InfoSection>
+              <StatusMessage>
+                <Clock size={12} />
+                Pending analysis
+              </StatusMessage>
+            </PendingContent>
+          )}
+
+        {/* ============================================
+      RUNNING STATES (status === "running")
+      ============================================ */}
+
+        {/* RUNNING STATE: Show step-by-step progress */}
+        {/* Note: We handle both regular running and running with shared step participation the same way */}
+        {/* The sharedStepRunning flag just adds a visual indicator on the first step */}
         {nodeStatus === "running" && (
           <RunningContent>
             {analysis.steps && analysis.steps.length > 0 ? (
               <SteppedProgressSection>
-                <CurrentStepLabel>
+                <CurrentStepLabel $isShared={isSharedStepRunning}>
                   <ActivityIndicator>
                     <LoaderCircle size={10} className="spin" />
                   </ActivityIndicator>
-                  {analysis.steps[analysis.currentStepIndex || 0]?.name || "Processing..."}
+                  {analysis.steps[analysis.currentStepIndex || 0]?.name ||
+                    "Processing..."}
+                  {isSharedStepRunning && analysis.currentStepIndex === 0 && (
+                    <SharedBadge>(Shared)</SharedBadge>
+                  )}
                 </CurrentStepLabel>
-                
+
                 <StepsFlow>
                   {analysis.steps.map((step, index) => {
                     const isCompleted = step.status === "completed";
                     const isActive = step.status === "running";
                     const isPending = step.status === "pending";
                     const isLast = index === analysis.steps!.length - 1;
-                    
+                    const isSharedStep =
+                      isSharedStepRunning && index === 0 && isActive;
+
                     return (
                       <StepFlowItem key={step.id} $isLast={isLast}>
-                        <StepNode 
+                        <StepNode
                           $isCompleted={isCompleted}
                           $isActive={isActive}
                           $isPending={isPending}
+                          $isShared={isSharedStep}
                         >
                           {isCompleted ? (
                             <CheckMark>✓</CheckMark>
@@ -240,26 +333,35 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
                             <StepNumber>{index + 1}</StepNumber>
                           )}
                         </StepNode>
-                        
+
                         <StepContent>
-                          <StepFlowLabel 
+                          <StepFlowLabel
                             $isCompleted={isCompleted}
                             $isActive={isActive}
                             $isPending={isPending}
+                            $isShared={isSharedStep}
                           >
                             {step.name}
+                            {isSharedStep && (
+                              <SharedBadge>(Shared)</SharedBadge>
+                            )}
                           </StepFlowLabel>
                           {isActive && step.progress !== undefined && (
                             <MiniProgressBar>
-                              <MiniProgressFill $progress={step.progress} />
+                              <MiniProgressFill
+                                $progress={step.progress}
+                                $isShared={isSharedStep}
+                              />
                             </MiniProgressBar>
                           )}
                         </StepContent>
-                        
+
                         {!isLast && (
-                          <StepConnector 
+                          <StepConnector
                             $isCompleted={isCompleted}
-                            $isActive={index === (analysis.currentStepIndex || 0) - 1}
+                            $isActive={
+                              index === (analysis.currentStepIndex || 0) - 1
+                            }
                           />
                         )}
                       </StepFlowItem>
@@ -268,10 +370,10 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
                 </StepsFlow>
               </SteppedProgressSection>
             ) : (
-              // Fallback to simple progress if no steps defined
+              // Fallback: If no steps defined, show simple progress bar
               <ProgressSection>
                 <ProgressLabel>
-                  <Calculator size={10}/>
+                  <Calculator size={10} />
                   Computing results...
                 </ProgressLabel>
                 <ProgressBar>
@@ -280,7 +382,7 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
                 <ProgressText>{analysis.progress || 0}%</ProgressText>
               </ProgressSection>
             )}
-            
+
             <RunningInfo>
               <InfoRow>
                 <InfoIcon>
@@ -309,11 +411,11 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
                 </MetricValue>
               </MetricCard>
             </MetricsGrid>
-            
+
             {/* Show completed steps summary */}
             {analysis.steps && (
               <CompletedSteps>
-                {analysis.steps.map(step => (
+                {analysis.steps.map((step) => (
                   <CompletedStep key={step.id}>
                     <CheckCircle size={8} />
                     {step.name}
@@ -321,7 +423,7 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
                 ))}
               </CompletedSteps>
             )}
-            
+
             {analysis.warnings && analysis.warnings.length > 0 && (
               <WarningBadge>
                 <AlertTriangle size={10} />
@@ -374,7 +476,11 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
       {/* Action Buttons */}
       <ActionBar>
         {nodeStatus === "pending" && (
-          <ActionButton $variant="primary" $small onClick={analysis.onAnimateNode}>
+          <ActionButton
+            $variant="primary"
+            $small
+            onClick={analysis.onAnimateNode}
+          >
             <PlayCircle size={12} />
             Run
           </ActionButton>
@@ -430,7 +536,14 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
 
 // Helper component for empty circle
 const Circle: React.FC<{ size: number }> = ({ size }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
     <circle cx="12" cy="12" r="10" />
   </svg>
 );
@@ -451,6 +564,7 @@ const NodeContainer = styled.div<{
   $status: string;
   $isActive?: boolean;
   $isSharedStepRunning?: boolean;
+  $isGhost?: boolean; // NEW
 }>`
   position: relative;
   background: ${(props) => {
@@ -468,6 +582,8 @@ const NodeContainer = styled.div<{
   }};
   border: 2px solid
     ${(props) => {
+      if (props.$isGhost) return "var(--accent-secondary)"; // Different border for ghosts
+
       if (props.$isSharedStepRunning) return "var(--accent-secondary)";
       switch (props.$status) {
         case "completed":
@@ -485,11 +601,10 @@ const NodeContainer = styled.div<{
   max-width: 280px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: ${props => 
-    props.$isSharedStepRunning 
+  box-shadow: ${(props) =>
+    props.$isSharedStepRunning
       ? "0 4px 20px rgba(var(--accent-secondary-rgb), 0.3)"
-      : "0 4px 12px rgba(0, 0, 0, 0.1)"
-  };
+      : "0 4px 12px rgba(0, 0, 0, 0.1)"};
   overflow: hidden;
 
   &:hover {
@@ -544,7 +659,7 @@ const StepFlowItem = styled.div<{ $isLast: boolean }>`
   align-items: flex-start;
   gap: 10px;
   position: relative;
-  min-height: ${props => props.$isLast ? '20px' : '32px'};
+  min-height: ${(props) => (props.$isLast ? "20px" : "32px")};
 `;
 
 const StepNode = styled.div<{
@@ -565,26 +680,28 @@ const StepNode = styled.div<{
   z-index: 2;
   position: relative;
   margin-top: 2px;
-  
-  background: ${props => {
-    if (props.$isShared) return 'var(--accent-secondary)';
-    if (props.$isCompleted) return 'var(--success)';
-    if (props.$isActive) return 'var(--accent-primary)';
-    return 'var(--bg-tertiary)';
+
+  background: ${(props) => {
+    if (props.$isShared) return "var(--accent-secondary)";
+    if (props.$isCompleted) return "var(--success)";
+    if (props.$isActive) return "var(--accent-primary)";
+    return "var(--bg-tertiary)";
   }};
-  
-  color: ${props => {
-    if (props.$isCompleted || props.$isActive || props.$isShared) return 'white';
-    return 'var(--text-muted)';
+
+  color: ${(props) => {
+    if (props.$isCompleted || props.$isActive || props.$isShared)
+      return "white";
+    return "var(--text-muted)";
   }};
-  
-  border: 1.5px solid ${props => {
-    if (props.$isShared) return 'var(--accent-secondary)';
-    if (props.$isCompleted) return 'var(--success)';
-    if (props.$isActive) return 'var(--accent-primary)';
-    return 'var(--border-outline)';
-  }};
-  
+
+  border: 1.5px solid
+    ${(props) => {
+      if (props.$isShared) return "var(--accent-secondary)";
+      if (props.$isCompleted) return "var(--success)";
+      if (props.$isActive) return "var(--accent-primary)";
+      return "var(--border-outline)";
+    }};
+
   transition: all 0.3s ease;
 `;
 
@@ -592,7 +709,7 @@ const ActivityIndicator = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   .spin {
     animation: spin 1s linear infinite;
   }
@@ -622,15 +739,16 @@ const StepFlowLabel = styled.div<{
   $isCompleted: boolean;
   $isActive: boolean;
   $isPending: boolean;
-  $isShared?: boolean;
+  $isShared?: boolean; // Already optional
 }>`
   font-size: 10px;
-  font-weight: ${props => props.$isActive || props.$isShared ? '600' : '500'};
-  color: ${props => {
-    if (props.$isShared) return 'var(--accent-secondary)';
-    if (props.$isCompleted) return 'var(--text-primary)';
-    if (props.$isActive) return 'var(--accent-primary)';
-    return 'var(--text-muted)';
+  font-weight: ${(props) =>
+    props.$isActive || props.$isShared ? "600" : "500"};
+  color: ${(props) => {
+    if (props.$isShared) return "var(--accent-secondary)";
+    if (props.$isCompleted) return "var(--text-primary)";
+    if (props.$isActive) return "var(--accent-primary)";
+    return "var(--text-muted)";
   }};
   line-height: 1.3;
   transition: color 0.3s ease;
@@ -648,10 +766,10 @@ const StepConnector = styled.div<{
   top: 18px;
   width: 2px;
   height: 14px;
-  background: ${props => {
-    if (props.$isCompleted) return 'var(--success)';
-    if (props.$isActive) return 'var(--accent-primary)';
-    return 'var(--border-outline)';
+  background: ${(props) => {
+    if (props.$isCompleted) return "var(--success)";
+    if (props.$isActive) return "var(--accent-primary)";
+    return "var(--border-outline)";
   }};
   transition: background 0.3s ease;
   z-index: 1;
@@ -668,13 +786,16 @@ const MiniProgressBar = styled.div`
 
 const MiniProgressFill = styled.div<{ $progress: number; $isShared?: boolean }>`
   height: 100%;
-  width: ${props => props.$progress}%;
-  background: ${props => props.$isShared ? 'var(--accent-secondary)' : 'var(--accent-primary)'};
+  width: ${(props) => props.$progress}%;
+  background: ${(props) =>
+    props.$isShared ? "var(--accent-secondary)" : "var(--accent-primary)"};
   border-radius: 2px;
   transition: width 0.3s ease;
-  box-shadow: 0 0 4px ${props => props.$isShared 
-    ? 'rgba(var(--accent-secondary-rgb), 0.4)' 
-    : 'rgba(var(--accent-primary-rgb), 0.4)'};
+  box-shadow: 0 0 4px
+    ${(props) =>
+      props.$isShared
+        ? "rgba(var(--accent-secondary-rgb), 0.4)"
+        : "rgba(var(--accent-primary-rgb), 0.4)"};
 `;
 
 const CompletedSteps = styled.div`
@@ -694,7 +815,7 @@ const CompletedStep = styled.div`
   font-size: 9px;
   color: var(--success);
   font-weight: 500;
-  
+
   svg {
     flex-shrink: 0;
   }
@@ -1183,4 +1304,10 @@ const SharedInfo = styled.div`
   background: rgba(var(--accent-secondary-rgb), 0.05);
   border-radius: 6px;
   border: 1px solid rgba(var(--accent-secondary-rgb), 0.2);
+`;
+
+const PendingWithCompletedStepsContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 `;

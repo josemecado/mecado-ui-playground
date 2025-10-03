@@ -27,26 +27,28 @@ import {
 } from "../../versionNodes/utils/VersionInterfaces";
 import { AnalysisIndividualNode } from "../components/AnalysisNode";
 import { AnalysisDetailsFooter } from "../components/AnalysisFooter";
-import { RefreshCw, Maximize2, Minimize2 } from "lucide-react";
+import { Maximize2, Minimize2, GitBranch } from "lucide-react";
 
 interface AnalysisDetailFlowProps {
   analysisGroup: AnalysisGroup;
+  allAnalysisGroups?: AnalysisGroup[]; // NEW: All groups to find shared analyses
   onAnalysisClick?: (analysis: Analysis) => void;
   onUpdateGroup: (updatedGroup: AnalysisGroup) => void;
   onAnimationComplete?: () => void;
-  isAnimating?: boolean; // NEW: Passed from parent
-  currentAnalysisId?: string | null; // NEW: Passed from parent
+  isAnimating?: boolean;
+  currentAnalysisId?: string | null;
 }
 
 export interface AnalysisDetailFlowRef {
   startAnimation: () => void;
   stopAnimation: () => void;
-  resetAnimation: () => void; // NEW
+  resetAnimation: () => void;
 }
 
 const nodeTypes: NodeTypes = {
   analysis: AnalysisIndividualNode,
 };
+
 export const AnalysisDetailFlow = forwardRef<
   AnalysisDetailFlowRef,
   AnalysisDetailFlowProps
@@ -54,11 +56,12 @@ export const AnalysisDetailFlow = forwardRef<
   (
     {
       analysisGroup,
+      allAnalysisGroups = [],
       onAnalysisClick,
       onUpdateGroup,
       onAnimationComplete,
-      isAnimating = false, // NEW
-      currentAnalysisId = null, // NEW
+      isAnimating = false,
+      currentAnalysisId = null,
     },
     ref
   ) => {
@@ -72,7 +75,6 @@ export const AnalysisDetailFlow = forwardRef<
       const prevAnalyses = prevAnalysesRef.current;
       const currentAnalyses = analysisGroup.analyses;
 
-      // Check each analysis for status change to failed
       currentAnalyses.forEach((currentAnalysis, index) => {
         const prevAnalysis = prevAnalyses[index];
 
@@ -90,27 +92,103 @@ export const AnalysisDetailFlow = forwardRef<
       prevAnalysesRef.current = [...currentAnalyses];
     }, [analysisGroup.analyses, onAnalysisClick]);
 
-    // Generate nodes with the animation function
+    // Helper: Find analyses from OTHER groups that share steps with the current analysis
+    const findSharedAnalysesFromOtherGroups = useCallback(
+      (currentAnalysisId: string): Analysis[] => {
+        const currentAnalysis = analysisGroup.analyses.find(
+          (a) => a.id === currentAnalysisId
+        );
+        if (!currentAnalysis?.sharedSteps) return [];
+
+        const sharedAnalyses: Analysis[] = [];
+
+        // Get all shared analysis IDs from current analysis
+        const sharedAnalysisIds = new Set<string>();
+        currentAnalysis.sharedSteps.forEach((config) => {
+          config.sharedWithAnalyses.forEach((id) => sharedAnalysisIds.add(id));
+        });
+
+        // Find these analyses in OTHER groups
+        allAnalysisGroups.forEach((group) => {
+          if (group.id === analysisGroup.id) return; // Skip current group
+
+          group.analyses.forEach((analysis) => {
+            if (sharedAnalysisIds.has(analysis.id)) {
+              sharedAnalyses.push(analysis);
+            }
+          });
+        });
+
+        return sharedAnalyses;
+      },
+      [analysisGroup, allAnalysisGroups]
+    );
+
+    // Generate nodes including ghost nodes for shared analyses
     const nodes: Node[] = useMemo(() => {
       const analysisSpacing = 300;
       const startX = 200;
       const centerY = 250;
-      
-      return analysisGroup.analyses.map((analysis, index) => ({
-        id: `${analysisGroup.id}-${analysis.id}`,
-        type: 'analysis',
-        position: { 
-          x: startX + (index * analysisSpacing),
-          y: centerY
-        },
-        data: analysis,
-      }));
-    }, [analysisGroup]);
 
-    // Generate edges - use passed currentAnalysisId
+      // Main group nodes
+      const mainNodes: Node[] = analysisGroup.analyses.map(
+        (analysis, index) => ({
+          id: `${analysisGroup.id}-${analysis.id}`,
+          type: "analysis",
+          position: {
+            x: startX + index * analysisSpacing,
+            y: centerY,
+          },
+          data: analysis,
+        })
+      );
+
+      // If there's a currently running analysis, add ghost nodes for shared analyses
+      if (currentAnalysisId && isAnimating) {
+        const sharedAnalyses =
+          findSharedAnalysesFromOtherGroups(currentAnalysisId);
+        const currentAnalysisIndex = analysisGroup.analyses.findIndex(
+          (a) => a.id === currentAnalysisId
+        );
+
+        if (currentAnalysisIndex !== -1 && sharedAnalyses.length > 0) {
+          const currentNodeX = startX + currentAnalysisIndex * analysisSpacing;
+          const ghostNodeY = centerY + 180; // Below the main node
+
+          const ghostNodes: Node[] = sharedAnalyses.map((analysis, index) => ({
+            id: `ghost-${analysis.id}`,
+            type: "analysis",
+            position: {
+              x: currentNodeX + (index - sharedAnalyses.length / 2 + 0.5) * 200, // Spread horizontally
+              y: ghostNodeY,
+            },
+            data: {
+              ...analysis,
+              isGhostNode: true, // NEW: Flag for styling
+            },
+            style: {
+              opacity: 0.6,
+              pointerEvents: "none" as const,
+            },
+          }));
+
+          return [...mainNodes, ...ghostNodes];
+        }
+      }
+
+      return mainNodes;
+    }, [
+      analysisGroup,
+      currentAnalysisId,
+      isAnimating,
+      findSharedAnalysesFromOtherGroups,
+    ]);
+
+    // Generate edges including connections to ghost nodes
     const edges: Edge[] = useMemo(() => {
       const edgeList: Edge[] = [];
 
+      // Main edges between analyses in the group
       analysisGroup.analyses.forEach((analysis, index) => {
         if (index > 0) {
           const prevAnalysis = analysisGroup.analyses[index - 1];
@@ -143,13 +221,50 @@ export const AnalysisDetailFlow = forwardRef<
         }
       });
 
-      return edgeList;
-    }, [analysisGroup.analyses, currentAnalysisId]);
+      // Add edges to ghost nodes if current analysis is running
+      if (currentAnalysisId && isAnimating) {
+        const sharedAnalyses =
+          findSharedAnalysesFromOtherGroups(currentAnalysisId);
+        const currentNodeId = `${analysisGroup.id}-${currentAnalysisId}`;
 
+        sharedAnalyses.forEach((analysis) => {
+          edgeList.push({
+            id: `edge-ghost-${currentNodeId}-${analysis.id}`,
+            source: currentNodeId,
+            target: `ghost-${analysis.id}`,
+            type: "smoothstep",
+            animated: true,
+            label: "Shared Preprocessing",
+            labelBgStyle: {
+              fill: "var(--bg-secondary)",
+              fillOpacity: 0.9,
+            },
+            labelStyle: {
+              fill: "var(--accent-secondary)",
+              fontSize: 10,
+              fontWeight: 600,
+            },
+            style: {
+              stroke: "var(--accent-secondary)",
+              strokeWidth: 2,
+              strokeDasharray: "5 5",
+              opacity: 0.7,
+            },
+          });
+        });
+      }
+
+      return edgeList;
+    }, [
+      analysisGroup.analyses,
+      currentAnalysisId,
+      isAnimating,
+      findSharedAnalysesFromOtherGroups,
+    ]);
 
     const handleNodeClick = useCallback(
       (event: React.MouseEvent, node: Node) => {
-        if (node.type === "analysis") {
+        if (node.type === "analysis" && !node.data.isGhostNode) {
           const analysis = node.data as Analysis;
           setSelectedAnalysis(analysis);
           onAnalysisClick?.(analysis);
@@ -179,7 +294,11 @@ export const AnalysisDetailFlow = forwardRef<
                 onClick={() => setIsFullscreen(!isFullscreen)}
                 title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
               >
-                {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                {isFullscreen ? (
+                  <Minimize2 size={16} />
+                ) : (
+                  <Maximize2 size={16} />
+                )}
               </ControlButton>
             </StyledControls>
             <Background
@@ -203,6 +322,23 @@ export const AnalysisDetailFlow = forwardRef<
                     (a) => a.id === currentAnalysisId
                   )?.name || "..."}
                 </StatusProgress>
+                {currentAnalysisId &&
+                  findSharedAnalysesFromOtherGroups(currentAnalysisId).length >
+                    0 && (
+                    <SharedStepIndicator>
+                      <GitBranch size={10} />
+                      Shared with{" "}
+                      {
+                        findSharedAnalysesFromOtherGroups(currentAnalysisId)
+                          .length
+                      }{" "}
+                      other{" "}
+                      {findSharedAnalysesFromOtherGroups(currentAnalysisId)
+                        .length === 1
+                        ? "analysis"
+                        : "analyses"}
+                    </SharedStepIndicator>
+                  )}
               </StatusContent>
             </StatusCard>
           </StatusOverlay>
@@ -380,28 +516,14 @@ const StatusProgress = styled.div`
   font-weight: 500;
 `;
 
-const CurrentAnalysis = styled.div`
-  color: rgba(255, 255, 255, 0.8);
+const SharedStepIndicator = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent-secondary);
   font-size: 10px;
   font-weight: 500;
-  margin-top: 2px;
-  padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-`;
-
-const ProgressBar = styled.div`
-  height: 4px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 2px;
-  overflow: hidden;
   margin-top: 4px;
-`;
-
-const ProgressFill = styled.div<{ $percentage: number }>`
-  height: 100%;
-  width: ${(props) => props.$percentage}%;
-  background: white;
-  border-radius: 2px;
-  transition: width 0.5s ease;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 `;
