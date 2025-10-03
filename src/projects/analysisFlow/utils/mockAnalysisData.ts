@@ -1,8 +1,6 @@
 // utils/mockAnalysisData.ts
 import { Metric, Requirement, Analysis, AnalysisGroup } from "../../versionNodes/utils/VersionInterfaces";
 
-// utils/mockAnalysisData.ts - Updated MOCK_METRICS section
-
 // Define specific metric values for each analysis type - ONLY matching requirements
 export const MOCK_METRICS: Record<string, Metric[]> = {
   "analysis-static-structural": [{
@@ -189,7 +187,7 @@ export const evaluateRequirementsWithMockData = (
   });
 };
 
-// Create mock analysis groups with deterministic IDs
+// Create mock analysis groups with shared preprocessing steps
 export const createMockAnalysisGroups = (): AnalysisGroup[] => {
   return [
     // STRUCTURAL GROUP - All will pass
@@ -204,6 +202,14 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
           type: "stress",
           status: "pending",
           metrics: [],
+          // SHARES preprocessing with deformation analysis
+          sharedSteps: [
+            {
+              stepIndex: 0, // Preprocessing step
+              sharedWithAnalyses: ["analysis-deformation"],
+              sharedStepId: "shared-structural-preprocessing"
+            }
+          ],
           requirements: [
             {
               id: "req-stress-1",
@@ -235,6 +241,14 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
           type: "deformation",
           status: "pending",
           metrics: [],
+          // SHARES preprocessing with static-structural
+          sharedSteps: [
+            {
+              stepIndex: 0,
+              sharedWithAnalyses: ["analysis-static-structural"],
+              sharedStepId: "shared-structural-preprocessing"
+            }
+          ],
           requirements: [
             {
               id: "req-deform-1",
@@ -266,6 +280,7 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
           type: "safety",
           status: "pending",
           metrics: [],
+          // NO shared steps - runs independently
           requirements: [
             {
               id: "req-safety-1",
@@ -295,6 +310,14 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
           type: "thermal",
           status: "pending",
           metrics: [],
+          // SHARES preprocessing with thermal-stress AND natural-frequency (cross-group)
+          sharedSteps: [
+            {
+              stepIndex: 0,
+              sharedWithAnalyses: ["analysis-thermal-stress", "analysis-natural-frequency"],
+              sharedStepId: "shared-thermal-modal-preprocessing"
+            }
+          ],
           requirements: [
             {
               id: "req-thermal-1",
@@ -326,6 +349,7 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
           type: "thermal",
           status: "pending",
           metrics: [],
+          // NO shared steps - runs independently
           requirements: [
             {
               id: "req-transient-1",
@@ -357,6 +381,14 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
           type: "thermal",
           status: "pending",
           metrics: [],
+          // SHARES preprocessing with steady-state-thermal and natural-frequency
+          sharedSteps: [
+            {
+              stepIndex: 0,
+              sharedWithAnalyses: ["analysis-steady-state-thermal", "analysis-natural-frequency"],
+              sharedStepId: "shared-thermal-modal-preprocessing"
+            }
+          ],
           requirements: [
             {
               id: "req-thermal-stress-1",
@@ -392,6 +424,7 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
           type: "thermal",
           status: "pending",
           metrics: [],
+          // NO shared steps - runs independently
           requirements: [
             {
               id: "req-heat-1",
@@ -421,6 +454,14 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
           type: "modal_frequency",
           status: "pending",
           metrics: [],
+          // SHARES preprocessing with thermal analyses (cross-group sharing)
+          sharedSteps: [
+            {
+              stepIndex: 0,
+              sharedWithAnalyses: ["analysis-steady-state-thermal", "analysis-thermal-stress"],
+              sharedStepId: "shared-thermal-modal-preprocessing"
+            }
+          ],
           requirements: [
             {
               id: "req-freq-1",
@@ -463,6 +504,7 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
           type: "modal_shapes",
           status: "pending",
           metrics: [],
+          // NO shared steps - runs independently
           requirements: [
             {
               id: "req-mode-1",
@@ -483,6 +525,7 @@ export const createMockAnalysisGroups = (): AnalysisGroup[] => {
           type: "harmonic",
           status: "pending",
           metrics: [],
+          // NO shared steps - runs independently
           requirements: [
             {
               id: "req-harmonic-1",

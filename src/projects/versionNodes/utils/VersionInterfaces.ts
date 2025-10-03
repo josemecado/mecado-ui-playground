@@ -121,14 +121,14 @@ export interface ProjectVersion {
   generatedFiles: FileItem[];
   edges?: EdgeConfig[];
   isArchived?: boolean;
-  
+
   // Analysis data
   analysisGroups?: AnalysisGroup[];
   requirements?: Requirement[]; // Version-level requirements
-  
+
   // Legacy support
   metrics: Metric[]; // Keep for backwards compatibility
-  
+
   analysisConfiguration?: {
     sourceVersionId?: string;
     lastModified?: string;
@@ -146,7 +146,7 @@ export interface Requirement {
   comparator: ">" | "<" | ">=" | "<=" | "==" | "!=";
   category: string; // Changed to generic string ✅
   priority: "critical" | "important" | "standard";
-  
+
   // For tracking actual values
   currentValue?: number;
   status?: "pass" | "fail" | "pending";
@@ -173,7 +173,7 @@ export interface AnalysisStep {
 export const DEFAULT_ANALYSIS_STEPS: AnalysisStep[] = [
   { id: "preprocessing", name: "Pre-processing", status: "pending" },
   { id: "fea-setup", name: "FEA Setup", status: "pending" },
-  { id: "solving", name: "Solving", status: "pending" }
+  { id: "solving", name: "Solving", status: "pending" },
 ];
 
 // UPDATE: Individual Analysis interface with steps support
@@ -182,18 +182,30 @@ export interface Analysis {
   name: string;
   type: string;
   status: "pending" | "running" | "completed" | "failed";
-  
+
   metrics: Metric[];
   requirements?: Requirement[];
-  
+
   // Progress tracking - now with steps
   progress?: number; // Overall 0-100, kept for backward compatibility
   steps?: AnalysisStep[]; // NEW: Step-based progress tracking
   currentStepIndex?: number; // NEW: Which step is currently active (0-based)
-  
+
+  // Shared step configuration
+  sharedSteps?: SharedStepConfig[]; // NEW: Defines which steps are shared with other analyses
+  sharedStepRunning?: boolean; // NEW: Indicates if a shared step is being animated by another analysis
+  sharedStepsCompleted?: number[]; // Track which step indices were completed via sharing
+
   // Only if failed
   errors?: string[];
   warnings?: string[];
+}
+
+// NEW: Configuration for shared steps between analyses
+export interface SharedStepConfig {
+  stepIndex: number; // Which step index in this analysis is shared (0 = preprocessing, etc.)
+  sharedWithAnalyses: string[]; // Array of analysis IDs that share this step
+  sharedStepId?: string; // Optional unique ID for the shared step across all analyses
 }
 
 // Utility type for metric value operations
@@ -309,42 +321,46 @@ export const MetricUtils = {
     return colorPalette[colorIndex];
   },
 
-/**
- * Get the semantic color for a value difference based on optimization target
- * Green = change aligns with optimization target (good)
- * Red = change goes against optimization target (bad)  
- * Gray = no change or no parent to compare to
- */
-getValueDifferenceColor(
-  metric: Metric, 
-  valueLabel?: string
-): "#22c55e" | "#ef4444" | "var(--primary-alternate)" {
-  // Find the relevant difference
-  let difference;
-  if (valueLabel && metric.differences) {
-    difference = metric.differences.find(d => d.valueLabel === valueLabel);
-  } else if (metric.differences?.length) {
-    // Use primary value difference
-    difference = metric.differences.find(d => d.valueLabel === metric.primaryValueLabel) || metric.differences[0];
-  } else {
-    // Fallback to legacy difference
-    difference = metric.difference;
-  }
+  /**
+   * Get the semantic color for a value difference based on optimization target
+   * Green = change aligns with optimization target (good)
+   * Red = change goes against optimization target (bad)
+   * Gray = no change or no parent to compare to
+   */
+  getValueDifferenceColor(
+    metric: Metric,
+    valueLabel?: string
+  ): "#22c55e" | "#ef4444" | "var(--primary-alternate)" {
+    // Find the relevant difference
+    let difference;
+    if (valueLabel && metric.differences) {
+      difference = metric.differences.find((d) => d.valueLabel === valueLabel);
+    } else if (metric.differences?.length) {
+      // Use primary value difference
+      difference =
+        metric.differences.find(
+          (d) => d.valueLabel === metric.primaryValueLabel
+        ) || metric.differences[0];
+    } else {
+      // Fallback to legacy difference
+      difference = metric.difference;
+    }
 
-  // If no difference or no change, return neutral color
-  if (!difference || difference.direction === "unchanged") {
-    return "var(--primary-alternate)";
-  }
+    // If no difference or no change, return neutral color
+    if (!difference || difference.direction === "unchanged") {
+      return "var(--primary-alternate)";
+    }
 
-  // Determine if the change aligns with the optimization target
-  const target = metric.optimizationTarget || "minimize";
-  const isAlignedWithTarget = target === "maximize" 
-    ? difference.direction === "increase"  // For maximize: increase is good
-    : difference.direction === "decrease"; // For minimize: decrease is good
+    // Determine if the change aligns with the optimization target
+    const target = metric.optimizationTarget || "minimize";
+    const isAlignedWithTarget =
+      target === "maximize"
+        ? difference.direction === "increase" // For maximize: increase is good
+        : difference.direction === "decrease"; // For minimize: decrease is good
 
-  // Green if aligned with target, red if not aligned
-  return isAlignedWithTarget ? "#22c55e" : "#ef4444";
-},
+    // Green if aligned with target, red if not aligned
+    return isAlignedWithTarget ? "#22c55e" : "#ef4444";
+  },
 
   /**
    * Infer unit from metric name/type (basic heuristics)

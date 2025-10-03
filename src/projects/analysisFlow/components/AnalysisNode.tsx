@@ -25,8 +25,12 @@ import {
 export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
   const analysis = data as unknown as Analysis & { onAnimateNode?: () => void };
   const nodeStatus = analysis.status;
+  const isSharedStepRunning = analysis.sharedStepRunning || false;
 
   const getStatusIcon = () => {
+    if (isSharedStepRunning) {
+      return <LoaderCircle size={14} className="spin" />;
+    }
     switch (analysis.status) {
       case "running":
         return <LoaderCircle size={14} className="spin" />;
@@ -79,6 +83,7 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
     <NodeContainer
       $status={nodeStatus}
       $isActive={analysis.status === "running"}
+      $isSharedStepRunning={isSharedStepRunning}
     >
       <Handle
         type="target"
@@ -110,8 +115,83 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
 
       {/* Main Content */}
       <NodeBody>
+        {/* SHARED STEP RUNNING STATE (when another analysis is running our shared step) */}
+        {isSharedStepRunning && nodeStatus === "pending" && analysis.steps && (
+          <SharedStepContent>
+            <SharedStepLabel>
+              <ActivityIndicator>
+                <LoaderCircle size={10} className="spin" />
+              </ActivityIndicator>
+              Shared Preprocessing Active
+            </SharedStepLabel>
+            
+            <StepsFlow>
+              {analysis.steps.map((step, index) => {
+                const isCompleted = step.status === "completed";
+                const isActive = step.status === "running";
+                const isPending = step.status === "pending";
+                const isLast = index === analysis.steps!.length - 1;
+                
+                return (
+                  <StepFlowItem key={step.id} $isLast={isLast}>
+                    <StepNode 
+                      $isCompleted={isCompleted}
+                      $isActive={isActive}
+                      $isPending={isPending}
+                      $isShared={index === 0 && isActive}
+                    >
+                      {isCompleted ? (
+                        <CheckMark>✓</CheckMark>
+                      ) : isActive ? (
+                        <ActivityIndicator>
+                          <LoaderCircle size={8} className="spin" />
+                        </ActivityIndicator>
+                      ) : (
+                        <StepNumber>{index + 1}</StepNumber>
+                      )}
+                    </StepNode>
+                    
+                    <StepContent>
+                      <StepFlowLabel 
+                        $isCompleted={isCompleted}
+                        $isActive={isActive}
+                        $isPending={isPending}
+                        $isShared={index === 0 && isActive}
+                      >
+                        {step.name}
+                        {index === 0 && isActive && <SharedBadge>(Shared)</SharedBadge>}
+                      </StepFlowLabel>
+                      {isActive && step.progress !== undefined && (
+                        <MiniProgressBar>
+                          <MiniProgressFill $progress={step.progress} $isShared={true} />
+                        </MiniProgressBar>
+                      )}
+                    </StepContent>
+                    
+                    {!isLast && (
+                      <StepConnector 
+                        $isCompleted={isCompleted}
+                        $isActive={index === (analysis.currentStepIndex || 0) - 1}
+                      />
+                    )}
+                  </StepFlowItem>
+                );
+              })}
+            </StepsFlow>
+            
+            <SharedInfo>
+              <InfoIcon>
+                <GitBranch size={10} />
+              </InfoIcon>
+              <InfoText>
+                Preprocessing shared with other analyses
+              </InfoText>
+            </SharedInfo>
+          </SharedStepContent>
+        )}
+
         {/* PENDING STATE */}
-        {nodeStatus === "pending" && (
+        {nodeStatus === "pending" && !isSharedStepRunning && (
           <PendingContent>
             <InfoSection>
               <InfoLabel>Requirements</InfoLabel>
@@ -370,9 +450,11 @@ const progressAnimation = keyframes`
 const NodeContainer = styled.div<{
   $status: string;
   $isActive?: boolean;
+  $isSharedStepRunning?: boolean;
 }>`
   position: relative;
   background: ${(props) => {
+    if (props.$isSharedStepRunning) return "var(--bg-tertiary)";
     switch (props.$status) {
       case "completed":
         return "linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%)";
@@ -386,6 +468,7 @@ const NodeContainer = styled.div<{
   }};
   border: 2px solid
     ${(props) => {
+      if (props.$isSharedStepRunning) return "var(--accent-secondary)";
       switch (props.$status) {
         case "completed":
           return "var(--success)";
@@ -402,7 +485,11 @@ const NodeContainer = styled.div<{
   max-width: 280px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: ${props => 
+    props.$isSharedStepRunning 
+      ? "0 4px 20px rgba(var(--accent-secondary-rgb), 0.3)"
+      : "0 4px 12px rgba(0, 0, 0, 0.1)"
+  };
   overflow: hidden;
 
   &:hover {
@@ -464,6 +551,7 @@ const StepNode = styled.div<{
   $isCompleted: boolean;
   $isActive: boolean;
   $isPending: boolean;
+  $isShared?: boolean;
 }>`
   width: 14px;
   height: 14px;
@@ -479,17 +567,19 @@ const StepNode = styled.div<{
   margin-top: 2px;
   
   background: ${props => {
+    if (props.$isShared) return 'var(--accent-secondary)';
     if (props.$isCompleted) return 'var(--success)';
     if (props.$isActive) return 'var(--accent-primary)';
     return 'var(--bg-tertiary)';
   }};
   
   color: ${props => {
-    if (props.$isCompleted || props.$isActive) return 'white';
+    if (props.$isCompleted || props.$isActive || props.$isShared) return 'white';
     return 'var(--text-muted)';
   }};
   
   border: 1.5px solid ${props => {
+    if (props.$isShared) return 'var(--accent-secondary)';
     if (props.$isCompleted) return 'var(--success)';
     if (props.$isActive) return 'var(--accent-primary)';
     return 'var(--border-outline)';
@@ -532,16 +622,21 @@ const StepFlowLabel = styled.div<{
   $isCompleted: boolean;
   $isActive: boolean;
   $isPending: boolean;
+  $isShared?: boolean;
 }>`
   font-size: 10px;
-  font-weight: ${props => props.$isActive ? '600' : '500'};
+  font-weight: ${props => props.$isActive || props.$isShared ? '600' : '500'};
   color: ${props => {
+    if (props.$isShared) return 'var(--accent-secondary)';
     if (props.$isCompleted) return 'var(--text-primary)';
     if (props.$isActive) return 'var(--accent-primary)';
     return 'var(--text-muted)';
   }};
   line-height: 1.3;
   transition: color 0.3s ease;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
 `;
 
 const StepConnector = styled.div<{
@@ -571,13 +666,15 @@ const MiniProgressBar = styled.div`
   margin-right: 8px;
 `;
 
-const MiniProgressFill = styled.div<{ $progress: number }>`
+const MiniProgressFill = styled.div<{ $progress: number; $isShared?: boolean }>`
   height: 100%;
   width: ${props => props.$progress}%;
-  background: var(--accent-primary);
+  background: ${props => props.$isShared ? 'var(--accent-secondary)' : 'var(--accent-primary)'};
   border-radius: 2px;
   transition: width 0.3s ease;
-  box-shadow: 0 0 4px rgba(var(--accent-primary-rgb), 0.4);
+  box-shadow: 0 0 4px ${props => props.$isShared 
+    ? 'rgba(var(--accent-secondary-rgb), 0.4)' 
+    : 'rgba(var(--accent-primary-rgb), 0.4)'};
 `;
 
 const CompletedSteps = styled.div`
@@ -1043,4 +1140,47 @@ const RunningIndicator = styled.div`
   font-weight: 600;
   color: var(--accent-primary);
   flex: 1;
+`;
+
+// Add these styled components after the existing ones
+
+const SharedStepContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const SharedStepLabel = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-secondary);
+  padding: 6px 8px;
+  background: rgba(var(--accent-secondary-rgb), 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(var(--accent-secondary-rgb), 0.2);
+`;
+
+const SharedBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--accent-secondary);
+  padding: 2px 4px;
+  background: rgba(var(--accent-secondary-rgb), 0.15);
+  border-radius: 3px;
+`;
+
+const SharedInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(var(--accent-secondary-rgb), 0.05);
+  border-radius: 6px;
+  border: 1px solid rgba(var(--accent-secondary-rgb), 0.2);
 `;
