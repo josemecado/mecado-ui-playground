@@ -6,11 +6,15 @@ import {
   Analysis,
   Requirement,
 } from "../versionNodes/utils/VersionInterfaces";
+
+import { useAnalysisAnimation } from "./hooks/useAnalysisAnimation";
+
 import { AnalysisToolbar } from "./components/AnalysisFlowToolbar";
 import { AnalysisGroupsOverview } from "./components/AnalysisGroupOverview";
 import { AnalysisDetailFlow } from "./components/AnalysisDetailFlow";
+
+import { AnimationDebugPanel } from "./components/AnimationDebugPanel";
 import { RequirementsModal } from "./components/requirements/RequirementsModal";
-import { useAnalysisAnimation } from "./hooks/useAnalysisAnimation";
 
 interface ProjectAnalysisFlowProps {
   analysisGroups: AnalysisGroup[];
@@ -37,6 +41,7 @@ export const ProjectAnalysisFlow: React.FC<ProjectAnalysisFlowProps> = ({
     : null;
 
   const [showRequirements, setShowRequirements] = useState(true);
+  const [showDebug, setShowDebug] = useState(true); // Or control this however you want
 
   // Single animation instance at parent level - handles ALL animations
   const animation = useAnalysisAnimation({
@@ -107,6 +112,15 @@ export const ProjectAnalysisFlow: React.FC<ProjectAnalysisFlowProps> = ({
           <RequirementsModal
             analysisGroups={analysisGroups}
             selectedGroup={selectedGroup}
+          />
+        )}
+
+        {showDebug && (
+          <AnimationDebugPanel
+            currentStepInfo={animation.currentStepInfo}
+            currentAnalysisId={animation.currentAnalysisId}
+            currentGroupId={animation.currentGroupId}
+            isRunning={animation.isRunning}
           />
         )}
 

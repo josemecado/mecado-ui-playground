@@ -25,10 +25,14 @@ import {
   Activity,
 } from "lucide-react";
 
+import { CurrentStepInfo } from "../../versionNodes/utils/VersionInterfaces";
+
 export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
   const analysis = data as unknown as Analysis & {
     onAnimateNode?: () => void;
     isGhostNode?: boolean;
+    ghostGroupName?: string; // NEW
+    currentStepInfo?: CurrentStepInfo | null;
   };
   const nodeStatus = analysis.status;
   const isSharedStepRunning = analysis.sharedStepRunning || false;
@@ -99,7 +103,11 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
           <HeaderText>
             <AnalysisName>{analysis.name}</AnalysisName>
             <AnalysisType>
-              {isGhost ? "From Other Group" : "Analysis"}
+              {isGhost && analysis.ghostGroupName 
+                ? `From ${analysis.ghostGroupName}` 
+                : isGhost 
+                ? "From Other Group" 
+                : "Analysis"}
             </AnalysisType>
           </HeaderText>
         </HeaderLeft>

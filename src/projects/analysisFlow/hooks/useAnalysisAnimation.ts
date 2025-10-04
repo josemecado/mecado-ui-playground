@@ -42,9 +42,12 @@ export const useAnalysisAnimation = ({
   onAnimationComplete,
 }: UseAnalysisAnimationProps): UseAnalysisAnimationReturn => {
   const [isRunning, setIsRunning] = useState(false);
-  const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
+  const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(
+    null
+  );
   const [currentGroupId, setCurrentGroupId] = useState<string | null>(null);
-  const [currentStepInfo, setCurrentStepInfo] = useState<CurrentStepInfo | null>(null);
+  const [currentStepInfo, setCurrentStepInfo] =
+    useState<CurrentStepInfo | null>(null);
 
   const currentGroupRef = useRef<AnalysisGroup | undefined>(analysisGroup);
   const allGroupsRef = useRef<AnalysisGroup[]>(analysisGroups || []);
@@ -142,9 +145,11 @@ export const useAnalysisAnimation = ({
     groupId?: string
   ): Promise<void> => {
     return new Promise((resolve) => {
-      console.log(`\n🎬 [STEP START] Analysis: ${analysisId}, Step: ${stepIndex}`);
+      console.log(
+        `\n🎬 [STEP START] Analysis: ${analysisId}, Step: ${stepIndex}`
+      );
 
-      const stepDuration = 800;
+      const stepDuration = 2000;
       const progressSteps = 20;
       const progressInterval = stepDuration / progressSteps;
       let currentProgress = 0;
@@ -153,23 +158,36 @@ export const useAnalysisAnimation = ({
         ? allGroupsRef.current
         : [currentGroupRef.current!];
 
-      const sharedAnalyses = findSharedAnalyses(analysisId, stepIndex, allGroups);
+      const sharedAnalyses = findSharedAnalyses(
+        analysisId,
+        stepIndex,
+        allGroupsRef.current
+      );
 
       const primaryAnalysis = allGroups
         .flatMap((g) => g.analyses)
         .find((a) => a.id === analysisId);
-      
-      const stepName = primaryAnalysis?.steps?.[stepIndex]?.name || DEFAULT_ANALYSIS_STEPS[stepIndex].name;
-      
+
+      const stepName =
+        primaryAnalysis?.steps?.[stepIndex]?.name ||
+        DEFAULT_ANALYSIS_STEPS[stepIndex].name;
+
       const sharedStepId = primaryAnalysis?.sharedSteps?.find(
         (s) => s.stepIndex === stepIndex
       )?.sharedStepId;
 
       // Check if already completed
       if (sharedStepId) {
-        const isThisPrimary = isPrimaryForSharedStep(analysisId, stepIndex, allGroups);
+        const isThisPrimary = isPrimaryForSharedStep(
+          analysisId,
+          stepIndex,
+          allGroups
+        );
 
-        if (!isThisPrimary && completedSharedStepsRef.current.has(sharedStepId)) {
+        if (
+          !isThisPrimary &&
+          completedSharedStepsRef.current.has(sharedStepId)
+        ) {
           console.log(`  ⏭️  SKIPPING - Step already completed by primary`);
 
           const targetGroup = groupId
@@ -222,17 +240,18 @@ export const useAnalysisAnimation = ({
         stepIndex,
         stepName,
         isSharedStep,
-        sharedWithAnalysisIds: sharedAnalyses.map(sa => sa.analysis.id),
+        sharedWithAnalysisIds: sharedAnalyses.map((sa) => sa.analysis.id),
         progress: 0,
-        status: 'running'
+        status: "running",
       };
-      
+
       setCurrentStepInfo(newStepInfo);
 
       // Update analyses to show step as running
       const analysesToUpdate = [
         { analysisId, groupId: groupId || "" },
-        ...(sharedStepId && isPrimaryForSharedStep(analysisId, stepIndex, allGroups)
+        ...(sharedStepId &&
+        isPrimaryForSharedStep(analysisId, stepIndex, allGroups)
           ? sharedAnalyses.map((sa) => ({
               analysisId: sa.analysis.id,
               groupId: sa.groupId,
@@ -240,7 +259,9 @@ export const useAnalysisAnimation = ({
           : []),
       ];
 
-      console.log(`  🔄 Updating ${analysesToUpdate.length} analyses simultaneously`);
+      console.log(
+        `  🔄 Updating ${analysesToUpdate.length} analyses simultaneously`
+      );
 
       analysesToUpdate.forEach(({ analysisId: aId, groupId: gId }) => {
         const targetGroup = gId
@@ -260,12 +281,18 @@ export const useAnalysisAnimation = ({
                 } else if (idx === stepIndex) {
                   return { ...s, status: "running" as const, progress: 0 };
                 } else {
-                  return { ...s, status: "pending" as const, progress: undefined };
+                  return {
+                    ...s,
+                    status: "pending" as const,
+                    progress: undefined,
+                  };
                 }
               });
 
               const isPrimary = aId === analysisId;
-              const newStatus = isPrimary ? ("running" as const) : ("pending" as const);
+              const newStatus = isPrimary
+                ? ("running" as const)
+                : ("pending" as const);
 
               return {
                 ...a,
@@ -306,7 +333,9 @@ export const useAnalysisAnimation = ({
         }
 
         // Update currentStepInfo progress
-        setCurrentStepInfo(prev => prev ? { ...prev, progress: currentProgress } : null);
+        setCurrentStepInfo((prev) =>
+          prev ? { ...prev, progress: currentProgress } : null
+        );
 
         // Update progress for all analyses with this shared step
         analysesToUpdate.forEach(({ analysisId: aId, groupId: gId }) => {
@@ -323,11 +352,23 @@ export const useAnalysisAnimation = ({
                 const steps = a.steps || createFreshSteps();
                 const updatedSteps = steps.map((s, idx) => {
                   if (idx < stepIndex) {
-                    return { ...s, status: "completed" as const, progress: 100 };
+                    return {
+                      ...s,
+                      status: "completed" as const,
+                      progress: 100,
+                    };
                   } else if (idx === stepIndex) {
-                    return { ...s, status: "running" as const, progress: Math.round(currentProgress) };
+                    return {
+                      ...s,
+                      status: "running" as const,
+                      progress: Math.round(currentProgress),
+                    };
                   } else {
-                    return { ...s, status: "pending" as const, progress: undefined };
+                    return {
+                      ...s,
+                      status: "pending" as const,
+                      progress: undefined,
+                    };
                   }
                 });
 
@@ -375,14 +416,24 @@ export const useAnalysisAnimation = ({
                     const steps = a.steps || createFreshSteps();
                     const updatedSteps = steps.map((s, idx) => {
                       if (idx <= stepIndex) {
-                        return { ...s, status: "completed" as const, progress: 100 };
+                        return {
+                          ...s,
+                          status: "completed" as const,
+                          progress: 100,
+                        };
                       } else {
-                        return { ...s, status: "pending" as const, progress: undefined };
+                        return {
+                          ...s,
+                          status: "pending" as const,
+                          progress: undefined,
+                        };
                       }
                     });
 
                     const isPrimary = aId === analysisId;
-                    const newStatus: Analysis["status"] = isPrimary ? "running" : "pending";
+                    const newStatus: Analysis["status"] = isPrimary
+                      ? "running"
+                      : "pending";
 
                     return {
                       ...a,
@@ -392,7 +443,9 @@ export const useAnalysisAnimation = ({
                       sharedStepsCompleted: isPrimary
                         ? a.sharedStepsCompleted
                         : [...(a.sharedStepsCompleted || []), stepIndex],
-                      progress: Math.round(((stepIndex + 1) / steps.length) * 100),
+                      progress: Math.round(
+                        ((stepIndex + 1) / steps.length) * 100
+                      ),
                     };
                   }
                   return a;
@@ -410,13 +463,18 @@ export const useAnalysisAnimation = ({
               }
             });
 
-            if (sharedStepId && isPrimaryForSharedStep(analysisId, stepIndex, allGroups)) {
+            if (
+              sharedStepId &&
+              isPrimaryForSharedStep(analysisId, stepIndex, allGroups)
+            ) {
               completedSharedStepsRef.current.add(sharedStepId);
             }
 
             // Clear currentStepInfo when step completes
             setCurrentStepInfo(null);
-            console.log(`🏁 [STEP END] Analysis: ${analysisId}, Step: ${stepIndex}\n`);
+            console.log(
+              `🏁 [STEP END] Analysis: ${analysisId}, Step: ${stepIndex}\n`
+            );
             resolve();
           }, 100);
         }
@@ -516,23 +574,23 @@ export const useAnalysisAnimation = ({
         );
 
         // NOW set it to running
-const runningGroup = {
-  ...resetGroup,
-  status: "running" as const,
-  analyses: resetGroup.analyses.map((a) =>
-    a.id === analysisId
-      ? {
-          ...a,
+        const runningGroup = {
+          ...resetGroup,
           status: "running" as const,
-          progress: 0,
-          steps: initialSteps,
-          currentStepIndex: 0,
-          // Set sharedStepRunning if the first step is shared
-          sharedStepRunning: hasSharedFirstStep || false,
-        }
-      : a
-  ),
-};
+          analyses: resetGroup.analyses.map((a) =>
+            a.id === analysisId
+              ? {
+                  ...a,
+                  status: "running" as const,
+                  progress: 0,
+                  steps: initialSteps,
+                  currentStepIndex: 0,
+                  // Set sharedStepRunning if the first step is shared
+                  sharedStepRunning: hasSharedFirstStep || false,
+                }
+              : a
+          ),
+        };
         if (groupId) {
           allGroupsRef.current = allGroupsRef.current.map((g) =>
             g.id === groupId ? runningGroup : g

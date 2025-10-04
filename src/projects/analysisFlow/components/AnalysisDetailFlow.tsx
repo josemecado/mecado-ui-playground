@@ -118,6 +118,7 @@ export const AnalysisDetailFlow: React.FC<AnalysisDetailFlowProps> = ({
   }, [analysisGroup.analyses]);
 
   // Update nodes whenever analysisGroup changes OR the analyses state changes
+
   useEffect(() => {
     const analysisSpacing = 300;
     const startX = 200;
@@ -133,12 +134,12 @@ export const AnalysisDetailFlow: React.FC<AnalysisDetailFlowProps> = ({
       },
       data: {
         ...analysis,
-        currentStepInfo, // Pass it down
+        currentStepInfo,
         _updateKey: `${analysis.id}-${currentStepInfo?.stepIndex}-${currentStepInfo?.progress}`,
       },
     }));
 
-    // Ghost nodes logic...
+    // Ghost nodes with intelligent placement
     if (currentAnalysisId && isAnimating) {
       const sharedAnalyses =
         findSharedAnalysesFromOtherGroups(currentAnalysisId);
@@ -148,24 +149,92 @@ export const AnalysisDetailFlow: React.FC<AnalysisDetailFlowProps> = ({
 
       if (currentAnalysisIndex !== -1 && sharedAnalyses.length > 0) {
         const currentNodeX = startX + currentAnalysisIndex * analysisSpacing;
-        const ghostNodeY = centerY + 180;
 
-        const ghostNodes: Node[] = sharedAnalyses.map((analysis, index) => ({
-          id: `ghost-${analysis.id}`,
-          type: "analysis",
-          position: {
-            x: currentNodeX + (index - sharedAnalyses.length / 2 + 0.5) * 200,
-            y: ghostNodeY,
-          },
-          data: {
-            ...analysis,
-            isGhostNode: true,
-          },
-          style: {
-            opacity: 0.6,
-            pointerEvents: "none" as const,
-          },
-        }));
+        // Group shared analyses by their group
+        const analysesByGroup = new Map<
+          string,
+          { analysis: Analysis; groupName: string }[]
+        >();
+
+        sharedAnalyses.forEach((analysis) => {
+          // Find which group this analysis belongs to
+          const group = allAnalysisGroups.find((g) =>
+            g.analyses.some((a) => a.id === analysis.id)
+          );
+
+          if (group) {
+            if (!analysesByGroup.has(group.id)) {
+              analysesByGroup.set(group.id, []);
+            }
+            analysesByGroup.get(group.id)!.push({
+              analysis,
+              groupName: group.name,
+            });
+          }
+        });
+
+        const ghostNodes: Node[] = [];
+        let groupIndex = 0;
+
+        analysesByGroup.forEach((groupAnalyses, groupId) => {
+          const verticalSpacing = 350;
+          const horizontalSpacing = 250;
+
+          groupAnalyses.forEach((item, analysisIndex) => {
+            // Intelligent placement strategy:
+            // 1. Place groups vertically (above/below alternating)
+            // 2. Within each group, spread horizontally
+            // 3. Avoid overlapping with main nodes
+
+            const isAbove = groupIndex % 2 === 0;
+            const verticalOffset = isAbove
+              ? -(verticalSpacing + Math.floor(groupIndex / 2) * 60)
+              : verticalSpacing + Math.floor(groupIndex / 2) * 60;
+
+            // Calculate x position to avoid main nodes
+            let xPosition = currentNodeX;
+
+            // If multiple analyses in group, spread them out
+            if (groupAnalyses.length > 1) {
+              const spread =
+                (analysisIndex - (groupAnalyses.length - 1) / 2) *
+                horizontalSpacing;
+              xPosition += spread;
+
+              // Check if this would overlap with a main node and adjust
+              const mainNodeXPositions = mainNodes.map((n) => n.position.x);
+              const threshold = 100; // Minimum distance from main nodes
+
+              for (const mainX of mainNodeXPositions) {
+                if (Math.abs(xPosition - mainX) < threshold) {
+                  // Shift to avoid overlap
+                  xPosition =
+                    mainX < xPosition ? mainX + threshold : mainX - threshold;
+                }
+              }
+            }
+
+            ghostNodes.push({
+              id: `ghost-${item.analysis.id}`,
+              type: "analysis",
+              position: {
+                x: xPosition,
+                y: centerY + verticalOffset,
+              },
+              data: {
+                ...item.analysis,
+                isGhostNode: true,
+                ghostGroupName: item.groupName, // Add group name to data
+              },
+              style: {
+                opacity: 0.6,
+                pointerEvents: "none" as const,
+              },
+            });
+          });
+
+          groupIndex++;
+        });
 
         setNodes([...mainNodes, ...ghostNodes]);
         return;
@@ -180,6 +249,8 @@ export const AnalysisDetailFlow: React.FC<AnalysisDetailFlowProps> = ({
     findSharedAnalysesFromOtherGroups,
     setNodes,
     analysisGroup.id,
+    currentStepInfo,
+    allAnalysisGroups, // Add this dependency
   ]);
 
   // Update edges whenever analysisGroup or animation state changes
