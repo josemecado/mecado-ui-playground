@@ -120,7 +120,7 @@ export const AnalysisDetailFlow: React.FC<AnalysisDetailFlowProps> = ({
   // Update nodes whenever analysisGroup changes OR the analyses state changes
 
   useEffect(() => {
-    const analysisSpacing = 300;
+    const analysisSpacing = 350;
     const startX = 200;
     const centerY = 250;
 
