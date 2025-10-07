@@ -80,7 +80,7 @@ const CardHeader = styled.div`
   align-items: center;
   padding: 10px 12px;
   background: var(--bg-tertiary);
-  border-bottom: 1px solid var(--border-bg);
+  border-bottom: 1px solid var(--border-outline);
 `;
 
 const HeaderLeft = styled.div`

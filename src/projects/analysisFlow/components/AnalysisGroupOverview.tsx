@@ -181,11 +181,7 @@ const OverviewContainer = styled.div`
   height: 100%;
   position: relative;
 
-  background: linear-gradient(
-    135deg,
-    var(--bg-primary) 0%,
-    var(--bg-secondary) 100%
-  );
+  background: var(--bg-primary);
 `;
 
 const FlowWrapper = styled.div`

@@ -7,10 +7,10 @@ import {
   AnalysisGroup,
 } from "../../../nodeVisuals/versionNodes/utils/VersionInterfaces";
 import { RequirementsBuilder } from "./RequirementsBuilder";
-import { AnalysesBuilder } from "./AnalysesBuilder";
-import { GroupsBuilder } from "./GroupsBuilder";
-import { X, CheckCircle, Settings, Layers } from "lucide-react";
+import { CheckCircle, Layers } from "lucide-react";
 import { useTheme } from "../../../../utilities/ThemeContext";
+
+import { AnalysisGroupBuilder } from "./AnalysisGroupBuilder";
 
 interface AnalysisSetupBuilderProps {
   onClose: () => void;
@@ -57,19 +57,13 @@ export const AnalysisSetupBuilder: React.FC<AnalysisSetupBuilderProps> = ({
         count: requirements.length,
       },
       {
-        id: "analyses" as PanelTab,
-        label: "Analyses",
-        icon: <Settings size={14} />,
-        count: analyses.length,
-      },
-      {
         id: "groups" as PanelTab,
-        label: "Groups",
+        label: "Analysis Groups",
         icon: <Layers size={14} />,
         count: groups.length,
       },
     ],
-    [requirements.length, analyses.length, groups.length]
+    [requirements.length, groups.length]
   );
 
   const canSave =
@@ -100,17 +94,10 @@ export const AnalysisSetupBuilder: React.FC<AnalysisSetupBuilderProps> = ({
             onChange={setRequirements}
           />
         )}
-        {activeTab === "analyses" && (
-          <AnalysesBuilder
-            analyses={analyses}
-            requirements={requirements}
-            onChange={setAnalyses}
-          />
-        )}
         {activeTab === "groups" && (
-          <GroupsBuilder
+          <AnalysisGroupBuilder
             groups={groups}
-            analyses={analyses}
+            requirements={requirements}
             onChange={setGroups}
           />
         )}
@@ -156,11 +143,13 @@ const TabBar = styled.div`
   display: flex;
   justify-content: space-between;
   gap: 8px;
+  width: 100%;
 `;
 
-const HeaderSection = styled.div<{ $theme: "light" | "dark"}>`
+const HeaderSection = styled.div<{ $theme: "light" | "dark" }>`
   display: flex;
-  background-color: ${props => props.$theme === "dark" ? "var(--bg-shadow)" : "var(--bg-secondary)"};
+  background-color: ${(props) =>
+    props.$theme === "dark" ? "var(--bg-shadow)" : "var(--bg-secondary)"};
   padding: 16px 16px 0 16px;
 `;
 
@@ -168,6 +157,7 @@ const Tab = styled.button<{ $active: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
   gap: 6px;
   padding: 10px 12px;
   background: ${(props) =>
@@ -248,7 +238,7 @@ const FooterButton = styled.button<{ $variant: "primary" | "secondary" }>`
     props.$variant === "primary"
       ? `
     background: var(--accent-primary);
-    color: var(--text-inverted);
+    color: white;
     
     &:hover:not(:disabled) {
       background: var(--hover-primary);
@@ -268,5 +258,6 @@ const FooterButton = styled.button<{ $variant: "primary" | "secondary" }>`
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    color: var(--text-muted);
   }
 `;

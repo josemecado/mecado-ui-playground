@@ -88,6 +88,7 @@
 
   --border-bg: var(--theme-lightBorderBg);
   --border-outline: var(--text-muted);
+  --border-soft: var(--accent-primary);
 
   --success: var(--theme-lightSuccess);
   --error: var(--theme-lightError);
@@ -119,6 +120,7 @@
 
   --border-bg: var(--theme-darkBorderBg);
   --border-outline: var(--text-muted);
+  --border-soft: var(--accent-primary);
 
   --success: var(--theme-darkSuccess);
   --error: var(--theme-darkError);

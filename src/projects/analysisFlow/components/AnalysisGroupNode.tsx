@@ -92,7 +92,7 @@ export const AnalysisGroupNode: React.FC<NodeProps> = ({ data }) => {
       {/* Header */}
       <NodeHeader $status={group.status}>
         <HeaderLeft>
-          <GroupIconWrapper>
+          <GroupIconWrapper $status={group.status}>
             <FileChartColumn size={16} />
           </GroupIconWrapper>
           <HeaderText>
@@ -268,20 +268,8 @@ const shimmer = keyframes`
 // Styled Components
 const NodeContainer = styled.div<{ $status: string; $isActive?: boolean }>`
   position: relative;
-  background: ${(props) => {
-    switch (props.$status) {
-      case "passed":
-        return "linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%)";
-      case "failed":
-      case "partial":
-        return "var(--bg-tertiary)";
-      case "running":
-        return "var(--bg-tertiary)";
-      default:
-        return "var(--bg-secondary)";
-    }
-  }};
-  border: 2px solid
+  background: var(--bg-secondary);
+  border: 1px solid
     ${(props) => {
       switch (props.$status) {
         case "passed":
@@ -289,9 +277,9 @@ const NodeContainer = styled.div<{ $status: string; $isActive?: boolean }>`
         case "failed":
           return "var(--error)";
         case "partial":
-          return "var(--accent-primary)";
+          return "var(--caution)";
         case "running":
-          return "var(--accent-primary)";
+          return "var(--primary-alternate)";
         default:
           return "var(--border-outline)";
       }
@@ -348,20 +336,7 @@ const NodeHeader = styled.div<{ $status: string }>`
   justify-content: space-between;
   align-items: center;
   padding: 12px;
-  background: ${(props) => {
-    switch (props.$status) {
-      case "passed":
-        return "rgba(16, 185, 129, 0.1)";
-      case "failed":
-        return "rgba(239, 68, 68, 0.1)";
-      case "partial":
-        return "rgba(var(--accent-primary-rgb), 0.1)";
-      case "running":
-        return "rgba(var(--accent-primary-rgb), 0.1)";
-      default:
-        return "rgba(255, 255, 255, 0.03)";
-    }
-  }};
+  background: var(--bg-tertiary);
 `;
 
 const HeaderLeft = styled.div`
@@ -372,15 +347,30 @@ const HeaderLeft = styled.div`
   min-width: 0;
 `;
 
-const GroupIconWrapper = styled.div`
+const GroupIconWrapper = styled.div<{ $status: string }>`
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  background: var(--primary-alternate);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-inverted);
+
+  background: ${(props) => {
+    switch (props.$status) {
+      case "passed":
+        return "var(--primary-alternate)";
+      case "failed":
+        return "var(--error)";
+      case "partial":
+        return "var(--caution)";
+      case "running":
+        return "var(--accent-primary)";
+      default:
+        return "var(--primary-alternate)";
+    }
+  }};
+  
   flex-shrink: 0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
@@ -525,7 +515,7 @@ const AnalysisBreakdown = styled.div`
   padding: 8px;
   background: var(--bg-secondary);
   border-radius: 6px;
-  border: 1px solid var(--border-bg);
+  border: 1px solid var(--border-soft);
 `;
 
 const BreakdownHeader = styled.div`
