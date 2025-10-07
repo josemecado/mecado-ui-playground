@@ -148,7 +148,7 @@ export const ProjectAnalysisFlow: React.FC<ProjectAnalysisFlowProps> = ({
         )}
 
         {/* Main content area - shrinks when panel is open */}
-        <MainContentArea $panelOpen={showBuilder}>
+        <FlowContent>
           {selectedGroup ? (
             <AnalysisDetailFlow
               key={`${selectedGroup.id}-detail`}
@@ -167,17 +167,18 @@ export const ProjectAnalysisFlow: React.FC<ProjectAnalysisFlowProps> = ({
               currentAnalysisId={animation.currentAnalysisId}
             />
           )}
-        </MainContentArea>
+        </FlowContent>
 
-        {/* Panel slides in from right */}
         {showBuilder && (
-          <AnalysisSetupBuilder
-            onClose={handleCloseBuilder}
-            onSave={handleSaveBuilder}
-            initialRequirements={requirements}
-            initialGroups={analysisGroups}
-            mode="edit"
-          />
+          <ConfigPanel>
+            <AnalysisSetupBuilder
+              onClose={handleCloseBuilder}
+              onSave={handleSaveBuilder}
+              initialRequirements={requirements}
+              initialGroups={analysisGroups}
+              mode="edit"
+            />
+          </ConfigPanel>
         )}
       </ViewContainer>
     </MainContainer>
@@ -193,17 +194,26 @@ const MainContainer = styled.div`
   position: relative;
 `;
 
-// Add this styled component
-const MainContentArea = styled.div<{ $panelOpen: boolean }>`
-  flex: 1;
+const FlowContent = styled.div`
+  flex: 3 1 0;
   display: flex;
   transition: all 0.3s ease;
   overflow: hidden;
 `;
 
-const ViewContainer = styled.div`
-  flex: 1;
+const ConfigPanel = styled.div`
   display: flex;
+  flex: 1 1 0;
+  min-width: 400px;
+
+  transition: all 0.3s ease;
+  overflow: hidden;
+`;
+
+const ViewContainer = styled.div`
+  display: flex;
+  height: 100%;
+  width: 100%;
   position: relative;
   overflow: hidden;
 `;

@@ -132,11 +132,11 @@ export const AnalysisSetupBuilder: React.FC<AnalysisSetupBuilderProps> = ({
 
 // Styled Components - REMOVED OVERLAY
 const PanelContainer = styled.div`
-  width: 500px;
-  background: var(--bg-primary);
-  border-left: 1px solid var(--border-bg);
   display: flex;
   flex-direction: column;
+  width: 100%;
+  background: var(--bg-primary);
+  border-left: 1px solid var(--border-bg);
   z-index: 1000;
 
   @keyframes slideIn {
@@ -155,16 +155,18 @@ const PanelHeader = styled.div`
 
 const TabBar = styled.div`
   display: flex;
+  justify-content: space-evenly;
   padding: 12px 12px 0 12px;
   gap: 8px;
 `;
 
 const Tab = styled.button<{ $active: boolean }>`
   display: flex;
-  width: 100%;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 10px 16px;
+  padding: 10px 12px;
+  width: 100%;
   background: ${(props) =>
     props.$active ? "var(--accent-primary)" : "var(--bg-tertiary)"};
   border: none;
