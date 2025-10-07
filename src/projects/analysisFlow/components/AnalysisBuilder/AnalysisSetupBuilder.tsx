@@ -161,7 +161,7 @@ const TabBar = styled.div`
 const HeaderSection = styled.div<{ $theme: "light" | "dark"}>`
   display: flex;
   background-color: ${props => props.$theme === "dark" ? "var(--bg-shadow)" : "var(--bg-secondary)"};
-  padding: 12px 12px 0 12px;
+  padding: 16px 16px 0 16px;
 `;
 
 const Tab = styled.button<{ $active: boolean }>`
@@ -223,7 +223,7 @@ const TabCount = styled.span`
 const PanelContent = styled.div`
   flex: 1;
   overflow-y: auto;
-  padding: 12px 12px 0 12px;
+  padding: 16px 16px 0 16px;
 `;
 
 const PanelFooter = styled.div`
