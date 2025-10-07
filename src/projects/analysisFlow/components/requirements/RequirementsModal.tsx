@@ -1,10 +1,7 @@
 // components/RequirementsModal.tsx
 import React, { useState, useMemo } from "react";
 import styled from "styled-components";
-import {
-  Requirement,
-  AnalysisGroup,
-} from "../../../versionNodes/utils/VersionInterfaces";
+import { AnalysisGroup } from "../../../nodeVisuals/versionNodes/utils/VersionInterfaces";
 import { RequirementCell } from "./RequirementCell";
 import {
   CheckCircle,

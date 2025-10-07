@@ -2,7 +2,7 @@
 import React from "react";
 import { Handle, NodeProps, Position } from "@xyflow/react";
 import styled, { keyframes, css } from "styled-components";
-import { AnalysisGroup } from "../../versionNodes/utils/VersionInterfaces";
+import { AnalysisGroup } from "../../nodeVisuals/versionNodes/utils/VersionInterfaces";
 import {
   Activity,
   CheckCircle,

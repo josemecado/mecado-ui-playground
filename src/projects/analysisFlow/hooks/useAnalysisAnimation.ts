@@ -626,7 +626,8 @@ export const useAnalysisAnimation = ({
         }
 
         // Generate metrics and evaluate requirements
-        const metrics = getMockMetricsForAnalysis(analysisId);
+        const metrics = getMockMetricsForAnalysis(analysisId, analysis.type);
+
         const updatedRequirements = evaluateRequirementsWithMockData(analysis);
 
         const hasFailed = updatedRequirements

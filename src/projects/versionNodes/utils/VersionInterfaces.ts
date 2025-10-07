@@ -1,10 +1,5 @@
 // VersionInterfaces.ts - Generic dynamic metric support
-import { Equation } from "../../../reusable-components/models/vulcanModels";
-
-interface FileItem {
-  name: string;
-  path: string;
-}
+import { Equation, FileItem } from "../../../reusable-components/models/vulcanModels";
 
 // Geometry interfaces (matching GeoNode structure)
 export interface GeometryData {
@@ -136,20 +131,40 @@ export interface ProjectVersion {
   };
 }
 
-// NEW: Requirement interface for pass/fail criteria
+export interface RequirementEvaluationScope {
+  type: "analysis" | "group" | "project";
+  targetAnalysisIds?: string[]; // If type="analysis"
+  targetGroupIds?: string[];     // If type="group"
+}
+
+// UPDATED Requirement interface
 export interface Requirement {
   id: string;
   name: string;
   description: string;
+  
+  // Expression-based instead of just targetValue
+  expression: string; // e.g., "T_max" or "T_max / T_melting"
+  comparator: ">" | "<" | ">=" | "<=" | "==" | "!=";
   targetValue: number;
   unit: string;
-  comparator: ">" | "<" | ">=" | "<=" | "==" | "!=";
-  category: string; // Changed to generic string ✅
+  
+  // Evaluation scope
+  evaluationScope: RequirementEvaluationScope;
+  
+  category: string;
   priority: "critical" | "important" | "standard";
 
   // For tracking actual values
   currentValue?: number;
   status?: "pass" | "fail" | "pending";
+  
+  // Placeholders used in expression (for complex requirements)
+  metricPlaceholders?: Array<{
+    placeholder: string;
+    metricType: string;
+    valueLabel?: string; // "Maximum", "Minimum", etc.
+  }>;
 }
 
 // NEW: Analysis Group interface
@@ -430,3 +445,4 @@ export const MetricUtils = {
     }
   },
 };
+

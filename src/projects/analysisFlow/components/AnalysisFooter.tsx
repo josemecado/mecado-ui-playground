@@ -4,7 +4,7 @@ import styled from "styled-components";
 import {
   Analysis,
   Requirement,
-} from "../../versionNodes/utils/VersionInterfaces";
+} from "../../nodeVisuals/versionNodes/utils/VersionInterfaces";
 import {
   AlertTriangle,
   Clock,

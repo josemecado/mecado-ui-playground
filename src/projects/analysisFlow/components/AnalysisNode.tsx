@@ -5,7 +5,7 @@ import styled, { keyframes } from "styled-components";
 import {
   Analysis,
   CurrentStepInfo,
-} from "../../versionNodes/utils/VersionInterfaces";
+} from "../../nodeVisuals/versionNodes/utils/VersionInterfaces";
 import {
   LoaderCircle,
   CheckCircle,

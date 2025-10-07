@@ -12,7 +12,7 @@ import {
   Activity,
   Calculator,
 } from "lucide-react";
-import { Analysis, AnalysisStep, CurrentStepInfo } from "../../../versionNodes/utils/VersionInterfaces";
+import { Analysis, AnalysisStep, CurrentStepInfo } from "../../../nodeVisuals/versionNodes/utils/VersionInterfaces";
 import { getCurrentStepForNode } from "./analysisNodeState";
 
 interface ContentProps {

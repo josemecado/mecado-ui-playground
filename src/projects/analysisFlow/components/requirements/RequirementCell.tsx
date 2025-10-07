@@ -1,7 +1,7 @@
 // components/RequirementCell.tsx
 import React from "react";
 import styled from "styled-components";
-import { Requirement } from "../../../versionNodes/utils/VersionInterfaces";
+import { Requirement } from "../../../nodeVisuals/versionNodes/utils/VersionInterfaces";
 import { CheckCircle, XCircle, Clock } from "lucide-react";
 
 interface RequirementCellProps {

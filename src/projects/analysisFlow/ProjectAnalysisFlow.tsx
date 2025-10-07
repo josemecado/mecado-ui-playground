@@ -5,7 +5,7 @@ import {
   AnalysisGroup,
   Analysis,
   Requirement,
-} from "../versionNodes/utils/VersionInterfaces";
+} from "../nodeVisuals/versionNodes/utils/VersionInterfaces";
 
 import { useAnalysisAnimation } from "./hooks/useAnalysisAnimation";
 
@@ -15,35 +15,39 @@ import { AnalysisDetailFlow } from "./components/AnalysisDetailFlow";
 
 import { AnimationDebugPanel } from "./components/AnimationDebugPanel";
 import { RequirementsModal } from "./components/requirements/RequirementsModal";
+import { AnalysisSetupBuilder } from "./components/AnalysisBuilder/AnalysisSetupBuilder";
 
 interface ProjectAnalysisFlowProps {
   analysisGroups: AnalysisGroup[];
   requirements: Requirement[];
-  activeVersionId: string;
   onAnalysisClick?: (analysis: Analysis) => void;
-  onRequirementsClick?: () => void;
-  onRefreshAnalyses?: () => void;
   onUpdateGroup: (groupId: string, updatedGroup: AnalysisGroup) => void;
+  onSaveConfiguration: (config: {
+    requirements: Requirement[];
+    analysisGroups: AnalysisGroup[];
+  }) => void;
+  projectId: string;
+  versionId: string;
 }
 
 export const ProjectAnalysisFlow: React.FC<ProjectAnalysisFlowProps> = ({
   analysisGroups,
   requirements,
-  activeVersionId,
   onAnalysisClick,
-  onRequirementsClick,
-  onRefreshAnalyses,
   onUpdateGroup,
+  onSaveConfiguration,
+  projectId,
+  versionId,
 }) => {
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [showBuilder, setShowBuilder] = useState(false);
+  const [showDebug, setShowDebug] = useState(true);
+
   const selectedGroup = selectedGroupId
     ? analysisGroups.find((g) => g.id === selectedGroupId) || null
     : null;
 
-  const [showRequirements, setShowRequirements] = useState(true);
-  const [showDebug, setShowDebug] = useState(true); // Or control this however you want
-
-  // Single animation instance at parent level - handles ALL animations
+  // Single animation instance - handles ALL animations
   const animation = useAnalysisAnimation({
     analysisGroup: selectedGroup || undefined,
     analysisGroups: analysisGroups,
@@ -89,6 +93,25 @@ export const ProjectAnalysisFlow: React.FC<ProjectAnalysisFlowProps> = ({
     animation.resetAnimation();
   }, [animation]);
 
+  const handleOpenBuilder = useCallback(() => {
+    setShowBuilder(true);
+  }, []);
+
+  const handleCloseBuilder = useCallback(() => {
+    setShowBuilder(false);
+  }, []);
+
+  const handleSaveBuilder = useCallback(
+    (config: {
+      requirements: Requirement[];
+      analysisGroups: AnalysisGroup[];
+    }) => {
+      onSaveConfiguration(config);
+      setShowBuilder(false);
+    },
+    [onSaveConfiguration]
+  );
+
   // Check if animation is running for the currently selected group
   const isCurrentGroupAnimating =
     animation.isRunning &&
@@ -101,14 +124,14 @@ export const ProjectAnalysisFlow: React.FC<ProjectAnalysisFlowProps> = ({
         requirements={requirements}
         activeTab={activeTab}
         onTabChange={handleTabChange}
-        onRequirementsClick={() => setShowRequirements(!showRequirements)}
         onRunAnalyses={handleToolbarRun}
         onResetAnalyses={handleReset}
+        onOpenBuilder={handleOpenBuilder}
         isRunning={animation.isRunning}
       />
 
       <ViewContainer>
-        {showRequirements && analysisGroups && analysisGroups.length > 0 && (
+        {analysisGroups && analysisGroups.length > 0 && (
           <RequirementsModal
             analysisGroups={analysisGroups}
             selectedGroup={selectedGroup}
@@ -124,22 +147,36 @@ export const ProjectAnalysisFlow: React.FC<ProjectAnalysisFlowProps> = ({
           />
         )}
 
-        {selectedGroup ? (
-          <AnalysisDetailFlow
-            key={`${selectedGroup.id}-detail`}
-            analysisGroup={selectedGroup}
-            allAnalysisGroups={analysisGroups}
-            onAnalysisClick={onAnalysisClick}
-            isAnimating={isCurrentGroupAnimating}
-            currentAnalysisId={animation.currentAnalysisId}
-            currentStepInfo={animation.currentStepInfo} // NEW
-          />
-        ) : (
-          <AnalysisGroupsOverview
-            analysisGroups={analysisGroups}
-            onGroupSelect={handleGroupSelect}
-            currentGroupId={animation.currentGroupId}
-            currentAnalysisId={animation.currentAnalysisId}
+        {/* Main content area - shrinks when panel is open */}
+        <MainContentArea $panelOpen={showBuilder}>
+          {selectedGroup ? (
+            <AnalysisDetailFlow
+              key={`${selectedGroup.id}-detail`}
+              analysisGroup={selectedGroup}
+              allAnalysisGroups={analysisGroups}
+              onAnalysisClick={onAnalysisClick}
+              isAnimating={isCurrentGroupAnimating}
+              currentAnalysisId={animation.currentAnalysisId}
+              currentStepInfo={animation.currentStepInfo}
+            />
+          ) : (
+            <AnalysisGroupsOverview
+              analysisGroups={analysisGroups}
+              onGroupSelect={handleGroupSelect}
+              currentGroupId={animation.currentGroupId}
+              currentAnalysisId={animation.currentAnalysisId}
+            />
+          )}
+        </MainContentArea>
+
+        {/* Panel slides in from right */}
+        {showBuilder && (
+          <AnalysisSetupBuilder
+            onClose={handleCloseBuilder}
+            onSave={handleSaveBuilder}
+            initialRequirements={requirements}
+            initialGroups={analysisGroups}
+            mode="edit"
           />
         )}
       </ViewContainer>
@@ -154,6 +191,14 @@ const MainContainer = styled.div`
   flex-direction: column;
   background: var(--bg-primary);
   position: relative;
+`;
+
+// Add this styled component
+const MainContentArea = styled.div<{ $panelOpen: boolean }>`
+  flex: 1;
+  display: flex;
+  transition: all 0.3s ease;
+  overflow: hidden;
 `;
 
 const ViewContainer = styled.div`

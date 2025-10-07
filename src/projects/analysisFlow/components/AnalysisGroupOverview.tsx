@@ -14,9 +14,8 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import styled from "styled-components";
-import { AnalysisGroup } from "../../versionNodes/utils/VersionInterfaces";
+import { AnalysisGroup } from "../../nodeVisuals/versionNodes/utils/VersionInterfaces";
 import { AnalysisGroupNode } from "../components/AnalysisGroupNode";
-import { Maximize2, Minimize2 } from "lucide-react";
 
 interface AnalysisGroupsOverviewProps {
   analysisGroups: AnalysisGroup[];
@@ -33,8 +32,6 @@ export const AnalysisGroupsOverview: React.FC<AnalysisGroupsOverviewProps> = ({
   analysisGroups,
   onGroupSelect,
 }) => {
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
   // Generate nodes and edges
   const { initialNodes, initialEdges } = useMemo(() => {
     const nodes: Node[] = [];
@@ -97,7 +94,7 @@ export const AnalysisGroupsOverview: React.FC<AnalysisGroupsOverviewProps> = ({
   );
 
   return (
-    <OverviewContainer $fullscreen={isFullscreen}>
+    <OverviewContainer>
       <FlowWrapper>
         <ReactFlow
           nodes={nodes}
@@ -118,7 +115,7 @@ export const AnalysisGroupsOverview: React.FC<AnalysisGroupsOverviewProps> = ({
           elementsSelectable={true}
           panOnDrag={true}
         >
-          <Controls />
+          <StyledControls />
 
           <Background
             variant={BackgroundVariant.Dots}
@@ -177,22 +174,18 @@ const getMiniMapColor = (status: string): string => {
 };
 
 // Styled Components
-const OverviewContainer = styled.div<{ $fullscreen: boolean }>`
+const OverviewContainer = styled.div`
   display: flex;
   flex-direction: column;
   width: 100%;
   height: 100%;
-  position: ${(props) => (props.$fullscreen ? "fixed" : "relative")};
-  ${(props) =>
-    props.$fullscreen &&
-    `
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1000;
-  `}
-  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  position: relative;
+
+  background: linear-gradient(
+    135deg,
+    var(--bg-primary) 0%,
+    var(--bg-secondary) 100%
+  );
 `;
 
 const FlowWrapper = styled.div`
@@ -214,13 +207,6 @@ const FlowWrapper = styled.div`
 
   .react-flow__attribution {
     display: none;
-  }
-
-  .react-flow__controls {
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-bg);
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
   .react-flow__controls-button {
@@ -249,5 +235,53 @@ const FlowWrapper = styled.div`
 
   .react-flow__edge-path {
     stroke-width: 2;
+  }
+`;
+
+const StyledControls = styled(Controls)`
+  button {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-outline);
+    color: var(--text-primary);
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin: 4px;
+
+    &:hover {
+      background: var(--hover-bg);
+      border-color: var(--primary-alternate);
+      transform: scale(1.05);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  .react-flow__controls-button {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-outline);
+    color: var(--text-primary);
+    border-radius: 8px;
+
+    &:hover {
+      background: var(--hover-bg);
+      border-color: var(--primary-alternate);
+    }
+
+    svg {
+      fill: currentColor;
+    }
   }
 `;
