@@ -28,18 +28,6 @@ export const AnalysisGroupCard: React.FC<AnalysisGroupCardProps> = ({
     }
   };
 
-  const getStatusColor = () => {
-    switch (group.status) {
-      case "complete":
-        return "var(--success)";
-      case "running":
-        return "var(--caution)";
-      case "error":
-        return "var(--error)";
-      default:
-        return "var(--text-muted)";
-    }
-  };
 
   return (
     <Card>
@@ -174,8 +162,6 @@ const IconButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-bg);
   border-radius: 4px;

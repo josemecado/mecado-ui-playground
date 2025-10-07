@@ -4,11 +4,9 @@ import { Handle, NodeProps, Position } from "@xyflow/react";
 import styled, { keyframes, css } from "styled-components";
 import { AnalysisGroup } from "../../nodeVisuals/versionNodes/utils/VersionInterfaces";
 import {
-  Activity,
   CheckCircle,
   XCircle,
   Clock,
-  Layers,
   AlertTriangle,
   ChevronRight,
   Settings,
@@ -16,9 +14,14 @@ import {
   Flame,
   AudioLines,
   FileChartColumn,
+  LoaderCircle,
 } from "lucide-react";
 
+import { useTheme } from "../../../utilities/ThemeContext";
+
 export const AnalysisGroupNode: React.FC<NodeProps> = ({ data }) => {
+  const { theme } = useTheme();
+
   const group = data.group as AnalysisGroup;
 
   const getStatusIcon = () => {
@@ -28,7 +31,7 @@ export const AnalysisGroupNode: React.FC<NodeProps> = ({ data }) => {
       case "failed":
         return <XCircle size={14} />;
       case "running":
-        return <Activity size={14} className="spin" />;
+        return <LoaderCircle size={14} className="spin" />;
       case "partial":
         return <AlertTriangle size={14} />;
       default:
@@ -76,6 +79,7 @@ export const AnalysisGroupNode: React.FC<NodeProps> = ({ data }) => {
     <NodeContainer
       $status={group.status}
       $isActive={group.status === "running"}
+      $theme={theme}
     >
       <Handle
         type="target"
@@ -90,7 +94,7 @@ export const AnalysisGroupNode: React.FC<NodeProps> = ({ data }) => {
       />
 
       {/* Header */}
-      <NodeHeader $status={group.status}>
+      <NodeHeader $status={group.status} $theme={theme}>
         <HeaderLeft>
           <GroupIconWrapper $status={group.status}>
             <FileChartColumn size={16} />
@@ -129,8 +133,8 @@ export const AnalysisGroupNode: React.FC<NodeProps> = ({ data }) => {
         {group.status === "running" && runningAnalysis && (
           <RunningSection>
             <RunningLabel>
-              <Activity size={10} className="spin" />
               Currently Running
+              <LoaderCircle size={10} className="spin" />
             </RunningLabel>
             <RunningAnalysis>
               {getAnalysisTypeIcon(runningAnalysis.type)}
@@ -172,7 +176,7 @@ export const AnalysisGroupNode: React.FC<NodeProps> = ({ data }) => {
                   {analysis.status === "completed" && <CheckCircle size={10} />}
                   {analysis.status === "failed" && <XCircle size={10} />}
                   {analysis.status === "running" && (
-                    <Activity size={10} className="spin" />
+                    <LoaderCircle size={10} className="spin" />
                   )}
                   {analysis.status === "pending" && <Clock size={10} />}
                 </AnalysisStatus>
@@ -266,11 +270,21 @@ const shimmer = keyframes`
 `;
 
 // Styled Components
-const NodeContainer = styled.div<{ $status: string; $isActive?: boolean }>`
+const NodeContainer = styled.div<{
+  $status: string;
+  $isActive?: boolean;
+  $theme: "dark" | "light";
+}>`
   position: relative;
   background: var(--bg-secondary);
   border: 1px solid
     ${(props) => {
+      // If theme is light, always use outline color
+      if (props.$theme === "light") {
+        return "var(--border-outline)";
+      }
+
+      // Otherwise, pick color based on status
       switch (props.$status) {
         case "passed":
           return "var(--success)";
@@ -289,7 +303,8 @@ const NodeContainer = styled.div<{ $status: string; $isActive?: boolean }>`
   max-width: 320px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: rgba(0, 0, 0, 0.16) 0px 10px 36px 0px,
+    rgba(0, 0, 0, 0.06) 0px 0px 0px 1px;
   overflow: hidden;
 
   ${(props) =>
@@ -318,25 +333,16 @@ const NodeContainer = styled.div<{ $status: string; $isActive?: boolean }>`
   }
 `;
 
-const ActivePulse = styled.div`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 100%;
-  height: 100%;
-  border-radius: 12px;
-  border: 2px solid var(--accent-primary);
-  animation: ${pulseRing} 2s ease-out infinite;
-  pointer-events: none;
-`;
-
-const NodeHeader = styled.div<{ $status: string }>`
+const NodeHeader = styled.div<{
+  $status: string;
+  $theme: "dark" | "light";
+}>`
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 12px;
-  background: var(--bg-tertiary);
+  background: ${(props) =>
+    props.$theme === "dark" ? "var(--bg-tertiary)" : "var(--bg-shadow)"};
 `;
 
 const HeaderLeft = styled.div`
@@ -354,7 +360,21 @@ const GroupIconWrapper = styled.div<{ $status: string }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-inverted);
+
+  color: ${(props) => {
+    switch (props.$status) {
+      case "passed":
+        return "var(--text-inverted)";
+      case "failed":
+        return "white";
+      case "partial":
+        return "black";
+      case "running":
+        return "var(--text-inverted)";
+      default:
+        return "white";
+    }
+  }};
 
   background: ${(props) => {
     switch (props.$status) {
@@ -365,12 +385,12 @@ const GroupIconWrapper = styled.div<{ $status: string }>`
       case "partial":
         return "var(--caution)";
       case "running":
-        return "var(--accent-primary)";
-      default:
         return "var(--primary-alternate)";
+      default:
+        return "var(--accent-primary)";
     }
   }};
-  
+
   flex-shrink: 0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
@@ -406,7 +426,7 @@ const StatusIconWrapper = styled.div<{ $status: string }>`
       case "failed":
         return "var(--error)";
       case "partial":
-        return "var(--accent-primary)";
+        return "var(--caution)";
       case "running":
         return "var(--accent-primary)";
       default:
@@ -475,11 +495,11 @@ const ProgressFill = styled.div<{
       case "passed":
         return "linear-gradient(90deg, var(--success) 0%, #10b981 100%)";
       case "failed":
-        return "linear-gradient(90deg, var(--error) 0%, #dc2626 100%)";
+        return "var(--error)";
       case "partial":
-        return "#f59e0b";
+        return "var(--caution)";
       default:
-        return "linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)";
+        return "var(--primary-alternate)";
     }
   }};
   border-radius: 3px;
@@ -654,7 +674,7 @@ const RunningLabel = styled.div`
   gap: 6px;
   font-size: 10px;
   font-weight: 600;
-  color: var(--accent-primary);
+  color: var(--text-muted);
 `;
 
 const RunningAnalysis = styled.div`
@@ -664,7 +684,7 @@ const RunningAnalysis = styled.div`
   font-size: 11px;
   color: var(--text-primary);
   font-weight: 500;
-  padding-left: 16px;
+  padding-top: 4px;
 `;
 
 // Messages

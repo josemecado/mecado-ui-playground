@@ -16,6 +16,8 @@ import "@xyflow/react/dist/style.css";
 import styled from "styled-components";
 import { AnalysisGroup } from "../../nodeVisuals/versionNodes/utils/VersionInterfaces";
 import { AnalysisGroupNode } from "../components/AnalysisGroupNode";
+import { useTheme } from "../../../utilities/ThemeContext";
+
 
 interface AnalysisGroupsOverviewProps {
   analysisGroups: AnalysisGroup[];
@@ -78,6 +80,8 @@ export const AnalysisGroupsOverview: React.FC<AnalysisGroupsOverviewProps> = ({
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
+  const { theme } = useTheme();
+
   // Update nodes and edges when data changes
   useEffect(() => {
     setNodes(initialNodes);
@@ -94,7 +98,7 @@ export const AnalysisGroupsOverview: React.FC<AnalysisGroupsOverviewProps> = ({
   );
 
   return (
-    <OverviewContainer>
+    <OverviewContainer $theme={theme}>
       <FlowWrapper>
         <ReactFlow
           nodes={nodes}
@@ -174,7 +178,7 @@ const getMiniMapColor = (status: string): string => {
 };
 
 // Styled Components
-const OverviewContainer = styled.div`
+const OverviewContainer = styled.div<{$theme: "dark" | "light"}>`
   display: flex;
   flex-direction: column;
   width: 100%;

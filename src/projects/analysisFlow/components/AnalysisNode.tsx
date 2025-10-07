@@ -29,6 +29,8 @@ import {
   FailedContent,
 } from "./analysis/AnalysisNodeContent";
 
+import { useTheme } from "../../../utilities/ThemeContext";
+
 export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
   const analysis = data as unknown as Analysis & {
     onAnimateNode?: () => void;
@@ -39,6 +41,7 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
 
   const uiState = deriveNodeUIState(analysis, analysis.currentStepInfo || null);
   const isGhost = analysis.isGhostNode || false;
+  const { theme } = useTheme();
 
   const getStatusIcon = () => {
     switch (uiState) {
@@ -56,10 +59,18 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
 
   const getTypeIcon = (type: string) => {
     if (type.includes("thermal")) return <Flame size={16} />;
-    if (type.includes("modal") || type.includes("frequency") || type.includes("harmonic"))
+    if (
+      type.includes("modal") ||
+      type.includes("frequency") ||
+      type.includes("harmonic")
+    )
       return <AudioLines size={16} />;
-    if (type.includes("stress") || type.includes("deformation") || 
-        type.includes("safety") || type.includes("buckling"))
+    if (
+      type.includes("stress") ||
+      type.includes("deformation") ||
+      type.includes("safety") ||
+      type.includes("buckling")
+    )
       return <Settings size={16} />;
     return <BarChart3 size={16} />;
   };
@@ -69,7 +80,11 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
       case NodeUIState.IDLE:
       case NodeUIState.WAITING_WITH_SHARED:
         return (
-          <ActionButton $variant="primary" $small onClick={analysis.onAnimateNode}>
+          <ActionButton
+            $variant="primary"
+            $small
+            onClick={analysis.onAnimateNode}
+          >
             <PlayCircle size={12} />
             Run
           </ActionButton>
@@ -111,7 +126,7 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
   };
 
   return (
-    <NodeContainer $uiState={uiState} $isGhost={isGhost}>
+    <NodeContainer $uiState={uiState} $isGhost={isGhost} $theme={theme}>
       <Handle
         type="target"
         position={Position.Left}
@@ -125,9 +140,9 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
       />
 
       {/* Header */}
-      <NodeHeader $uiState={uiState}>
+      <NodeHeader $uiState={uiState} $theme={theme}>
         <HeaderLeft>
-          <TypeIconWrapper>{getTypeIcon(analysis.type)}</TypeIconWrapper>
+          <TypeIconWrapper $uiState={uiState}>{getTypeIcon(analysis.type)}</TypeIconWrapper>
           <HeaderText>
             <AnalysisName>{analysis.name}</AnalysisName>
             <AnalysisType>
@@ -139,7 +154,9 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
             </AnalysisType>
           </HeaderText>
         </HeaderLeft>
-        <StatusIconWrapper $uiState={uiState}>{getStatusIcon()}</StatusIconWrapper>
+        <StatusIconWrapper $uiState={uiState}>
+          {getStatusIcon()}
+        </StatusIconWrapper>
       </NodeHeader>
 
       <Divider />
@@ -147,13 +164,24 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
       {/* Main Content - Much cleaner! */}
       <NodeBody>
         {uiState === NodeUIState.IDLE && <IdleContent analysis={analysis} />}
-        {uiState === NodeUIState.RUNNING_PRIMARY && <RunningPrimaryContent analysis={analysis} />}
-        {uiState === NodeUIState.RUNNING_SECONDARY && (
-          <RunningSecondaryContent analysis={analysis} currentStepInfo={analysis.currentStepInfo} />
+        {uiState === NodeUIState.RUNNING_PRIMARY && (
+          <RunningPrimaryContent analysis={analysis} />
         )}
-        {uiState === NodeUIState.WAITING_WITH_SHARED && <WaitingWithSharedContent analysis={analysis} />}
-        {uiState === NodeUIState.COMPLETED && <CompletedContent analysis={analysis} />}
-        {uiState === NodeUIState.FAILED && <FailedContent analysis={analysis} />}
+        {uiState === NodeUIState.RUNNING_SECONDARY && (
+          <RunningSecondaryContent
+            analysis={analysis}
+            currentStepInfo={analysis.currentStepInfo}
+          />
+        )}
+        {uiState === NodeUIState.WAITING_WITH_SHARED && (
+          <WaitingWithSharedContent analysis={analysis} />
+        )}
+        {uiState === NodeUIState.COMPLETED && (
+          <CompletedContent analysis={analysis} />
+        )}
+        {uiState === NodeUIState.FAILED && (
+          <FailedContent analysis={analysis} />
+        )}
       </NodeBody>
 
       <Divider />
@@ -177,36 +205,36 @@ export const AnalysisIndividualNode: React.FC<NodeProps> = ({ data }) => {
 };
 
 // Styled components
-const NodeContainer = styled.div<{ $uiState: NodeUIState; $isGhost?: boolean }>`
+const NodeContainer = styled.div<{
+  $uiState: NodeUIState;
+  $isGhost?: boolean;
+  $theme: "dark" | "light";
+}>`
   position: relative;
-  background: ${(props) => {
-    if (props.$uiState === NodeUIState.RUNNING_SECONDARY) return "var(--bg-tertiary)";
-    switch (props.$uiState) {
-      case NodeUIState.COMPLETED:
-        return "linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%)";
-      case NodeUIState.FAILED:
-      case NodeUIState.RUNNING_PRIMARY:
-        return "var(--bg-tertiary)";
-      default:
-        return "var(--bg-secondary)";
-    }
-  }};
-  
-  border: 2px solid ${(props) => {
-    if (props.$isGhost) return "var(--accent-secondary)";
-    if (props.$uiState === NodeUIState.RUNNING_SECONDARY) return "var(--accent-secondary)";
-    switch (props.$uiState) {
-      case NodeUIState.COMPLETED:
-        return "var(--success)";
-      case NodeUIState.FAILED:
-        return "var(--error)";
-      case NodeUIState.RUNNING_PRIMARY:
-        return "var(--accent-primary)";
-      default:
+background: var(--bg-secondary);
+
+  border: 1px solid
+    ${(props) => {
+      // If theme is light, always use outline color
+      if (props.$theme === "light") {
         return "var(--border-outline)";
-    }
-  }};
-  
+      }
+
+      if (props.$isGhost) return "var(--accent-secondary)";
+
+      // Otherwise, pick color based on status
+      switch (props.$uiState) {
+        case NodeUIState.COMPLETED:
+          return "var(--success)";
+        case NodeUIState.FAILED:
+          return "var(--error)";
+        case NodeUIState.RUNNING_PRIMARY:
+          return "var(--primary-alternate)";
+        default:
+          return "var(--border-outline)";
+      }
+    }};
+
   border-radius: 12px;
   min-width: 260px;
   max-width: 280px;
@@ -237,24 +265,16 @@ const NodeContainer = styled.div<{ $uiState: NodeUIState; $isGhost?: boolean }>`
   }
 `;
 
-const NodeHeader = styled.div<{ $uiState: NodeUIState }>`
+const NodeHeader = styled.div<{
+  $uiState: NodeUIState;
+  $theme: "dark" | "light";
+}>`
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 12px;
-  background: ${(props) => {
-    switch (props.$uiState) {
-      case NodeUIState.COMPLETED:
-        return "rgba(16, 185, 129, 0.1)";
-      case NodeUIState.FAILED:
-        return "rgba(239, 68, 68, 0.1)";
-      case NodeUIState.RUNNING_PRIMARY:
-      case NodeUIState.RUNNING_SECONDARY:
-        return "rgba(var(--accent-primary-rgb), 0.1)";
-      default:
-        return "rgba(255, 255, 255, 0.03)";
-    }
-  }};
+  background: ${(props) =>
+    props.$theme === "dark" ? "var(--bg-tertiary)" : "var(--bg-shadow)"};
 `;
 
 const HeaderLeft = styled.div`
@@ -265,7 +285,7 @@ const HeaderLeft = styled.div`
   min-width: 0;
 `;
 
-const TypeIconWrapper = styled.div`
+const TypeIconWrapper = styled.div<{ $uiState: NodeUIState }>`
   width: 24px;
   height: 24px;
   border-radius: 6px;
@@ -276,6 +296,32 @@ const TypeIconWrapper = styled.div`
   color: var(--text-inverted);
   flex-shrink: 0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  color: ${(props) => {
+    switch (props.$uiState) {
+      case NodeUIState.COMPLETED:
+        return "var(--text-inverted)";
+      case NodeUIState.FAILED:
+        return "white";
+      case NodeUIState.RUNNING_PRIMARY:
+        return "var(--text-inverted)";
+      default:
+        return "white";
+    }
+  }};
+
+  background: ${(props) => {
+    switch (props.$uiState) {
+      case NodeUIState.COMPLETED:
+        return "var(--primary-alternate)";
+      case NodeUIState.FAILED:
+        return "var(--error)";
+      case NodeUIState.RUNNING_PRIMARY:
+        return "var(--primary-alternate)";
+      default:
+        return "var(--accent-primary)";
+    }
+  }};
 `;
 
 const HeaderText = styled.div`

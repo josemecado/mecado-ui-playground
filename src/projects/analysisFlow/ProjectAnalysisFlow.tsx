@@ -201,6 +201,7 @@ const ConfigPanel = styled.div`
   flex: 1 1 0;
   min-width: 400px;
   max-width: 600px;
+    z-index: 1000;
 `;
 
 const ViewContainer = styled.div`

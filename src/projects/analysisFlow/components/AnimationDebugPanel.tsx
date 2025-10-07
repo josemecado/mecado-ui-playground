@@ -177,9 +177,9 @@ const shimmer = keyframes`
 
 // Styled Components
 const DebugContainer = styled.div`
-  position: fixed;
-  top: 100px;
-  right: 25px;
+  position: absolute;
+  top: 20px;
+  right: 20px;
   width: 340px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-outline);

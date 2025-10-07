@@ -70,7 +70,7 @@ export const AnalysisSetupBuilder: React.FC<AnalysisSetupBuilderProps> = ({
     requirements.length > 0 && analyses.length > 0 && groups.length > 0;
 
   return (
-    <PanelContainer>
+    <PanelContainer $theme={theme}>
       <HeaderSection $theme={theme}>
         <TabBar>
           {tabs.map((tab) => (
@@ -120,14 +120,13 @@ export const AnalysisSetupBuilder: React.FC<AnalysisSetupBuilderProps> = ({
 };
 
 // Styled Components - REMOVED OVERLAY
-const PanelContainer = styled.div`
+const PanelContainer = styled.div<{ $theme: "dark" | "light" }>`
   display: flex;
   flex-direction: column;
   width: 100%;
 
-  background: var(--bg-shadow);
+  background: ${props => props.$theme === "dark" ? "var(--bg-shadow)" : "var(--bg-secondary)"};
   border-left: 1px solid var(--border-bg);
-  z-index: 1000;
 
   @keyframes slideIn {
     from {
@@ -258,6 +257,5 @@ const FooterButton = styled.button<{ $variant: "primary" | "secondary" }>`
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    color: var(--text-muted);
   }
 `;
