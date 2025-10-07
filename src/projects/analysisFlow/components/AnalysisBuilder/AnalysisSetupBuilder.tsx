@@ -10,6 +10,7 @@ import { RequirementsBuilder } from "./RequirementsBuilder";
 import { AnalysesBuilder } from "./AnalysesBuilder";
 import { GroupsBuilder } from "./GroupsBuilder";
 import { X, CheckCircle, Settings, Layers } from "lucide-react";
+import { useTheme } from "../../../../utilities/ThemeContext";
 
 interface AnalysisSetupBuilderProps {
   onClose: () => void;
@@ -38,6 +39,7 @@ export const AnalysisSetupBuilder: React.FC<AnalysisSetupBuilderProps> = ({
     useState<Requirement[]>(initialRequirements);
   const [analyses, setAnalyses] = useState<Analysis[]>(initialAnalyses);
   const [groups, setGroups] = useState<AnalysisGroup[]>(initialGroups);
+  const { theme } = useTheme();
 
   const handleSave = () => {
     onSave({
@@ -75,7 +77,7 @@ export const AnalysisSetupBuilder: React.FC<AnalysisSetupBuilderProps> = ({
 
   return (
     <PanelContainer>
-      <PanelHeader>
+      <HeaderSection $theme={theme}>
         <TabBar>
           {tabs.map((tab) => (
             <Tab
@@ -89,7 +91,7 @@ export const AnalysisSetupBuilder: React.FC<AnalysisSetupBuilderProps> = ({
             </Tab>
           ))}
         </TabBar>
-      </PanelHeader>
+      </HeaderSection>
 
       <PanelContent>
         {activeTab === "requirements" && (
@@ -135,7 +137,8 @@ const PanelContainer = styled.div`
   display: flex;
   flex-direction: column;
   width: 100%;
-  background: var(--bg-primary);
+
+  background: var(--bg-shadow);
   border-left: 1px solid var(--border-bg);
   z-index: 1000;
 
@@ -149,15 +152,16 @@ const PanelContainer = styled.div`
   }
 `;
 
-const PanelHeader = styled.div`
-  background: var(--bg-secondary);
-`;
-
 const TabBar = styled.div`
   display: flex;
-  justify-content: space-evenly;
-  padding: 12px 12px 0 12px;
+  justify-content: space-between;
   gap: 8px;
+`;
+
+const HeaderSection = styled.div<{ $theme: "light" | "dark"}>`
+  display: flex;
+  background-color: ${props => props.$theme === "dark" ? "var(--bg-shadow)" : "var(--bg-secondary)"};
+  padding: 12px 12px 0 12px;
 `;
 
 const Tab = styled.button<{ $active: boolean }>`
@@ -166,7 +170,6 @@ const Tab = styled.button<{ $active: boolean }>`
   justify-content: center;
   gap: 6px;
   padding: 10px 12px;
-  width: 100%;
   background: ${(props) =>
     props.$active ? "var(--accent-primary)" : "var(--bg-tertiary)"};
   border: none;
@@ -197,7 +200,7 @@ const Tab = styled.button<{ $active: boolean }>`
   &:hover {
     background: ${(props) =>
       props.$active ? "var(--accent-primary)" : "var(--hover-bg)"};
-    color: ${props => props.$active ? "white" : "var(--text-primary)"};;
+    color: ${(props) => (props.$active ? "white" : "var(--text-primary)")};
   }
 `;
 
@@ -220,6 +223,7 @@ const TabCount = styled.span`
 const PanelContent = styled.div`
   flex: 1;
   overflow-y: auto;
+  padding: 12px 12px 0 12px;
 `;
 
 const PanelFooter = styled.div`

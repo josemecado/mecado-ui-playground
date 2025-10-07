@@ -160,7 +160,6 @@ export const RequirementsBuilder: React.FC<RequirementsBuilderProps> = ({
   return (
     <Container>
       {/* Form Section - Only visible when creating/editing */}
-
       {showForm && (
         <FormSection>
           <FormHeader>
@@ -351,6 +350,7 @@ export const RequirementsBuilder: React.FC<RequirementsBuilderProps> = ({
           </FormActions>
         </FormSection>
       )}
+
       {/* Requirements List */}
       <ListSection>
         <ListHeader>
@@ -394,7 +394,7 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 20px;
+  border-radius: 12px;
 `;
 
 const ListSection = styled.div`
@@ -438,7 +438,7 @@ const CreateButton = styled.button`
   gap: 6px;
   padding: 8px 14px;
   background: var(--accent-primary);
-  color: var(--text-inverted);
+  color: white;
   border: none;
   border-radius: 6px;
   font-size: 12px;
@@ -447,14 +447,14 @@ const CreateButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover {
-    background: var(--hover-primary);
+    opacity: 0.7;
   }
 `;
 
 const RequirementsList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
 `;
 
 const EmptyState = styled.div`
@@ -484,8 +484,10 @@ const EmptyText = styled.p`
 const FormSection = styled.div`
   padding: 20px;
   background: var(--bg-secondary);
-  border: 1px solid var(--border-bg);
+  border: 1px solid var(--border-outline);
   border-radius: 8px;
+
+  box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
 `;
 
 const FormHeader = styled.div`

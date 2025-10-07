@@ -64,11 +64,13 @@ const Card = styled.div`
   background: var(--bg-secondary);
   border: 1px solid var(--border-outline);
   border-radius: 8px;
+  box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+
   overflow: hidden;
   transition: all 0.2s ease;
 
   &:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
   }
 `;
 
@@ -76,7 +78,7 @@ const CardHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
+  padding: 10px 12px;
   background: var(--bg-tertiary);
   border-bottom: 1px solid var(--border-bg);
 `;
@@ -126,7 +128,6 @@ const CardActions = styled.div`
   display: flex;
   gap: 6px;
 `;
-
 
 const CardBody = styled.div`
   padding: 14px 16px;

@@ -186,34 +186,26 @@ export const ProjectAnalysisFlow: React.FC<ProjectAnalysisFlowProps> = ({
 };
 
 const MainContainer = styled.div`
-  width: 100%;
-  height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
-  position: relative;
+  flex: 1;
 `;
 
 const FlowContent = styled.div`
-  flex: 3 1 0;
   display: flex;
-  transition: all 0.3s ease;
-  overflow: hidden;
+  flex: 3 1 0;
 `;
 
 const ConfigPanel = styled.div`
   display: flex;
   flex: 1 1 0;
   min-width: 400px;
-
-  transition: all 0.3s ease;
-  overflow: hidden;
+  max-width: 600px;
 `;
 
 const ViewContainer = styled.div`
   display: flex;
-  height: 100%;
-  width: 100%;
+  flex: 1;
   position: relative;
   overflow: hidden;
 `;
