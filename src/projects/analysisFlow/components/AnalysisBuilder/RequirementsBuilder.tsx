@@ -1,7 +1,7 @@
 // analysisFlow/components/AnalysisBuilder/RequirementsBuilder.tsx
 import React, { useState, useMemo } from "react";
 import styled from "styled-components";
-import { Requirement } from "../../../nodeVisuals/versionNodes/utils/VersionInterfaces";
+import { Requirement, AnalysisGroup } from "../../../versionNodes/utils/VersionInterfaces";
 import {
   METRIC_VARIABLES,
   MetricVariable,
@@ -14,11 +14,13 @@ import { RequirementCard } from "./RequirementCard";
 interface RequirementsBuilderProps {
   requirements: Requirement[];
   onChange: (requirements: Requirement[]) => void;
+  analysisGroups?: AnalysisGroup[];
 }
 
 export const RequirementsBuilder: React.FC<RequirementsBuilderProps> = ({
   requirements,
   onChange,
+  analysisGroups = [],
 }) => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -372,6 +374,7 @@ export const RequirementsBuilder: React.FC<RequirementsBuilderProps> = ({
               <RequirementCard
                 key={req.id}
                 requirement={req}
+                analysisGroups={analysisGroups}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
               />

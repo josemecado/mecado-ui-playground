@@ -1,13 +1,13 @@
 import styled from "styled-components";
-import SideMenu from "../projects/projectChatWindow/SideMenuBar/SideMenuBar";
-// import SidePanelMenu from "../projects/projectChatWindow/SideMenu/SidePanelMenu";
 import { VersionNodeBridge } from "../projects/versionNodes/VersionNodeBridge";
+import { GeometryLinkingWireframe } from "../projects/analysisTransfer/components/AnalysisTransferWizard";
+import SideMenu from "../projects/projectChatWindow/SideMenu/SidePanelMenu";
 
 export default function ProjectChatWindow() {
   return (
     <Container>
       {/* <SideMenu /> */}
-      <SideMenu
+      {/* <SideMenu
         projectId={""}
         projectVersions={[]}
         projectVersion={0}
@@ -18,7 +18,7 @@ export default function ProjectChatWindow() {
         onToggleCollapse={() => {}}
         currentView={"chat"}
         onViewChange={() => {}}
-      />
+      /> */}
 
       {/* <VersionNodeBridge
         mode="flow"
@@ -29,13 +29,15 @@ export default function ProjectChatWindow() {
         onNewProjectVersion={async () => {}}
         pinnedEquations={[]}
       /> */}
-      <VersionNodeBridge
+      {/* <VersionNodeBridge
         mode="analysis" // New mode!
         projectId={""}
         projectVersions={[]}
         projectVersion={1}
         onVersionChange={console.log}
-      />
+      /> */}
+
+      <GeometryLinkingWireframe />
     </Container>
   );
 }

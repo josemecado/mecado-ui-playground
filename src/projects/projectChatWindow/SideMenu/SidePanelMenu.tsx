@@ -274,13 +274,7 @@ export const SidePanelMenu: React.FC<SideMenuProps> = ({
           <ContentSection>
             <SectionTitle>PINNED EQUATIONS</SectionTitle>
             {pinnedHandCalcs.length > 0 ? (
-              <PinnedEquations
-                key={pinnedHandCalcs.length}
-                projectId={projectId}
-                projectVersions={projectVersions}
-                projectVersion={projectVersion}
-                unpinEquation={unpinHandCalc}
-              />
+              <p>Hello</p>
             ) : (
               <EmptyState>No pinned equations</EmptyState>
             )}

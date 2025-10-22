@@ -4,14 +4,14 @@ import {
   Box,
   Minus,
   Square,
-  Link2,
   Trash2,
   Plus,
   RotateCcw,
-  Check,
   Info,
-  PieChart,
 } from "lucide-react";
+
+import { ControlPanel } from "./TransferControlPanel";
+import { TransferHeader } from "./TransferHeader";
 
 interface MockUnmappedData {
   oldGeometry: {
@@ -54,7 +54,6 @@ export const GeometryLinkingWireframe: React.FC = () => {
     left: 0,
     right: 0,
   });
-  const [linkedCount, setLinkedCount] = useState(0);
   const [markedDeleted, setMarkedDeleted] = useState(0);
   const [markedNew, setMarkedNew] = useState(0);
 
@@ -71,14 +70,6 @@ export const GeometryLinkingWireframe: React.FC = () => {
       edges: 398,
     },
   };
-
-  // Calculate totals and progress
-  const totalOriginal =
-    Object.values(unmappedData.oldGeometry).reduce((a, b) => a + b, 0) +
-    Object.values(unmappedData.newGeometry).reduce((a, b) => a + b, 0);
-  const totalProcessed = linkedCount + markedDeleted + markedNew;
-  const progressPercent =
-    totalOriginal > 0 ? (totalProcessed / totalOriginal) * 100 : 0;
 
   const getSelectionState = useCallback((): SelectionState => {
     const leftCount = selections.left;
@@ -98,7 +89,6 @@ export const GeometryLinkingWireframe: React.FC = () => {
     selectionState === "LEFT_SINGLE" || selectionState === "LEFT_MANY";
   const canMarkNew =
     selectionState === "RIGHT_SINGLE" || selectionState === "RIGHT_MANY";
-  const canLink = selectionState === "LEFT_TO_RIGHT";
 
   const handleLeftSelect = useCallback(() => {
     setSelections((prev) => ({
@@ -128,11 +118,6 @@ export const GeometryLinkingWireframe: React.FC = () => {
     setSelections({ left: 0, right: 0 });
   }, [selections.right]);
 
-  const handleLink = useCallback(() => {
-    setLinkedCount((prev) => prev + selections.left + selections.right);
-    setSelections({ left: 0, right: 0 });
-  }, [selections]);
-
   const getModeIcon = (mode: EntityKind) => {
     switch (mode) {
       case "body":
@@ -144,16 +129,10 @@ export const GeometryLinkingWireframe: React.FC = () => {
     }
   };
 
-  // Chart data for overview
-  const chartData = {
-    linked: linkedCount,
-    deleted: markedDeleted,
-    new: markedNew,
-    remaining: totalOriginal - totalProcessed,
-  };
-
   return (
     <Container>
+      <TransferHeader />
+
       <MainContent>
         {/* Left Viewer */}
         <ViewerSection>
@@ -183,7 +162,7 @@ export const GeometryLinkingWireframe: React.FC = () => {
               <ViewerIcon>
                 <Box size={48} />
               </ViewerIcon>
-              <ViewerText>3D Geometry Viewer</ViewerText>
+              <ViewerText>Source Geometry Viewer</ViewerText>
               <ViewerSubtext>
                 Original geometry with analysis setup
               </ViewerSubtext>
@@ -191,38 +170,6 @@ export const GeometryLinkingWireframe: React.FC = () => {
                 <SelectionBadge left>{selections.left} Selected</SelectionBadge>
               )}
             </ViewerPlaceholder>
-
-            <GeometryActionButtons>
-              {/* Left-specific actions */}
-              <ViewerActions>
-                <ActionButton
-                  disabled={!canMarkNew}
-                  onClick={handleMarkNew}
-                  variant="success"
-                  size="small"
-                >
-                  <Plus size={16} />
-                  Mark New
-                </ActionButton>
-                <ActionButton
-                  disabled={!canMarkDeleted}
-                  onClick={handleMarkDeleted}
-                  variant="danger"
-                  size="small"
-                >
-                  <Trash2 size={16} />
-                  Mark Deleted
-                </ActionButton>
-                <ActionButton
-                  onClick={handleClear}
-                  variant="secondary"
-                  size="small"
-                >
-                  <RotateCcw size={16} />
-                  Clear
-                </ActionButton>
-              </ViewerActions>
-            </GeometryActionButtons>
           </MockViewer>
 
           <ViewerStats>
@@ -243,96 +190,7 @@ export const GeometryLinkingWireframe: React.FC = () => {
           </ViewerStats>
         </ViewerSection>
 
-        {/* Center Control Panel */}
-        <ControlPanel>
-          <ControlPanelUpper>
-            <ProgressSection>
-              <ProgressHeader>
-                <ProgressTitle>Transfer Progress</ProgressTitle>
-                <ProgressPercent>
-                  {Math.round(progressPercent)}%
-                </ProgressPercent>
-              </ProgressHeader>
-              <ProgressBar>
-                <ProgressFill style={{ width: `${progressPercent}%` }} />
-              </ProgressBar>
-              <ProgressStats>
-                <ProgressStat>
-                  <ProgressStatNumber>{totalProcessed}</ProgressStatNumber>
-                  <ProgressStatLabel>Processed</ProgressStatLabel>
-                </ProgressStat>
-                <ProgressStat>
-                  <ProgressStatNumber>
-                    {totalOriginal - totalProcessed}
-                  </ProgressStatNumber>
-                  <ProgressStatLabel>Remaining</ProgressStatLabel>
-                </ProgressStat>
-              </ProgressStats>
-            </ProgressSection>
-            {/* Overview Chart */}
-            <ChartSection>
-              <ChartHeader>
-                <ChartTitle>
-                  <PieChart size={16} />
-                  Transfer Overview
-                </ChartTitle>
-              </ChartHeader>
-              <ChartContainer>
-                <DonutChart>
-                  <DonutCenter>
-                    <DonutCenterNumber>
-                      {Math.round(progressPercent)}%
-                    </DonutCenterNumber>
-                    <DonutCenterLabel>Complete</DonutCenterLabel>
-                  </DonutCenter>
-                  {/* Mock donut chart visualization */}
-                  <DonutSegment
-                    percentage={progressPercent}
-                    color="var(--primary-action)"
-                  />
-                </DonutChart>
-                <ChartLegend>
-                  <LegendItem>
-                    <LegendDot color="var(--primary-action)" />
-                    <LegendLabel>Linked: {chartData.linked}</LegendLabel>
-                  </LegendItem>
-                  <LegendItem>
-                    <LegendDot color="var(--error)" />
-                    <LegendLabel>Deleted: {chartData.deleted}</LegendLabel>
-                  </LegendItem>
-                  <LegendItem>
-                    <LegendDot color="var(--accent-primary)" />
-                    <LegendLabel>New: {chartData.new}</LegendLabel>
-                  </LegendItem>
-                  <LegendItem>
-                    <LegendDot color="var(--text-muted)" />
-                    <LegendLabel>Remaining: {chartData.remaining}</LegendLabel>
-                  </LegendItem>
-                </ChartLegend>
-              </ChartContainer>
-            </ChartSection>
-
-            {/* Central linking actions */}
-            <ActionButton
-              disabled={!canLink}
-              onClick={handleLink}
-              variant="primary"
-              size="large"
-            >
-              <Link2 size={16} />
-              Link Selected Elements
-            </ActionButton>
-          </ControlPanelUpper>
-
-          <ControlPanelLower>
-            <FinishSection>
-              <FinishButton disabled={progressPercent < 100}>
-                <Check size={16} />
-                Complete Transfer
-              </FinishButton>
-            </FinishSection>
-          </ControlPanelLower>
-        </ControlPanel>
+          <ControlPanel />
 
         {/* Right Viewer */}
         <ViewerSection>
@@ -365,7 +223,7 @@ export const GeometryLinkingWireframe: React.FC = () => {
               <ViewerIcon>
                 <Box size={48} />
               </ViewerIcon>
-              <ViewerText>3D Geometry Viewer</ViewerText>
+              <ViewerText>Target Geometry Viewer</ViewerText>
               <ViewerSubtext>Modified geometry for analysis</ViewerSubtext>
               {selections.right > 0 && (
                 <SelectionBadge right>
@@ -447,21 +305,6 @@ const Container = styled.div`
   width: 100%;
   height: 100vh;
   color: var(--text-primary);
-`;
-
-const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  padding: 16px 16px 16px 12px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-bg);
-  text-align: center;
-`;
-
-const HeaderTitle = styled.h1`
-  font-size: 22px;
-  font-weight: 600;
-  text-align: center;
 `;
 
 const MainContent = styled.div`
@@ -611,227 +454,6 @@ const StatLabel = styled.div`
   letter-spacing: 0.5px;
 `;
 
-const ControlPanel = styled.div`
-  display: flex;
-  flex-direction: column;
-  width: 320px;
-  background: var(--bg-secondary);
-  border-left: 1px solid var(--border-bg);
-  border-right: 1px solid var(--border-bg);
-  padding: 16px;
-  overflow-y: auto;
-`;
-
-const ControlPanelUpper = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-`;
-
-const ControlPanelLower = styled.div`
-  display: flex;
-  flex-direction: column;
-  margin-top: auto;
-  gap: 16px;
-`;
-
-const ProgressSection = styled.div`
-  background-color: var(--bg-secondary);
-`;
-
-const ProgressHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-`;
-
-const ProgressTitle = styled.h3`
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-`;
-
-const ProgressPercent = styled.div`
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-muted);
-`;
-
-const ProgressBar = styled.div`
-  height: 8px;
-  background: var(--text-muted);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 12px;
-`;
-
-const ProgressFill = styled.div`
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    var(--primary-action),
-    var(--accent-primary)
-  );
-  transition: width 0.3s ease;
-`;
-
-const ProgressStats = styled.div`
-  display: flex;
-  gap: 16px;
-`;
-
-const ProgressStat = styled.div`
-  text-align: center;
-  flex: 1;
-`;
-
-const ProgressStatNumber = styled.div`
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-`;
-
-const ProgressStatLabel = styled.div`
-  font-size: 12px;
-  color: var(--text-muted);
-`;
-
-// New chart components
-const ChartSection = styled.div`
-  background: var(--bg-tertiary);
-  border-radius: 8px;
-  padding: 16px;
-`;
-
-const ChartHeader = styled.div`
-  margin-bottom: 16px;
-`;
-
-const ChartTitle = styled.h4`
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const ChartContainer = styled.div`
-  display: flex;
-  gap: 16px;
-  align-items: center;
-`;
-
-const DonutChart = styled.div`
-  position: relative;
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: conic-gradient(
-    var(--primary-action) 0deg,
-    var(--primary-action) calc(var(--percentage, 0) * 3.6deg),
-    var(--bg-primary) calc(var(--percentage, 0) * 3.6deg),
-    var(--bg-primary) 360deg
-  );
-`;
-
-const DonutCenter = styled.div`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 50px;
-  height: 50px;
-  background: var(--bg-secondary);
-  border-radius: 50%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-`;
-
-const DonutCenterNumber = styled.div`
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-primary);
-`;
-
-const DonutCenterLabel = styled.div`
-  font-size: 8px;
-  color: var(--text-muted);
-`;
-
-const DonutSegment = styled.div<{ percentage: number; color: string }>`
-  display: none; /* Just for type safety - actual styling handled by conic-gradient */
-`;
-
-const ChartLegend = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex: 1;
-`;
-
-const LegendItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const LegendDot = styled.div<{ color: string }>`
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: ${(props) => props.color};
-`;
-
-const LegendLabel = styled.div`
-  font-size: 12px;
-  color: var(--text-primary);
-`;
-
-const LinkingSection = styled.div`
-  background: var(--bg-tertiary);
-  border-radius: 8px;
-  padding: 16px;
-  border: 2px solid var(--primary-action);
-`;
-
-const LinkingHeader = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  color: var(--primary-action);
-`;
-
-const LinkingDescription = styled.p`
-  margin: 0 0 16px 0;
-  font-size: 13px;
-  color: var(--text-muted);
-  text-align: center;
-`;
-
-const LinkingHint = styled.div`
-  margin-top: 12px;
-  padding: 8px 12px;
-  background: var(--bg-primary);
-  border-radius: 6px;
-  font-size: 12px;
-  color: var(--text-muted);
-  text-align: center;
-  border: 1px solid var(--border-bg);
-`;
-
-const SectionTitle = styled.h4`
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-`;
-
 const ActionButton = styled.button<{
   variant?: "primary" | "secondary" | "danger" | "success";
   size?: "small" | "large";
@@ -896,53 +518,6 @@ const ActionButton = styled.button<{
 
     transform: none;
   }
-`;
-
-const SummarySection = styled.div``;
-
-const SummaryTitle = styled.h3`
-  margin: 0 0 12px 0;
-  font-size: 16px;
-  font-weight: 600;
-`;
-
-const SummaryStats = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const SummaryStat = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px;
-  background: var(--bg-tertiary);
-  border-radius: 6px;
-`;
-
-const SummaryStatIcon = styled.div<{
-  linked?: boolean;
-  deleted?: boolean;
-  new?: boolean;
-}>`
-  color: ${(props) => {
-    if (props.linked) return "var(--primary-action)";
-    if (props.deleted) return "var(--error)";
-    if (props.new) return "var(--accent-primary)";
-    return "var(--text-muted)";
-  }};
-`;
-
-const SummaryStatNumber = styled.div`
-  font-size: 16px;
-  font-weight: 600;
-  min-width: 24px;
-`;
-
-const SummaryStatLabel = styled.div`
-  font-size: 14px;
-  color: var(--text-muted);
 `;
 
 const FinishSection = styled.div``;
