@@ -1,18 +1,8 @@
 :root {
-  /* Anabolic Colors */
-  --primary: #ff375f;
-  --secondary: #1c1b20;
-  --accent: #ff375f;
-  --background: #0f0e12;
-  --largeTextColor: #ffffff;
-  --smallTextColor: #fafafa;
-
   /* Dark Theme Colors */
-  /* --theme-darkBgPrimary: #191919; */
   --theme-darkBgPrimary: #000000;
 
   --theme-darkBgSecondary: #262626;
-  /* --theme-darkBgSecondary: #191e24; */
 
   --theme-darkBgTertiary: #2f3033;
 

@@ -21,7 +21,7 @@ export const BaseButton = styled.button<{
       switch (p.$variant) {
         case "primary":
         case "pill":
-          return p.theme.colors.interactivePrimary;
+          return p.theme.colors.borderSoft;
         case "destructive":
           return p.theme.colors.statusError;
         default:
@@ -50,7 +50,7 @@ export const BaseButton = styled.button<{
     switch (p.$variant) {
       case "primary":
       case "pill":
-        return p.theme.mode;
+        return p.theme.colors.primaryAlternate;
       case "destructive":
         return p.theme.colors.statusError;
       default:
@@ -69,11 +69,11 @@ export const BaseButton = styled.button<{
       switch (p.$variant) {
         case "primary":
         case "pill":
-          return p.theme.colors.interactiveSecondary;
+          return p.theme.colors.hoverSecondary;
         case "destructive":
           return p.theme.colors.statusError;
         default:
-          return p.theme.colors.interactiveHover;
+          return p.theme.colors.hoverBackground;
       }
     }};
     opacity: 0.9;
@@ -84,7 +84,7 @@ export const BaseButton = styled.button<{
     opacity: 0.6;
     transform: none;
     background: ${(p) => p.theme.colors.backgroundTertiary};
-    color: ${(p) => p.theme.colors.textMuted};
+    color: ${(p) => p.theme.colors.textSecondary};
     border-color: ${(p) => p.theme.colors.borderSubtle};
   }
 `;
