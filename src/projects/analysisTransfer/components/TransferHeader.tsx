@@ -2,8 +2,7 @@ import React, { useState } from "react";
 import styled from "styled-components";
 import { Box } from "lucide-react";
 
-import { ActionButton } from "components/buttons/BaseButton"
-
+import { BaseButton } from "components/buttons/BaseButton"
 
 interface MockUnmappedData {
   oldGeometry: {
@@ -64,9 +63,9 @@ export const TransferHeader: React.FC = () => {
       </ViewerTitleSection>
 
       <ButtonsSection>
-        <ActionButton onClick={() => {}} $variant="pill" $config="large">
+        <BaseButton onClick={() => {}} $variant="pill" $config="large">
           Finish
-        </ActionButton>
+        </BaseButton>
       </ButtonsSection>
     </ViewerHeader>
   );
