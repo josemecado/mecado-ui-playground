@@ -50,7 +50,7 @@ export const BaseButton = styled.button<{
     switch (p.$variant) {
       case "primary":
       case "pill":
-        return p.theme.colors.primaryAlternate;
+        return p.theme.colors.secondaryBrand;
       case "destructive":
         return p.theme.colors.statusError;
       default:
