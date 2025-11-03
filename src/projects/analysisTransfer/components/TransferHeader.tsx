@@ -63,7 +63,7 @@ export const TransferHeader: React.FC = () => {
       </ViewerTitleSection>
 
       <ButtonsSection>
-        <BaseButton onClick={() => {}} $variant="pill" $config="large">
+        <BaseButton onClick={() => {}} $variant="pill" $config="standard">
           Finish
         </BaseButton>
       </ButtonsSection>

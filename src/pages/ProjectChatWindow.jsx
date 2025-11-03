@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import SideMenu from "../projects/projectChatWindow/SideMenuBar/SideMenuBar";
+import SidePanelMenu from "../projects/projectChatWindow/SideMenu/SidePanelMenu";
 import { VersionNodeBridge } from "../projects/versionNodes/VersionNodeBridge";
 import { GeometryLinkingWireframe } from "../projects/analysisTransfer/components/AnalysisTransferWizard";
 
@@ -7,7 +7,7 @@ export default function ProjectChatWindow() {
   return (
     <Container>
       {/* <SideMenu /> */}
-      <SideMenu
+      <SidePanelMenu
         projectId={""}
         projectVersions={[]}
         projectVersion={0}

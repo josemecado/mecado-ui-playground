@@ -10,7 +10,7 @@ export const BaseButton = styled.button<{
   justify-content: center;
   gap: ${(p) => p.theme.components.button.gap};
   height: ${(p) =>
-    p.$config === "large" ? "3rem" : p.theme.components.button.height};
+    p.$config === "large" ? p.theme.components.button.heightLarge : p.theme.components.button.height};
   padding: 0 ${(p) => p.theme.components.button.paddingX};
   border-radius: ${(p) =>
     p.$variant === "pill"
@@ -50,7 +50,7 @@ export const BaseButton = styled.button<{
     switch (p.$variant) {
       case "primary":
       case "pill":
-        return p.theme.colors.secondaryBrand;
+        return p.theme.colors.brandSecondary;
       case "destructive":
         return p.theme.colors.statusError;
       default:
@@ -84,7 +84,7 @@ export const BaseButton = styled.button<{
     opacity: 0.6;
     transform: none;
     background: ${(p) => p.theme.colors.backgroundTertiary};
-    color: ${(p) => p.theme.colors.textSecondary};
+    color: ${(p) => p.theme.colors.textMuted};
     border-color: ${(p) => p.theme.colors.borderSubtle};
   }
 `;

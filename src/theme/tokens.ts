@@ -11,22 +11,32 @@ const primitives = {
 
     // Primary (CTA/Brand)
     primary000: "#2f3e4c", // Action (Light)
-    primary1000: "#b3c2d0", // Actopm (Dark)
+    primary1000: "#b3c2d0", // Action (Dark)
 
     // Secondary (CTA/Brand)
-    secondary000: "#6e7f8c", // Action (Dark)
-    secondary1000: "#738491", // Action (Light)
+    secondary000: "#ced3d7", // Secondary Action (Dark)
+    secondary1000: "#282d31", // Secondary Action (Light)
 
     // Accent Colors
-    accent000: "#36424e", // Accent (Dark)
-    accent1000: "#b1bdc9", // Accent (Light)
+    accent000: "#1B2227", // Tertiary Accent (Dark)
+    accent200: "#36424e", // Secondary Accent (Dark)
+    accent400: "#6e7f8c", // Primary Accent (Dark)
+    accent600: "#738491", // Primary Accent (Light)
+    accent800: "#b1bdc9", // Secondary Accent (Light)
+    accent1000: "#D8DFE4", // Tertiary Accent (Light)
+
+    // Text Colors
+    text000: "#000000", // Primary (Light)
+    text300: "#636369", // Muted (Dark)
+    text700: "#97979D", // Muted (Light)
+    text1000: "#ffffff", // Primary (Dark)
 
     // Grays (organized from darkest to lightest)
     gray000: "#000000", // Black
     gray050: "#0b0e16", // Very dark gray (darkBorderBg)
     gray075: "#1a1d21", // Dark gray (darkTextInverted)
     gray100: "#191919", // Dark gray (darkShadowBackground)
-    gray200: "#262626", // Dark gray (darkBgSecondary)
+    gray200: "#1E2124", // Dark gray (darkBgSecondary)
     gray300: "#2f3033", // Medium-dark gray (darkBgTertiary)
     gray400: "#3d3f45", // Medium gray (darkHoverBg)
     gray500: "#738491", // Mid gray (accents)
@@ -92,27 +102,29 @@ const primitives = {
 const aliasTokens = {
   light: {
     // Backgrounds (--bg-*)
-    backgroundPrimary: primitives.colors.background1000, // --theme-lightBgPrimary: #edf0f2
-    backgroundSecondary: primitives.colors.gray1000, // --theme-lightBgSecondary: #fff
-    backgroundTertiary: primitives.colors.gray800, // --theme-lightBgTertiary: #ecf0f3
-    backgroundShadow: primitives.colors.gray950, // --theme-lightShadowBackground: #f4f4f6
+    backgroundPrimary: primitives.colors.background1000,
+    backgroundSecondary: primitives.colors.gray1000,
+    backgroundTertiary: primitives.colors.gray800,
+    backgroundShadow: primitives.colors.gray950,
 
     // Text (--text-*)
-    textPrimary: primitives.colors.gray000, // --theme-lightTextPrimary: #000
-    textSecondary: primitives.colors.gray500, // --theme-lightTextMuted: #738491
-    textInverted: primitives.colors.gray875, // --theme-lightTextInverted: #eef0f1
+    textPrimary: primitives.colors.text000,
+    textMuted: primitives.colors.text700,
+    textInverted: primitives.colors.text1000,
 
     // Borders (--border-*)
-    borderDefault: primitives.colors.gray700, // --theme-lightBorderBg: #e5e7eb
-    borderSubtle: primitives.colors.gray500, // --border-outline: #738491
-    borderSoft: primitives.colors.gray500, // --border-soft: #738491
+    borderDefault: primitives.colors.gray700,
+    borderSubtle: primitives.colors.gray500,
+    borderSoft: primitives.colors.gray500,
 
     // Brand/Primary Actions (--primary-*)
-    primaryBrand: primitives.colors.primary000, // --theme-lightPrimaryAction: #2f3e4c
-    secondaryBrand: primitives.colors.secondary1000, // --theme-lightPrimaryAlternate: #2f3e4c
+    brandPrimary: primitives.colors.primary000,
+    brandSecondary: primitives.colors.secondary1000, // --theme-lightPrimaryAlternate: #2f3e4c
 
     // Accents (--accent-*)
-    accentPrimary: primitives.colors.accent1000, // --theme-lightAccentPrimary: #738491
+    accentPrimary: primitives.colors.accent600,
+    accentSecondary: primitives.colors.accent800,
+    accentTertiary: primitives.colors.accent1000,
 
     // Hover States (--hover-*)
     hoverBackground: primitives.colors.gray850, // --theme-lightHoverBg: #eeeeee
@@ -134,9 +146,9 @@ const aliasTokens = {
     backgroundShadow: primitives.colors.gray100, // --theme-darkShadowBackground: #191919
 
     // Text (--text-*)
-    textPrimary: primitives.colors.gray1000, // --theme-darkTextPrimary: #fff
-    textSecondary: primitives.colors.gray600, // --theme-darkTextMuted: #b1bec9
-    textInverted: primitives.colors.gray075, // --theme-darkTextInverted: #1a1d21
+    textPrimary: primitives.colors.text1000,
+    textMuted: primitives.colors.text300,
+    textInverted: primitives.colors.text000,
 
     // Borders (--border-*)
     borderDefault: primitives.colors.gray050, // --theme-darkBorderBg: #0b0e16
@@ -144,11 +156,13 @@ const aliasTokens = {
     borderSoft: primitives.colors.gray500, // --border-soft: #738491
 
     // Brand/Primary Actions (--primary-*)
-    primaryBrand: primitives.colors.primary1000, // --theme-darkPrimaryAction: #2f3e4c
-    secondaryBrand: primitives.colors.secondary000, // --theme-darkPrimaryAlternate: #ffffff
+    brandPrimary: primitives.colors.primary1000, // --theme-darkPrimaryAction: #2f3e4c
+    brandSecondary: primitives.colors.secondary000, // --theme-darkPrimaryAlternate: #ffffff
 
     // Accents (--accent-*)
-    accentPrimary: primitives.colors.accent000, // --theme-darkAccentPrimary: #738491
+    accentPrimary: primitives.colors.accent400,
+    accentSecondary: primitives.colors.accent200,
+    accentTertiary: primitives.colors.accent000,
 
     // Hover States (--hover-*)
     hoverBackground: primitives.colors.gray400, // --theme-darkHoverBg: #3d3f45
