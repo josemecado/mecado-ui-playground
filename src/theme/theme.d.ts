@@ -9,7 +9,9 @@ declare module "styled-components" {
   export interface DefaultTheme {
     mode: "light" | "dark";
     colors: ThemeColors;
+    widths: typeof tokens.widths;
     spacing: typeof tokens.spacing;
+    padding: typeof tokens.padding;
     radius: typeof tokens.radius;
     typography: typeof tokens.typography;
     components: typeof tokens.components;

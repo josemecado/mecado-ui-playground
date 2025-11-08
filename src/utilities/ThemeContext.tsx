@@ -35,7 +35,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   const currentTheme = {
     mode: theme,
     colors: tokens.colors[theme], // ✅ This now references alias tokens
+    widths: tokens.widths,
     spacing: tokens.spacing,
+    padding: tokens.padding,
     radius: tokens.radius,
     typography: tokens.typography,
     components: tokens.components,

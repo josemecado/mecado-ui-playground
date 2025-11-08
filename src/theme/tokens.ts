@@ -7,7 +7,13 @@ const primitives = {
   colors: {
     // Background (Light/Dark)
     background000: "#0d1012", // Background primary (Dark)
-    background1000: "#f5f5f5", // Background primary (Light)
+    background200: "#262626", // Background secondary (Dark)
+    background400: "#2F3033", // Background tertiary (Dark)
+    background450: "#3D3F45",
+    background550: "#bbbdc3",
+    background600: "#f5f5f5", // Background primary (Light)
+    background800: "#ECF0F3", // Background tertiary (Light)
+    background1000: "#fff", // Background secondary (Light)
 
     // Primary (CTA/Brand)
     primary000: "#2f3e4c", // Action (Light)
@@ -26,22 +32,22 @@ const primitives = {
     accent1000: "#D8DFE4", // Tertiary Accent (Light)
 
     // Text Colors
-    text000: "#000000", // Primary (Light)
-    text300: "#636369", // Muted (Dark)
-    text700: "#97979D", // Muted (Light)
-    text1000: "#ffffff", // Primary (Dark)
+    text000: "#251B14", // Primary (Light)
+    text300: "#97979D", // Muted (Dark)
+    text700: "#738491", // Muted (Light)
+    text1000: "#EAE9F0", // Primary (Dark)
 
     // Grays (organized from darkest to lightest)
     gray000: "#000000", // Black
-    gray050: "#0b0e16", // Very dark gray (darkBorderBg)
+    gray050: "#97979D", // Very dark gray (darkBorderBg)
     gray075: "#1a1d21", // Dark gray (darkTextInverted)
     gray100: "#191919", // Dark gray (darkShadowBackground)
     gray200: "#1E2124", // Dark gray (darkBgSecondary)
     gray300: "#2f3033", // Medium-dark gray (darkBgTertiary)
     gray400: "#3d3f45", // Medium gray (darkHoverBg)
-    gray500: "#738491", // Mid gray (accents)
+    gray500: "#B1BEC9", // Mid gray (accents)
     gray600: "#b1bec9", // Light-medium gray (darkTextMuted)
-    gray700: "#e5e7eb", // Light gray (lightBorderBg)
+    gray700: "#738491", // Light gray (lightBorderBg)
     gray800: "#ecf0f3", // Very light gray (lightBgTertiary)
     gray850: "#eeeeee", // Very light gray (lightHoverBg)
     gray875: "#eef0f1", // Almost white (lightTextInverted)
@@ -56,6 +62,12 @@ const primitives = {
     gray600Disabled: "#6b7280", // Disabled state
   },
 
+  widths: {
+    // Side Menu
+    sideMenu: "250px",
+    collapsedSideMenu: "80px",
+  },
+
   spacing: {
     0: "0rem",
     1: "0.25rem", // 4px
@@ -66,6 +78,14 @@ const primitives = {
     8: "2rem", // 32px
     10: "2.5rem", // 40px
     12: "3rem", // 48px
+  },
+
+  padding: {
+    xsm: "0.5rem",
+    sm: "0.75rem",
+    md: "1rem",
+    lg: "1.25rem",
+    xl: "1.5rem",
   },
 
   radius: {
@@ -79,13 +99,15 @@ const primitives = {
   fontSize: {
     sm: "0.875rem",
     md: "1rem",
-    lg: "1.25rem",
-    xl: "1.5rem",
+    lg: "1.1rem",
+    xl: "1.25rem",
+    xxl: "1.5rem",
   },
 
   fontWeight: {
     regular: 400,
     medium: 500,
+    semiBold: 600,
     bold: 700,
   },
 
@@ -102,9 +124,10 @@ const primitives = {
 const aliasTokens = {
   light: {
     // Backgrounds (--bg-*)
-    backgroundPrimary: primitives.colors.background1000,
-    backgroundSecondary: primitives.colors.gray1000,
-    backgroundTertiary: primitives.colors.gray800,
+    backgroundPrimary: primitives.colors.background600,
+    backgroundSecondary: primitives.colors.background1000,
+    backgroundTertiary: primitives.colors.background800,
+    backgroundQuaternary: primitives.colors.background550,
     backgroundShadow: primitives.colors.gray950,
 
     // Text (--text-*)
@@ -141,8 +164,9 @@ const aliasTokens = {
   dark: {
     // Backgrounds (--bg-*)
     backgroundPrimary: primitives.colors.background000, // --theme-darkBgPrimary: #000000
-    backgroundSecondary: primitives.colors.gray200, // --theme-darkBgSecondary: #262626
-    backgroundTertiary: primitives.colors.gray300, // --theme-darkBgTertiary: #2f3033
+    backgroundSecondary: primitives.colors.background200, // --theme-darkBgSecondary: #262626
+    backgroundTertiary: primitives.colors.background400, // --theme-darkBgTertiary: #2f3033
+    backgroundQuaternary: primitives.colors.background450,
     backgroundShadow: primitives.colors.gray100, // --theme-darkShadowBackground: #191919
 
     // Text (--text-*)
@@ -151,9 +175,9 @@ const aliasTokens = {
     textInverted: primitives.colors.text000,
 
     // Borders (--border-*)
-    borderDefault: primitives.colors.gray050, // --theme-darkBorderBg: #0b0e16
-    borderSubtle: primitives.colors.gray600, // --border-outline: #b1bec9
-    borderSoft: primitives.colors.gray500, // --border-soft: #738491
+    borderDefault: primitives.colors.gray600, // --theme-darkBorderBg: #0b0e16
+    borderSubtle: primitives.colors.accent400, // --border-outline: #b1bec9
+    borderSoft: primitives.colors.gray050, // --border-soft: #738491
 
     // Brand/Primary Actions (--primary-*)
     brandPrimary: primitives.colors.primary1000, // --theme-darkPrimaryAction: #2f3e4c
@@ -181,9 +205,27 @@ const aliasTokens = {
 // 🧩 COMPONENT TOKENS
 // ============================================================================
 const componentTokens = {
+  sidebar: {
+    // width: p
+    paddingX: primitives.padding.xl,
+    paddingY: primitives.padding.xl,
+    collapsedPaddingX: primitives.padding.sm,
+    collapsedPaddingY: primitives.padding.sm,
+
+    gap: primitives.spacing[2],
+    radius: primitives.radius.md,
+
+    //Typography
+    titleFontSize: primitives.fontSize.lg,
+    textFontSize: primitives.fontSize.md,
+    fontWeight: primitives.fontWeight.medium,
+  },
+
   button: {
     paddingX: primitives.spacing[4],
-    paddingY: primitives.spacing[2],
+    paddingY: primitives.spacing[3],
+    paddingXLarge: primitives.spacing[4],
+    paddingYLarge: primitives.spacing[4],
     gap: primitives.spacing[2],
     radius: primitives.radius.md,
     height: "2.5rem",
@@ -212,7 +254,9 @@ const componentTokens = {
 export const tokens = {
   primitives,
   colors: aliasTokens,
+  widths: primitives.widths,
   spacing: primitives.spacing,
+  padding: primitives.padding,
   radius: primitives.radius,
   typography: {
     family: primitives.fontFamily,
