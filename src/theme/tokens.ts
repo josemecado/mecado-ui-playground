@@ -7,7 +7,7 @@ const primitives = {
     colors: {
         // Background (Light/Dark)
         background000: "#0d1012", // Background primary (Dark)
-        background200: "#262626", // Background secondary (Dark)
+        background200: "#1E2124", // Background secondary (Dark)
         background400: "#2F3033", // Background tertiary (Dark)
         background450: "#3D3F45",
         background550: "#bbbdc3",
@@ -20,8 +20,8 @@ const primitives = {
         primary1000: "#b3c2d0", // Action (Dark)
 
         // Secondary (CTA/Brand)
-        secondary000: "#ced3d7", // Secondary Action (Dark)
-        secondary1000: "#282d31", // Secondary Action (Light)
+        secondary000: "#282d31", // Secondary Action (Dark)
+        secondary1000: "#ced3d7", // Secondary Action (Light)
 
         // Accent Colors
         accent000: "#1B2227", // Tertiary Accent (Dark)
@@ -71,6 +71,7 @@ const primitives = {
 
     heights: {
         mediumCard: "200px",
+        smallCell: "2.25rem",
     },
 
     spacing: {
@@ -212,9 +213,9 @@ const aliasTokens = {
 // ============================================================================
 const componentTokens = {
     sidebar: {
-        // width: p
-        paddingX: primitives.padding.xl,
-        paddingY: primitives.padding.xl,
+        width: primitives.widths.sideMenu,
+        paddingX: primitives.padding.md,
+        paddingY: primitives.padding.md,
         collapsedPaddingX: primitives.padding.sm,
         collapsedPaddingY: primitives.padding.sm,
 

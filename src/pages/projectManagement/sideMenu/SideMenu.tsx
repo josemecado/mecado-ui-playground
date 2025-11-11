@@ -213,15 +213,13 @@ const ContentContainer = styled.div`
     display: flex;
     flex-direction: column;
     flex: 1;
-    padding: ${({theme}) => theme.spacing[2]} 0;
+    padding: ${({ theme }) => theme.components.sidebar.paddingY} 0;
 `;
 
 const MenuSection = styled.div`
     display: flex;
     flex-direction: column;
-    margin-bottom: ${({theme}) => theme.spacing[4]};
-    padding-bottom: ${({theme}) => theme.spacing[2]};
-    border-bottom: 1px solid ${({theme}) => theme.colors.borderDefault};
+    margin-bottom: ${({theme}) => theme.spacing[6]};
 
     &:last-of-type {
         border-bottom: none;
@@ -231,14 +229,14 @@ const MenuSection = styled.div`
 const SectionHeader = styled.div<{ $isCollapsed?: boolean }>`
     font-size: ${({theme}) => theme.typography.size.sm};
     font-weight: ${({theme}) => theme.typography.weight.semiBold};
-    color: ${({theme}) => theme.colors.textMuted};
+    color: ${({theme}) => theme.colors.brandPrimary};
     text-transform: uppercase;
     letter-spacing: 0.5px;
     padding: ${({theme, $isCollapsed}) =>
             $isCollapsed
-                    ? `${theme.spacing[2]} ${theme.spacing[3]}`
-                    : `${theme.spacing[2]} ${theme.spacing[4]}`};
-    margin-bottom: ${({theme}) => theme.spacing[1]};
+                    ? `0`
+                    : `0 ${theme.components.sidebar.paddingX}`};
+    margin-bottom: ${({theme}) => theme.spacing[3]};
     opacity: ${({$isCollapsed}) => ($isCollapsed ? 0 : 1)};
     transition: opacity ${({theme}) => theme.animation.duration.fast} ${({theme}) => theme.animation.easing.standard};
     white-space: nowrap;
@@ -249,7 +247,6 @@ const MenuItemsContainer = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${({theme}) => theme.spacing[1]};
-    padding: 0 ${({theme}) => theme.spacing[2]};
 `;
 
 const ToggleButtonContainer = styled.div`
