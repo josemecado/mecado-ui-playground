@@ -36,6 +36,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     mode: theme,
     colors: tokens.colors[theme], // ✅ This now references alias tokens
     widths: tokens.widths,
+      heights: tokens.heights,
     spacing: tokens.spacing,
     padding: tokens.padding,
     radius: tokens.radius,

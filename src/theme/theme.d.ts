@@ -10,6 +10,7 @@ declare module "styled-components" {
     mode: "light" | "dark";
     colors: ThemeColors;
     widths: typeof tokens.widths;
+    heights: typeof tokens.heights;
     spacing: typeof tokens.spacing;
     padding: typeof tokens.padding;
     radius: typeof tokens.radius;

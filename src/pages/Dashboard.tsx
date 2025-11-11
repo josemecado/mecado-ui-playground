@@ -84,8 +84,7 @@ export default function VulcanDashboard() {
       <SideMenu />
       <MainContent>
         <h2>Vulcan Dashboard (Mock UI)</h2>
-        <p>Geometry Card Preview:</p>
-        
+
         {/* 3. RENDER GeometryCard */}
         <CardWrapper>
             <GeometryCard 
@@ -119,17 +118,15 @@ const Container = styled.div`
   flex-direction: row;
   height: 100vh;
   width: 100%;
-  background-color: ${(p) => p.theme.colors.backgroundPrimary};
+  //background-color: ${(p) => p.theme.colors.backgroundPrimary};
 `;
 
 const MainContent = styled.div`
-  flex: 1;
-  padding: 2rem;
-  color: ${(p) => p.theme.colors.textPrimary};
+    flex: 1;
+    padding: 2rem;
 `;
 
-// --- New Styled Component for Card Layout ---
 const CardWrapper = styled.div`
-    width: 320px; /* Constrain the card width for proper visualization */
-    margin-top: 1rem;
+    display: flex;
+    //margin-top: 1rem;
 `;

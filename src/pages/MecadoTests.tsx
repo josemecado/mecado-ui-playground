@@ -42,7 +42,6 @@ export default function MecadoTests() {
         />
       </ModalDock>
 
-      {/* Example: show current sort (debug) */}
       {sortConfig && (
         <Debug>
           Active Sort → <b>{sortConfig.id}</b> ({sortConfig.order})

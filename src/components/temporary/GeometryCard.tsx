@@ -1,139 +1,141 @@
 // GeometryBrowser/GeometryCard.tsx - Add error handling and debugging
 
-import React, { useState } from "react";
+import React, {useState} from "react";
 import styled from "styled-components";
 
 export interface GeometryFile {
-  id: string;
-  filename: string;
-  title: string;
-  thumbnailUrl?: string; // Optional: will use placeholder if not provided
-  fileSize?: string;
-  dateModified?: Date;
-  fileType: "stp" | "step" | "vtp" | "vtk" | "stl";
-  filePath?: string; // Full path to the STP file
-  tags?: string[];
-  description?: string;
-  
-  // VTP visualization files
-  vtpFiles?: {
-    bodies?: string;  // Path to bodies.vtp
-    edges?: string;   // Path to edges.vtp
-    faces?: string;   // Path to faces.vtp
-    json?: string;    // Path to JSON metadata file
-  };
+    id: string;
+    filename: string;
+    title: string;
+    thumbnailUrl?: string; // Optional: will use placeholder if not provided
+    fileSize?: string;
+    dateModified?: Date;
+    fileType: "stp" | "step" | "vtp" | "vtk" | "stl";
+    filePath?: string; // Full path to the STP file
+    tags?: string[];
+    description?: string;
+
+    // VTP visualization files
+    vtpFiles?: {
+        bodies?: string; // Path to bodies.vtp
+        edges?: string; // Path to edges.vtp
+        faces?: string; // Path to faces.vtp
+        json?: string; // Path to JSON metadata file
+    };
 }
 
 interface GeometryCardProps {
-  geometry: GeometryFile;
-  onClick: () => void;
+    geometry: GeometryFile;
+    onClick: () => void;
 }
 
 export const GeometryCard: React.FC<GeometryCardProps> = ({
-  geometry,
-  onClick,
-}) => {
-  const [imageError, setImageError] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
+                                                              geometry,
+                                                              onClick,
+                                                          }) => {
+    const [imageError, setImageError] = useState(false);
+    const [imageLoaded, setImageLoaded] = useState(false);
 
-  const formatDate = (date: Date) => {
-    try {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-    } catch {
-      return "Unknown date";
-    }
-  };
+    const formatDate = (date: Date) => {
+        try {
+            return date.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+            });
+        } catch {
+            return "Unknown date";
+        }
+    };
 
-  const handleImageError = () => {
-    console.error(
-      `Failed to load thumbnail for ${geometry.id}:`,
-      geometry.thumbnailUrl
+    const handleImageError = () => {
+        console.error(
+            `Failed to load thumbnail for ${geometry.id}:`,
+            geometry.thumbnailUrl
+        );
+        setImageError(true);
+    };
+
+    const handleImageLoad = () => {
+        console.log(
+            `Successfully loaded thumbnail for ${geometry.id}:`,
+            geometry.thumbnailUrl
+        );
+        setImageLoaded(true);
+    };
+
+    // Fallbacks for missing data
+    const title = geometry.title || geometry.filename || "Untitled";
+    const filename = geometry.filename || "unknown.stp";
+    const fileType = geometry.fileType?.toUpperCase() || "STP";
+    const category = geometry.tags?.[0] || "uncategorized";
+
+    // Debug log
+    console.log(`GeometryCard ${geometry.id}:`, {
+        hasThumbnail: !!geometry.thumbnailUrl,
+        thumbnailUrl: geometry.thumbnailUrl,
+        imageError,
+        imageLoaded,
+    });
+
+    return (
+        <CardContainer onClick={onClick}>
+            <ThumbnailContainer>
+                {geometry.thumbnailUrl && !imageError ? (
+                    <ThumbnailImage
+                        src={geometry.thumbnailUrl}
+                        alt={title}
+                        onError={handleImageError}
+                        onLoad={handleImageLoad}
+                    />
+                ) : (
+                    <PlaceholderIcon>
+                        <svg
+                            width="64"
+                            height="64"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        >
+                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                            <polyline points="13 2 13 9 20 9"/>
+                            <path d="M8 13h8"/>
+                            <path d="M8 17h8"/>
+                        </svg>
+                        <PlaceholderText>{fileType}</PlaceholderText>
+                    </PlaceholderIcon>
+                )}
+            </ThumbnailContainer>
+
+            <CardContent>
+                <TitleSection>
+                    <CardTitle title={title}>{title}</CardTitle>
+                    <CardFilename title={filename}>{filename}</CardFilename>
+                </TitleSection>
+
+                <CardFooter>
+                    <CardMeta>
+                        {geometry.fileSize && (
+                            <Tag $color="#f45"> {geometry.fileSize}</Tag>
+                        )
+                        }
+                        {geometry.dateModified && (
+                            <Tag>{formatDate(geometry.dateModified)}</Tag>
+                        )}
+                        {!geometry.fileSize && !geometry.dateModified && (
+                            <MetaItem>STEP file</MetaItem>
+                        )}
+                    </CardMeta>
+                    <TagsContainer>
+                        <Tag>{category}</Tag>
+                    </TagsContainer>
+                </CardFooter>
+            </CardContent>
+        </CardContainer>
     );
-    setImageError(true);
-  };
-
-  const handleImageLoad = () => {
-    console.log(
-      `Successfully loaded thumbnail for ${geometry.id}:`,
-      geometry.thumbnailUrl
-    );
-    setImageLoaded(true);
-  };
-
-  // Fallbacks for missing data
-  const title = geometry.title || geometry.filename || "Untitled";
-  const filename = geometry.filename || "unknown.stp";
-  const fileType = geometry.fileType?.toUpperCase() || "STP";
-  const category = geometry.tags?.[0] || "uncategorized";
-
-  // Debug log
-  console.log(`GeometryCard ${geometry.id}:`, {
-    hasThumbnail: !!geometry.thumbnailUrl,
-    thumbnailUrl: geometry.thumbnailUrl,
-    imageError,
-    imageLoaded,
-  });
-
-  return (
-    <CardContainer onClick={onClick}>
-      <ThumbnailContainer>
-        {geometry.thumbnailUrl && !imageError ? (
-          <ThumbnailImage
-            src={geometry.thumbnailUrl}
-            alt={title}
-            onError={handleImageError}
-            onLoad={handleImageLoad}
-          />
-        ) : (
-          <PlaceholderIcon>
-            <svg
-              width="64"
-              height="64"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
-              <polyline points="13 2 13 9 20 9" />
-              <path d="M8 13h8" />
-              <path d="M8 17h8" />
-            </svg>
-            <PlaceholderText>{fileType}</PlaceholderText>
-          </PlaceholderIcon>
-        )}
-        <FileTypeBadge>{fileType}</FileTypeBadge>
-        {geometry.vtpFiles && <VTPBadge>3D</VTPBadge>}
-      </ThumbnailContainer>
-
-      <CardContent>
-        <CardTitle title={title}>{title}</CardTitle>
-        <CardFilename title={filename}>{filename}</CardFilename>
-
-        <CardFooter>
-          <CardMeta>
-            {geometry.fileSize && <MetaItem>{geometry.fileSize}</MetaItem>}
-            {geometry.dateModified && (
-              <MetaItem>{formatDate(geometry.dateModified)}</MetaItem>
-            )}
-            {!geometry.fileSize && !geometry.dateModified && (
-              <MetaItem>STEP file</MetaItem>
-            )}
-          </CardMeta>
-
-          <TagsContainer>
-            <Tag>{category}</Tag>
-          </TagsContainer>
-        </CardFooter>
-      </CardContent>
-    </CardContainer>
-  );
 };
 
 // ============================================================================
@@ -141,166 +143,128 @@ export const GeometryCard: React.FC<GeometryCardProps> = ({
 // ============================================================================
 
 const CardContainer = styled.div`
-  background-color: ${({ theme }) => theme.colors.backgroundSecondary};
-  border: 1px solid ${({ theme }) => theme.colors.borderDefault};
-  border-radius: ${({ theme }) => theme.components.card.radius};
-  overflow: hidden;
-  cursor: pointer;
-  transition: all ${({ theme }) => theme.animation.duration.fast} ${({ theme }) => theme.animation.easing.standard};
-  display: flex;
-  flex-direction: column;
-  min-height: 280px;
+    display: flex;
+    width: 100%;
+    min-height: ${({theme}) => theme.components.card.heightMedium};
+    background-color: ${({theme}) => theme.colors.backgroundSecondary};
+    border: 1px solid ${({theme}) => theme.colors.borderSubtle};
+    border-radius: ${({theme}) => theme.components.card.radius};
+    overflow: hidden;
+    cursor: pointer;
+    transition: all ${({theme}) => theme.animation.duration.fast} ${({theme}) => theme.animation.easing.standard};
 
-  &:hover {
-    border-color: ${({ theme }) => theme.colors.brandPrimary};
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-  }
+    &:hover {
+        border-color: ${({theme}) => theme.colors.brandPrimary};
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
 
-  &:active {
-    transform: translateY(0);
-  }
+    &:active {
+        transform: translateY(0);
+    }
 `;
 
 const ThumbnailContainer = styled.div`
-  position: relative;
-  width: 100%;
-  height: 140px;
-  background: linear-gradient(
-    135deg,
-    ${({ theme }) => theme.colors.backgroundTertiary} 0%,
-    ${({ theme }) => theme.colors.accentTertiary} 100%
-  );
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  gap: ${({ theme }) => theme.spacing[2]};
+    display: flex;
+    flex: 1;
+    background: red;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    gap: ${({theme}) => theme.spacing[2]};
 `;
 
 const ThumbnailImage = styled.img`
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 `;
 
 const PlaceholderIcon = styled.div`
-  color: ${({ theme }) => theme.colors.accentPrimary};
-  opacity: 0.5;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: ${({ theme }) => theme.spacing[2]};
+    color: ${({theme}) => theme.colors.accentPrimary};
+    opacity: 0.5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: ${({theme}) => theme.spacing[2]};
 `;
 
 const PlaceholderText = styled.div`
-  font-size: ${({ theme }) => theme.typography.size.lg};
-  font-weight: ${({ theme }) => theme.typography.weight.bold};
-  color: ${({ theme }) => theme.colors.accentPrimary};
-  opacity: 0.6;
-  letter-spacing: 0.1em;
-`;
-
-const FileTypeBadge = styled.div`
-  position: absolute;
-  top: ${({ theme }) => theme.spacing[2]};
-  right: ${({ theme }) => theme.spacing[2]};
-  background-color: ${({ theme }) => theme.colors.brandPrimary};
-  color: ${({ theme }) => theme.colors.textInverted};
-  padding: ${({ theme }) => theme.spacing[1]} ${({ theme }) => theme.spacing[2]};
-  border-radius: ${({ theme }) => theme.radius.sm};
-  font-size: 0.625rem;
-  font-weight: ${({ theme }) => theme.typography.weight.bold};
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    font-size: ${({theme}) => theme.typography.size.lg};
+    font-weight: ${({theme}) => theme.typography.weight.bold};
+    color: ${({theme}) => theme.colors.accentPrimary};
+    opacity: 0.6;
+    letter-spacing: 0.1em;
 `;
 
 const CardContent = styled.div`
-  padding: ${({ theme }) => theme.spacing[3]};
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacing[2]};
-  flex: 1;
+    padding: ${({theme}) => theme.spacing[3]};
+    display: flex;
+    flex: 2;
+    flex-direction: column;
+    gap: ${({theme}) => theme.spacing[2]};
+    background: ${({theme}) => theme.colors.backgroundSecondary};
 `;
 
 const CardTitle = styled.h3`
-  margin: 0;
-  font-size: ${({ theme }) => theme.typography.size.md};
-  font-weight: ${({ theme }) => theme.typography.weight.bold};
-  color: ${({ theme }) => theme.colors.textPrimary};
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  line-height: 1.4;
+    font-size: ${({theme}) => theme.typography.size.md};
+    font-weight: ${({theme}) => theme.typography.weight.bold};
+    color: ${({theme}) => theme.colors.textPrimary};
+    overflow: hidden;
+    text-overflow: ellipsis;
 `;
 
 const CardFilename = styled.div`
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  font-family: ${({ theme }) => theme.typography.family.mono};
-  color: ${({ theme }) => theme.colors.textMuted};
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  line-height: 1.4;
+    font-size: ${({theme}) => theme.typography.size.sm};
+    color: ${({theme}) => theme.colors.textMuted};
 `;
 
 const CardFooter = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacing[2]};
-  margin-top: auto;
-  padding-top: ${({ theme }) => theme.spacing[2]};
+    display: flex;
+    justify-content: space-between;
+    gap: ${({theme}) => theme.spacing[2]};
+    margin-top: auto;
+    padding-top: ${({theme}) => theme.spacing[2]};
 `;
 
 const CardMeta = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.spacing[2]};
-  flex-wrap: wrap;
+    display: flex;
+    gap: ${({theme}) => theme.spacing[2]};
+    flex-wrap: wrap;
 `;
 
 const MetaItem = styled.span`
-  font-size: 0.75rem;
-  color: ${({ theme }) => theme.colors.textMuted};
-  line-height: 1.4;
+    font-size: 0.75rem;
+    color: ${({theme}) => theme.colors.textMuted};
+    line-height: 1.4;
 
-  &:not(:last-child)::after {
-    content: "•";
-    margin-left: ${({ theme }) => theme.spacing[2]};
-    opacity: 0.5;
-  }
+    &:not(:last-child)::after {
+        content: "•";
+        margin-left: ${({theme}) => theme.spacing[2]};
+        opacity: 0.5;
+    }
 `;
 
 const TagsContainer = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.spacing[1]};
-  flex-wrap: wrap;
+    display: flex;
+    gap: ${({theme}) => theme.spacing[1]};
 `;
 
-const Tag = styled.span`
-  font-size: 0.7rem;
-  padding: ${({ theme }) => theme.spacing[1]} ${({ theme }) => theme.spacing[2]};
-  background-color: ${({ theme }) => theme.colors.accentTertiary};
-  color: ${({ theme }) => theme.colors.accentPrimary};
-  border-radius: ${({ theme }) => theme.radius.sm};
-  font-weight: ${({ theme }) => theme.typography.weight.medium};
-  line-height: 1.4;
-  text-transform: capitalize;
+const Tag = styled.span<{ $color?: string }>`
+    font-size: 0.7rem;
+    padding: ${({theme}) => theme.spacing[1]} ${({theme}) => theme.spacing[2]};
+    background-color: ${props => props.color};;
+    color: ${({theme}) => theme.colors.textPrimary};
+    border-radius: ${({theme}) => theme.radius.sm};
+    font-weight: ${({theme}) => theme.typography.weight.medium};
+    line-height: 1.4;
+    text-transform: capitalize;
 `;
 
-const VTPBadge = styled.div`
-  position: absolute;
-  top: ${({ theme }) => theme.spacing[2]};
-  left: ${({ theme }) => theme.spacing[2]};
-  background-color: ${({ theme }) => theme.colors.statusSuccess};
-  color: ${({ theme }) => theme.colors.textInverted};
-  padding: ${({ theme }) => theme.spacing[1]} ${({ theme }) => theme.spacing[2]};
-  border-radius: ${({ theme }) => theme.radius.sm};
-  font-size: 0.625rem;
-  font-weight: ${({ theme }) => theme.typography.weight.bold};
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+// Headers
+const TitleSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${({theme}) => theme.primitives.spacing[0.5]};
 `;

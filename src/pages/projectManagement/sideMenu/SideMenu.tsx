@@ -1,25 +1,19 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, {useState, useEffect, useRef} from "react";
 import styled from "styled-components";
-import { Home, FileText, Bell, Tag, Library } from "lucide-react";
+import {Home, FileText, Bell, Tag, Library} from "lucide-react";
 
-import { MenuHeader } from "./MenuHeader";
-import ThemeToggleButton from "../../reusable-components/ThemeToggleButton";
-
-type ViewType = "home" | "reports" | "notifications" | "geometry-labeler" | "geometry-library";
-
-interface MenuItem {
-    id: ViewType;
-    icon: React.ReactNode;
-    title: string;
-    isActive?: boolean;
-}
+import {MenuHeader} from "./MenuHeader";
+import ThemeToggleButton from "../../../reusable-components/ThemeToggleButton";
+import MenuViewItem from "./components/MenuViewItem";
+import MenuToolItem from "./components/MenuToolItem";
+import {MenuItem, ViewType} from "./components/sharedComponents";
 
 interface SideMenuProps {
     activeView: ViewType;
     onViewChange: (view: ViewType) => void;
 }
 
-export const SideMenu: React.FC<SideMenuProps> = ({ activeView, onViewChange }) => {
+export const SideMenu: React.FC<SideMenuProps> = ({activeView, onViewChange}) => {
     const [isCollapsed, setCollapse] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const effectiveCollapsed = isCollapsed && !isHovered;
@@ -87,19 +81,19 @@ export const SideMenu: React.FC<SideMenuProps> = ({ activeView, onViewChange }) 
     const coreMenuItems: MenuItem[] = [
         {
             id: "home",
-            icon: <Home size={18} />,
+            icon: <Home size={18}/>,
             title: "Home",
             isActive: activeView === "home",
         },
         {
             id: "reports",
-            icon: <FileText size={18} />,
+            icon: <FileText size={18}/>,
             title: "Reports & Submissions",
             isActive: activeView === "reports",
         },
         {
             id: "notifications",
-            icon: <Bell size={18} />,
+            icon: <Bell size={18}/>,
             title: "Notifications",
             isActive: activeView === "notifications",
         },
@@ -108,13 +102,13 @@ export const SideMenu: React.FC<SideMenuProps> = ({ activeView, onViewChange }) 
     const toolMenuItems: MenuItem[] = [
         {
             id: "geometry-labeler",
-            icon: <Tag size={18} />,
+            icon: <Tag size={18}/>,
             title: "Geometry Labeler",
             isActive: activeView === "geometry-labeler",
         },
         {
             id: "geometry-library",
-            icon: <Library size={18} />,
+            icon: <Library size={18}/>,
             title: "Geometry Library",
             isActive: activeView === "geometry-library",
         },
@@ -145,17 +139,12 @@ export const SideMenu: React.FC<SideMenuProps> = ({ activeView, onViewChange }) 
                     <SectionHeader $isCollapsed={effectiveCollapsed}>CORE</SectionHeader>
                     <MenuItemsContainer>
                         {coreMenuItems.map((item) => (
-                            <MenuItemButton
+                            <MenuViewItem
                                 key={item.id}
-                                $isActive={item.isActive}
+                                item={item}
                                 $isCollapsed={effectiveCollapsed}
                                 onClick={() => onViewChange(item.id)}
-                            >
-                                <IconWrapper>{item.icon}</IconWrapper>
-                                <MenuItemTitle $isCollapsed={effectiveCollapsed}>
-                                    {item.title}
-                                </MenuItemTitle>
-                            </MenuItemButton>
+                            />
                         ))}
                     </MenuItemsContainer>
                 </MenuSection>
@@ -165,17 +154,12 @@ export const SideMenu: React.FC<SideMenuProps> = ({ activeView, onViewChange }) 
                     <SectionHeader $isCollapsed={effectiveCollapsed}>TOOLS</SectionHeader>
                     <MenuItemsContainer>
                         {toolMenuItems.map((item) => (
-                            <MenuItemButton
+                            <MenuToolItem
                                 key={item.id}
-                                $isActive={item.isActive}
+                                item={item}
                                 $isCollapsed={effectiveCollapsed}
                                 onClick={() => onViewChange(item.id)}
-                            >
-                                <IconWrapper>{item.icon}</IconWrapper>
-                                <MenuItemTitle $isCollapsed={effectiveCollapsed}>
-                                    {item.title}
-                                </MenuItemTitle>
-                            </MenuItemButton>
+                            />
                         ))}
                     </MenuItemsContainer>
                 </MenuSection>
@@ -183,7 +167,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({ activeView, onViewChange }) 
                 {/* Theme Toggle - Bottom aligned */}
                 {!effectiveCollapsed && (
                     <ToggleButtonContainer>
-                        <ThemeToggleButton />
+                        <ThemeToggleButton/>
                     </ToggleButtonContainer>
                 )}
             </ContentContainer>
@@ -198,44 +182,46 @@ export default SideMenu;
 // ======================
 
 const SidebarContainer = styled.div<{ $collapsed?: boolean }>`
-  display: flex;
-  flex-direction: column;
-  width: ${(p) => p.$collapsed ? p.theme.widths.collapsedSideMenu : p.theme.widths.sideMenu};
-  min-width: ${(p) => p.theme.widths.collapsedSideMenu};
-  background-color: ${({ theme }) => theme.colors.backgroundSecondary};
-  overflow-y: auto;
-  overflow-x: hidden;
-  transition: width ${({ theme }) => theme.animation.duration.slow} 
-    ${({ theme }) => theme.animation.easing.standard};
+    display: flex;
+    flex-direction: column;
+    width: ${(p) => p.$collapsed ? p.theme.widths.collapsedSideMenu : p.theme.widths.sideMenu};
+    min-width: ${(p) => p.theme.widths.collapsedSideMenu};
+    background-color: ${({theme}) => theme.colors.backgroundSecondary};
+    overflow-y: auto;
+    overflow-x: hidden;
+    transition: width ${({theme}) => theme.animation.duration.slow} ${({theme}) => theme.animation.easing.standard};
 
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: ${({ theme }) => theme.colors.accentPrimary};
-    border-radius: ${({ theme }) => theme.radius.sm};
-  }
-  &::-webkit-scrollbar-thumb:hover {
-    background: ${({ theme }) => theme.colors.accentSecondary};
-  }
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: ${({theme}) => theme.colors.accentPrimary};
+        border-radius: ${({theme}) => theme.radius.sm};
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+        background: ${({theme}) => theme.colors.accentSecondary};
+    }
 `;
 
 const ContentContainer = styled.div`
     display: flex;
     flex-direction: column;
     flex: 1;
-    padding: ${({ theme }) => theme.spacing[2]} 0;
+    padding: ${({theme}) => theme.spacing[2]} 0;
 `;
 
 const MenuSection = styled.div`
     display: flex;
     flex-direction: column;
-    margin-bottom: ${({ theme }) => theme.spacing[4]};
-    padding-bottom: ${({ theme }) => theme.spacing[2]};
-    border-bottom: 1px solid ${({ theme }) => theme.colors.borderDefault};
+    margin-bottom: ${({theme}) => theme.spacing[4]};
+    padding-bottom: ${({theme}) => theme.spacing[2]};
+    border-bottom: 1px solid ${({theme}) => theme.colors.borderDefault};
 
     &:last-of-type {
         border-bottom: none;
@@ -243,89 +229,34 @@ const MenuSection = styled.div`
 `;
 
 const SectionHeader = styled.div<{ $isCollapsed?: boolean }>`
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  font-weight: ${({ theme }) => theme.typography.weight.semiBold};
-  color: ${({ theme }) => theme.colors.textMuted};
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: ${({ theme, $isCollapsed }) =>
-    $isCollapsed
-        ? `${theme.spacing[2]} ${theme.spacing[3]}`
-        : `${theme.spacing[2]} ${theme.spacing[4]}`};
-  margin-bottom: ${({ theme }) => theme.spacing[1]};
-  opacity: ${({ $isCollapsed }) => ($isCollapsed ? 0 : 1)};
-  transition: opacity ${({ theme }) => theme.animation.duration.fast} 
-    ${({ theme }) => theme.animation.easing.standard};
-  white-space: nowrap;
-  overflow: hidden;
+    font-size: ${({theme}) => theme.typography.size.sm};
+    font-weight: ${({theme}) => theme.typography.weight.semiBold};
+    color: ${({theme}) => theme.colors.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: ${({theme, $isCollapsed}) =>
+            $isCollapsed
+                    ? `${theme.spacing[2]} ${theme.spacing[3]}`
+                    : `${theme.spacing[2]} ${theme.spacing[4]}`};
+    margin-bottom: ${({theme}) => theme.spacing[1]};
+    opacity: ${({$isCollapsed}) => ($isCollapsed ? 0 : 1)};
+    transition: opacity ${({theme}) => theme.animation.duration.fast} ${({theme}) => theme.animation.easing.standard};
+    white-space: nowrap;
+    overflow: hidden;
 `;
 
 const MenuItemsContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacing[1]};
-  padding: 0 ${({ theme }) => theme.spacing[2]};
-`;
-
-const MenuItemButton = styled.button<{ $isActive?: boolean; $isCollapsed?: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.spacing[3]};
-  padding: ${({ theme }) => `${theme.spacing[3]} ${theme.spacing[3]}`};
-  background-color: ${({ theme, $isActive }) =>
-    $isActive ? theme.colors.backgroundTertiary : "transparent"};
-  color: ${({ theme, $isActive }) =>
-    $isActive ? theme.colors.textPrimary : theme.colors.textMuted};
-  border: none;
-  border-radius: ${({ theme }) => theme.radius.md};
-  cursor: pointer;
-  transition: all ${({ theme }) => theme.animation.duration.fast}
-    ${({ theme }) => theme.animation.easing.standard};
-  font-size: ${({ theme }) => theme.typography.size.md};
-  font-weight: ${({ theme }) => theme.typography.weight.medium};
-  font-family: ${({ theme }) => theme.typography.family.base};
-  text-align: left;
-  width: 100%;
-  justify-content: ${({ $isCollapsed }) => ($isCollapsed ? "center" : "flex-start")};
-
-  &:hover {
-    background-color: ${({ theme }) => theme.colors.hoverBackground};
-    color: ${({ theme }) => theme.colors.textPrimary};
-  }
-
-  &:active {
-    transform: scale(0.98);
-  }
-`;
-
-const IconWrapper = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-
-  svg {
-    width: 18px;
-    height: 18px;
-  }
-`;
-
-const MenuItemTitle = styled.span<{ $isCollapsed?: boolean }>`
-  opacity: ${({ $isCollapsed }) => ($isCollapsed ? 0 : 1)};
-  width: ${({ $isCollapsed }) => ($isCollapsed ? "0" : "auto")};
-  overflow: hidden;
-  white-space: nowrap;
-  transition: opacity ${({ theme }) => theme.animation.duration.fast}
-    ${({ theme }) => theme.animation.easing.standard};
+    display: flex;
+    flex-direction: column;
+    gap: ${({theme}) => theme.spacing[1]};
+    padding: 0 ${({theme}) => theme.spacing[2]};
 `;
 
 const ToggleButtonContainer = styled.div`
-  display: flex;
-  width: 100%;
-  justify-content: center;
-  align-items: flex-end;
-  margin-top: auto;
-  padding: ${({ theme }) => theme.spacing[4]} ${({ theme }) => theme.spacing[2]};
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    align-items: flex-end;
+    margin-top: auto;
+    padding: ${({theme}) => theme.spacing[4]} ${({theme}) => theme.spacing[2]};
 `;
