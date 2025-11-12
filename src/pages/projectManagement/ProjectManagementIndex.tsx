@@ -4,66 +4,77 @@ import SideMenu from "./sideMenu/SideMenu";
 import HomeView from "./home/HomeView";
 import { ViewType } from "./sideMenu/components/sharedComponents";
 import { TaskContext } from "./home/types/types";
+import { SimpleLabelCreator } from "./simpleLabelCreator/SimpleLabelCreator";
+import { updateTaskStatus } from "./home/utils/mockTasks"; // ADD THIS IMPORT
 
 export const ProjectManagementIndex: React.FC = () => {
-    const [activeView, setActiveView] = useState<ViewType>("home");
-    const [taskContext, setTaskContext] = useState<TaskContext | null>(null);
+  const [activeView, setActiveView] = useState<ViewType>("home");
+  const [taskContext, setTaskContext] = useState<TaskContext | null>(null);
 
-    const handleNavigateToTool = (view: ViewType, context?: TaskContext) => {
-        setActiveView(view);
-        if (context) {
-            setTaskContext(context);
-        }
-    };
+  const handleNavigateToTool = (view: ViewType, context?: TaskContext) => {
+    setActiveView(view);
+    if (context) {
+      setTaskContext(context);
+    }
+  };
 
-    const renderView = () => {
-        switch (activeView) {
-            case "home":
-                return <HomeView onNavigateToTool={handleNavigateToTool} />;
+  const handleLabelSubmit = (taskId: string, labels: string[]) => {
+    updateTaskStatus(taskId, "pending", undefined, labels);
+    setActiveView("home");
+    setTaskContext(null);
+  };
 
-            case "reports":
-                return <ViewPlaceholder>Reports & Submissions View</ViewPlaceholder>;
+  const handleCancel = () => {
+    setActiveView("home");
+    setTaskContext(null);
+  };
 
-            case "notifications":
-                return <ViewPlaceholder>Notifications View</ViewPlaceholder>;
+  const renderView = () => {
+    switch (activeView) {
+      case "home":
+        return <HomeView onNavigateToTool={handleNavigateToTool} />;
 
-            case "geometry-labeler":
-                return (
-                    <ViewPlaceholder>
-                        <div>Geometry Labeler View</div>
-                        {taskContext && (
-                            <ContextInfo>
-                                <h3>Task Context:</h3>
-                                <pre>{JSON.stringify(taskContext, null, 2)}</pre>
-                            </ContextInfo>
-                        )}
-                    </ViewPlaceholder>
-                );
+      case "reports":
+        return <ViewPlaceholder>Reports & Submissions View</ViewPlaceholder>;
 
-            case "geometry-library":
-                return (
-                    <ViewPlaceholder>
-                        <div>Geometry Library View</div>
-                        {taskContext && (
-                            <ContextInfo>
-                                <h3>Task Context:</h3>
-                                <pre>{JSON.stringify(taskContext, null, 2)}</pre>
-                            </ContextInfo>
-                        )}
-                    </ViewPlaceholder>
-                );
+      case "notifications":
+        return <ViewPlaceholder>Notifications View</ViewPlaceholder>;
 
-            default:
-                return <ViewPlaceholder>Home Dashboard View</ViewPlaceholder>;
-        }
-    };
+      case "geometry-labeler":
+        return taskContext ? (
+          <SimpleLabelCreator
+            taskContext={taskContext}
+            onSubmit={handleLabelSubmit}
+            onCancel={handleCancel}
+          />
+        ) : (
+          <ViewPlaceholder>No task context available</ViewPlaceholder>
+        );
 
-    return (
-        <LayoutContainer>
-            <SideMenu activeView={activeView} onViewChange={setActiveView} />
-            <MainContent>{renderView()}</MainContent>
-        </LayoutContainer>
-    );
+      case "geometry-library":
+        return (
+          <ViewPlaceholder>
+            <div>Geometry Library View</div>
+            {taskContext && (
+              <ContextInfo>
+                <h3>Task Context:</h3>
+                <pre>{JSON.stringify(taskContext, null, 2)}</pre>
+              </ContextInfo>
+            )}
+          </ViewPlaceholder>
+        );
+
+      default:
+        return <ViewPlaceholder>Home Dashboard View</ViewPlaceholder>;
+    }
+  };
+
+  return (
+    <LayoutContainer>
+      <SideMenu activeView={activeView} onViewChange={setActiveView} />
+      <MainContent>{renderView()}</MainContent>
+    </LayoutContainer>
+  );
 };
 
 export default ProjectManagementIndex;
@@ -73,31 +84,31 @@ export default ProjectManagementIndex;
 // ======================
 
 const LayoutContainer = styled.div`
-    display: flex;
-    height: 100vh;
-    width: 100vw;
-    overflow: hidden;
-    background-color: ${({ theme }) => theme.colors.backgroundPrimary};
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background-color: ${({ theme }) => theme.colors.backgroundPrimary};
 `;
 
 const MainContent = styled.main`
-    flex: 1;
-    overflow-y: auto;
-    background-color: ${({ theme }) => theme.colors.backgroundPrimary};
+  flex: 1;
+  overflow-y: auto;
+  background-color: ${({ theme }) => theme.colors.backgroundPrimary};
 
-    &::-webkit-scrollbar {
-        width: 8px;
-    }
-    &::-webkit-scrollbar-track {
-        background: transparent;
-    }
-    &::-webkit-scrollbar-thumb {
-        background: ${({ theme }) => theme.colors.accentPrimary};
-        border-radius: ${({ theme }) => theme.radius.sm};
-    }
-    &::-webkit-scrollbar-thumb:hover {
-        background: ${({ theme }) => theme.colors.accentSecondary};
-    }
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: ${({ theme }) => theme.colors.accentPrimary};
+    border-radius: ${({ theme }) => theme.radius.sm};
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: ${({ theme }) => theme.colors.accentSecondary};
+  }
 `;
 
 // Temporary placeholder for views

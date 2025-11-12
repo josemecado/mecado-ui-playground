@@ -45,11 +45,11 @@ export interface GeometryLabelingTask extends BaseTask {
     modelId: string;
     geometryId: string;
     geometryType: "edge" | "face" | "body";
-    geometryName: string;              // e.g., "flange_v2.step"
+    geometryName: string;
 
     // Labeling info (populated when submitted)
-    labelId?: string;
-    labelName?: string;
+    labels?: string[];                 // NEW: Array of label names
+    labelName?: string;                // Legacy: keep for backward compatibility
     confidence?: number;
 
     // Display

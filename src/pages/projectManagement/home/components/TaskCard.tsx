@@ -2,128 +2,150 @@ import React from "react";
 import styled from "styled-components";
 import { Task } from "../types/types";
 import {
-    formatRelativeDate,
-    formatDueDate,
-    getPriorityColor,
-    getPriorityLabel,
-    getTaskTypeIcon,
-    getTaskTypeLabel,
+  formatRelativeDate,
+  formatDueDate,
+  getPriorityColor,
+  getPriorityLabel,
+  getTaskTypeIcon,
+  getTaskTypeLabel,
 } from "../utils/taskHelpers";
 
 interface TaskCardProps {
-    task: Task;
-    onClick: (task: Task) => void;
+  task: Task;
+  onClick: (task: Task) => void;
 }
 
 export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
-    const isPending = task.status === "pending";
-    const isApproved = task.status === "approved";
-    const isFailed = task.status === "failed";
+  const isPending = task.status === "pending";
+  const isApproved = task.status === "approved";
+  const isFailed = task.status === "failed";
 
-    const showReviewInfo = isPending || isApproved || isFailed;
+  const showReviewInfo = isPending || isApproved || isFailed;
 
-    return (
-        <CardContainer onClick={() => onClick(task)}>
-            {/* Header with type */}
-            <CardHeader>
-                <TypeBadge>
-                    <TypeIcon>{getTaskTypeIcon(task.type)}</TypeIcon>
-                    <TypeLabel>{getTaskTypeLabel(task.type)}</TypeLabel>
-                </TypeBadge>
+  return (
+    <CardContainer onClick={() => onClick(task)}>
+      {/* Header with type */}
+      <CardHeader>
+        <TypeBadge>
+          <TypeIcon>{getTaskTypeIcon(task.type)}</TypeIcon>
+          <TypeLabel>{getTaskTypeLabel(task.type)}</TypeLabel>
+        </TypeBadge>
 
-                <PriorityBadge $color={getPriorityColor(task.priority)}>
-                    {getPriorityLabel(task.priority)}
-                </PriorityBadge>
-            </CardHeader>
+        <PriorityBadge $color={getPriorityColor(task.priority)}>
+          {getPriorityLabel(task.priority)}
+        </PriorityBadge>
+      </CardHeader>
 
-            {/* Main content - will be different per task type */}
-            <CardContent>
-                {task.type === "geometry_labeling" && (
-                    <>
-                        <GeometryName>{task.geometryName}</GeometryName>
-                        {task.description && <Description>{task.description}</Description>}
-                        <MetadataRow>
-                            <MetadataItem>
-                                <MetadataIcon>📦</MetadataIcon>
-                                <MetadataText>{task.modelId}</MetadataText>
-                            </MetadataItem>
-                            <MetadataItem>
-                                <MetadataIcon>🔷</MetadataIcon>
-                                <MetadataText>{task.geometryType}</MetadataText>
-                            </MetadataItem>
-                        </MetadataRow>
+      {/* Main content - will be different per task type */}
+      <CardContent>
+        {task.type === "geometry_labeling" && (
+          <>
+            <GeometryName>{task.geometryName}</GeometryName>
+            {task.description && <Description>{task.description}</Description>}
+            <MetadataRow>
+              <MetadataItem>
+                <MetadataIcon>📦</MetadataIcon>
+                <MetadataText>{task.modelId}</MetadataText>
+              </MetadataItem>
+              <MetadataItem>
+                <MetadataIcon>🔷</MetadataIcon>
+                <MetadataText>{task.geometryType}</MetadataText>
+              </MetadataItem>
+            </MetadataRow>
 
-                        {task.labelName && (
-                            <LabelInfo>
-                                <LabelBadge>Label: {task.labelName}</LabelBadge>
-                                {task.confidence && (
-                                    <ConfidenceText>{Math.round(task.confidence * 100)}%</ConfidenceText>
-                                )}
-                            </LabelInfo>
-                        )}
-                    </>
+            {/* REPLACE THIS SECTION */}
+            {task.labels && task.labels.length > 0 && (
+              <LabelInfo>
+                <LabelsList>
+                  {task.labels.map((label, idx) => (
+                    <LabelBadge key={idx}>{label}</LabelBadge>
+                  ))}
+                </LabelsList>
+                {task.confidence && (
+                  <ConfidenceText>
+                    {Math.round(task.confidence * 100)}%
+                  </ConfidenceText>
                 )}
-
-                {task.type === "geometry_upload" && (
-                    <>
-                        <GeometryName>{task.batchName}</GeometryName>
-                        <Description>{task.description}</Description>
-
-                        <ProgressSection>
-                            <ProgressBar>
-                                <ProgressFill
-                                    $percent={(task.uploadedFileCount / task.requiredFileCount) * 100}
-                                />
-                            </ProgressBar>
-                            <ProgressText>
-                                {task.uploadedFileCount}/{task.requiredFileCount} files
-                            </ProgressText>
-                        </ProgressSection>
-                    </>
+              </LabelInfo>
+            )}
+            {/* Fallback to old single label for backward compatibility */}
+            {!task.labels && task.labelName && (
+              <LabelInfo>
+                <LabelBadge>Label: {task.labelName}</LabelBadge>
+                {task.confidence && (
+                  <ConfidenceText>
+                    {Math.round(task.confidence * 100)}%
+                  </ConfidenceText>
                 )}
-            </CardContent>
+              </LabelInfo>
+            )}
+          </>
+        )}
 
-            {/* Footer with dates and status info */}
-            <CardFooter>
-                {task.dueDate && !showReviewInfo && (
-                    <DueDateText $overdue={new Date(task.dueDate) < new Date()}>
-                        ⏰ {formatDueDate(task.dueDate)}
-                    </DueDateText>
+        {task.type === "geometry_upload" && (
+          <>
+            <GeometryName>{task.batchName}</GeometryName>
+            <Description>{task.description}</Description>
+
+            <ProgressSection>
+              <ProgressBar>
+                <ProgressFill
+                  $percent={
+                    (task.uploadedFileCount / task.requiredFileCount) * 100
+                  }
+                />
+              </ProgressBar>
+              <ProgressText>
+                {task.uploadedFileCount}/{task.requiredFileCount} files
+              </ProgressText>
+            </ProgressSection>
+          </>
+        )}
+      </CardContent>
+
+      {/* Footer with dates and status info */}
+      <CardFooter>
+        {task.dueDate && !showReviewInfo && (
+          <DueDateText $overdue={new Date(task.dueDate) < new Date()}>
+            ⏰ {formatDueDate(task.dueDate)}
+          </DueDateText>
+        )}
+
+        {showReviewInfo && (
+          <StatusSection>
+            {isPending && (
+              <StatusText>
+                ⏳ Submitted {formatRelativeDate(task.submittedAt!)}
+              </StatusText>
+            )}
+
+            {isApproved && (
+              <StatusText $success>
+                ✅ Approved {formatRelativeDate(task.reviewedAt!)}
+              </StatusText>
+            )}
+
+            {isFailed && (
+              <>
+                <StatusText $error>
+                  ❌ Rejected {formatRelativeDate(task.reviewedAt!)}
+                </StatusText>
+                {task.reviewNotes && (
+                  <ReviewNotes>💬 {task.reviewNotes}</ReviewNotes>
                 )}
+              </>
+            )}
+          </StatusSection>
+        )}
 
-                {showReviewInfo && (
-                    <StatusSection>
-                        {isPending && (
-                            <StatusText>
-                                ⏳ Submitted {formatRelativeDate(task.submittedAt!)}
-                            </StatusText>
-                        )}
-
-                        {isApproved && (
-                            <StatusText $success>
-                                ✅ Approved {formatRelativeDate(task.reviewedAt!)}
-                            </StatusText>
-                        )}
-
-                        {isFailed && (
-                            <>
-                                <StatusText $error>
-                                    ❌ Rejected {formatRelativeDate(task.reviewedAt!)}
-                                </StatusText>
-                                {task.reviewNotes && (
-                                    <ReviewNotes>💬 {task.reviewNotes}</ReviewNotes>
-                                )}
-                            </>
-                        )}
-                    </StatusSection>
-                )}
-
-                {!showReviewInfo && (
-                    <CreatedText>Created {formatRelativeDate(task.createdAt)}</CreatedText>
-                )}
-            </CardFooter>
-        </CardContainer>
-    );
+        {!showReviewInfo && (
+          <CreatedText>
+            Created {formatRelativeDate(task.createdAt)}
+          </CreatedText>
+        )}
+      </CardFooter>
+    </CardContainer>
+  );
 };
 
 // ======================
@@ -139,8 +161,7 @@ const CardContainer = styled.div`
   border: 1px solid ${({ theme }) => theme.colors.borderDefault};
   border-radius: ${({ theme }) => theme.radius.lg};
   cursor: pointer;
-  transition: all ${({ theme }) => theme.animation.duration.fast}
-    ${({ theme }) => theme.animation.easing.standard};
+  transition: all ${({ theme }) => theme.animation.duration.fast} ${({ theme }) => theme.animation.easing.standard};
 
   &:hover {
     transform: translateY(-2px);
@@ -179,7 +200,8 @@ const TypeLabel = styled.span`
 
 const PriorityBadge = styled.div<{ $color: string }>`
   padding: ${({ theme }) => `${theme.spacing[1]} ${theme.spacing[2]}`};
-  background: ${({ theme, $color }) => theme.colors[$color as keyof typeof theme.colors]};
+  background: ${({ theme, $color }) =>
+    theme.colors[$color as keyof typeof theme.colors]};
   color: ${({ theme }) => theme.colors.textInverted};
   border-radius: ${({ theme }) => theme.radius.pill};
   font-size: ${({ theme }) => theme.typography.size.sm};
@@ -234,6 +256,7 @@ const LabelInfo = styled.div`
   align-items: center;
   gap: ${({ theme }) => theme.spacing[2]};
   margin-top: ${({ theme }) => theme.spacing[1]};
+  flex-wrap: wrap;
 `;
 
 const LabelBadge = styled.div`
@@ -269,8 +292,7 @@ const ProgressFill = styled.div<{ $percent: number }>`
   height: 100%;
   width: ${({ $percent }) => $percent}%;
   background: ${({ theme }) => theme.colors.brandPrimary};
-  transition: width ${({ theme }) => theme.animation.duration.medium}
-    ${({ theme }) => theme.animation.easing.standard};
+  transition: width ${({ theme }) => theme.animation.duration.medium} ${({ theme }) => theme.animation.easing.standard};
 `;
 
 const ProgressText = styled.span`
@@ -311,7 +333,7 @@ const StatusText = styled.span<{ $success?: boolean; $error?: boolean }>`
     if ($success) return theme.colors.statusSuccess;
     if ($error) return theme.colors.statusError;
     return theme.colors.statusWarning;
-}};
+  }};
   font-weight: ${({ theme }) => theme.typography.weight.medium};
 `;
 
@@ -324,4 +346,12 @@ const ReviewNotes = styled.p`
   border-radius: ${({ theme }) => theme.radius.md};
   font-style: italic;
   line-height: 1.4;
+`;
+
+
+// ADD THIS NEW COMPONENT
+const LabelsList = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${({ theme }) => theme.spacing[2]};
 `;

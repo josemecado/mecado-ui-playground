@@ -255,7 +255,8 @@ export const getTasksByStatus = (status: Task["status"]): Task[] => {
 export const updateTaskStatus = (
     taskId: string,
     newStatus: Task["status"],
-    reviewNotes?: string
+    reviewNotes?: string,
+    labels?: string[]  // ADD THIS PARAMETER
 ): Task | undefined => {
     const task = mockTasks.find((t) => t.id === taskId);
     if (task) {
@@ -264,6 +265,13 @@ export const updateTaskStatus = (
 
         if (newStatus === "pending") {
             task.submittedAt = new Date();
+            
+            // ADD THIS: Store labels if provided
+            if (labels && task.type === "geometry_labeling") {
+                task.labels = labels;
+                // Also set labelName for backward compatibility
+                task.labelName = labels.join(", ");
+            }
         }
 
         if (newStatus === "approved" || newStatus === "failed") {
