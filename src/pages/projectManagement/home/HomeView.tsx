@@ -34,7 +34,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigateToTool }) => {
         if (task.type === "geometry_labeling") {
             onNavigateToTool("geometry-labeler", context);
         } else if (task.type === "geometry_upload") {
-            onNavigateToTool("geometry-library", context);
+            onNavigateToTool("geometry-uploader", context);
         }
     };
 

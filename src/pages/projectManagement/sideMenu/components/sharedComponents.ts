@@ -6,6 +6,7 @@ export type ViewType =
     | "reports"
     | "notifications"
     | "geometry-labeler"
+    | "geometry-uploader"
     | "geometry-library";
 
 // Menu item interface with tooltip support

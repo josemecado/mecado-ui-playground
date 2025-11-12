@@ -1,6 +1,6 @@
 import React, {useState, useEffect, useRef} from "react";
 import styled from "styled-components";
-import {Home, FileText, Bell, Tag, Library} from "lucide-react";
+import {Home, FileText, Bell, Tag, Library, Upload} from "lucide-react";
 
 import {MenuHeader} from "./MenuHeader";
 import ThemeToggleButton from "../../../reusable-components/ThemeToggleButton";
@@ -105,6 +105,12 @@ export const SideMenu: React.FC<SideMenuProps> = ({activeView, onViewChange}) =>
             icon: <Tag size={18}/>,
             title: "Geometry Labeler",
             isActive: activeView === "geometry-labeler",
+        },
+                {
+            id: "geometry-uploader",
+            icon: <Upload size={18}/>,
+            title: "Geometry Uploader",
+            isActive: activeView === "geometry-uploader",
         },
         {
             id: "geometry-library",

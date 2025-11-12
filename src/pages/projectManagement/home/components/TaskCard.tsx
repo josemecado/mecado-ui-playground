@@ -82,25 +82,35 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
           </>
         )}
 
-        {task.type === "geometry_upload" && (
-          <>
-            <GeometryName>{task.batchName}</GeometryName>
-            <Description>{task.description}</Description>
+{task.type === "geometry_upload" && (
+    <>
+        <GeometryName>{task.batchName}</GeometryName>
+        <Description>{task.description}</Description>
 
-            <ProgressSection>
-              <ProgressBar>
+        <ProgressSection>
+            <ProgressBar>
                 <ProgressFill
-                  $percent={
-                    (task.uploadedFileCount / task.requiredFileCount) * 100
-                  }
+                    $percent={(task.uploadedFileCount / task.requiredFileCount) * 100}
                 />
-              </ProgressBar>
-              <ProgressText>
+            </ProgressBar>
+            <ProgressText>
                 {task.uploadedFileCount}/{task.requiredFileCount} files
-              </ProgressText>
-            </ProgressSection>
-          </>
+            </ProgressText>
+        </ProgressSection>
+
+        {/* ADD THIS: Show file names if uploaded */}
+        {task.fileNames && task.fileNames.length > 0 && (
+            <FileNamesSection>
+                <FileNamesHeader>Files:</FileNamesHeader>
+                <FileNamesList>
+                    {task.fileNames.map((fileName, idx) => (
+                        <FileName key={idx}>📄 {fileName}</FileName>
+                    ))}
+                </FileNamesList>
+            </FileNamesSection>
         )}
+    </>
+)}
       </CardContent>
 
       {/* Footer with dates and status info */}
@@ -354,4 +364,32 @@ const LabelsList = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: ${({ theme }) => theme.spacing[2]};
+`;
+
+const FileNamesSection = styled.div`
+  margin-top: ${({ theme }) => theme.spacing[2]};
+  padding-top: ${({ theme }) => theme.spacing[2]};
+  border-top: 1px solid ${({ theme }) => theme.colors.borderDefault};
+`;
+
+const FileNamesHeader = styled.div`
+  font-size: ${({ theme }) => theme.typography.size.sm};
+  font-weight: ${({ theme }) => theme.typography.weight.semiBold};
+  color: ${({ theme }) => theme.colors.textMuted};
+  margin-bottom: ${({ theme }) => theme.spacing[1]};
+`;
+
+const FileNamesList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing[1]};
+`;
+
+const FileName = styled.div`
+  font-size: ${({ theme }) => theme.typography.size.sm};
+  color: ${({ theme }) => theme.colors.accentPrimary};
+  font-family: ${({ theme }) => theme.typography.family.mono};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;

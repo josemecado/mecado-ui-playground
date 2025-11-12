@@ -1,124 +1,152 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import styled from "styled-components";
 import { TaskContext } from "../home/types/types";
 
-interface SimpleLabelCreatorProps {
+interface SimpleFileUploaderProps {
   taskContext: TaskContext;
-  onSubmit: (taskId: string, labels: string[]) => void;
+  onSubmit: (taskId: string, fileNames: string[]) => void;
   onCancel: () => void;
 }
 
-export const SimpleLabelCreator: React.FC<SimpleLabelCreatorProps> = ({
+export const SimpleFileUploader: React.FC<SimpleFileUploaderProps> = ({
   taskContext,
   onSubmit,
   onCancel,
 }) => {
-  const [labels, setLabels] = useState<string[]>([]);
-  const [currentLabel, setCurrentLabel] = useState("");
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleAddLabel = () => {
-    if (currentLabel.trim()) {
-      setLabels([...labels, currentLabel.trim()]);
-      setCurrentLabel("");
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      // Filter for .step and .stp files only
+      const validFiles = filesArray.filter(
+        (file) =>
+          file.name.toLowerCase().endsWith(".step") ||
+          file.name.toLowerCase().endsWith(".stp")
+      );
+
+      if (validFiles.length !== filesArray.length) {
+        alert("Only .step and .stp files are allowed");
+      }
+
+      setSelectedFiles([...selectedFiles, ...validFiles]);
     }
   };
 
-  const handleRemoveLabel = (index: number) => {
-    setLabels(labels.filter((_, i) => i !== index));
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
+  };
+
+  const handleBrowseClick = () => {
+    fileInputRef.current?.click();
   };
 
   const handleSubmit = () => {
-    if (labels.length === 0) {
-      alert("Please create at least one label before submitting");
+    if (selectedFiles.length === 0) {
+      alert("Please select at least one STEP file before submitting");
       return;
     }
-    onSubmit(taskContext.taskId, labels);
+
+    const fileNames = selectedFiles.map((file) => file.name);
+    onSubmit(taskContext.taskId, fileNames);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleAddLabel();
-    }
-  };
+  const requiredCount = taskContext.requiredFileCount || 0;
+  const uploadedCount = selectedFiles.length;
+  const progress = requiredCount > 0 ? (uploadedCount / requiredCount) * 100 : 0;
+  const isComplete = uploadedCount >= requiredCount;
 
   return (
     <Container>
       <ContentWrapper>
         <Header>
-          <Title>🏷️ Create Labels</Title>
-          <Subtitle>Add labels for the geometry below, then submit for approval</Subtitle>
+          <Title>📦 Upload Geometry Files</Title>
+          <Subtitle>Select STEP files for this batch, then submit for approval</Subtitle>
         </Header>
 
         <TaskInfoSection>
           <SectionTitle>Task Information</SectionTitle>
           <InfoGrid>
             <InfoItem>
-              <InfoLabel>Geometry:</InfoLabel>
-              <InfoValue>{taskContext.geometryName || "Unknown"}</InfoValue>
+              <InfoLabel>Batch Name:</InfoLabel>
+              <InfoValue>{taskContext.batchName || "Unknown"}</InfoValue>
             </InfoItem>
             <InfoItem>
-              <InfoLabel>Type:</InfoLabel>
+              <InfoLabel>Required Files:</InfoLabel>
               <InfoValue>
-                <TypeBadge>{taskContext.geometryType || "N/A"}</TypeBadge>
-              </InfoValue>
-            </InfoItem>
-            <InfoItem>
-              <InfoLabel>Model ID:</InfoLabel>
-              <InfoValue>
-                <MonoText>{taskContext.modelId || "N/A"}</MonoText>
-              </InfoValue>
-            </InfoItem>
-            <InfoItem>
-              <InfoLabel>Geometry ID:</InfoLabel>
-              <InfoValue>
-                <MonoText>{taskContext.geometryId || "N/A"}</MonoText>
+                <CountBadge $complete={isComplete}>
+                  {uploadedCount} / {requiredCount}
+                </CountBadge>
               </InfoValue>
             </InfoItem>
           </InfoGrid>
+
+          {requiredCount > 0 && (
+            <ProgressSection>
+              <ProgressBar>
+                <ProgressFill $percent={progress} $complete={isComplete} />
+              </ProgressBar>
+              <ProgressText $complete={isComplete}>
+                {isComplete
+                  ? "✓ All required files selected"
+                  : `${requiredCount - uploadedCount} more file${
+                      requiredCount - uploadedCount !== 1 ? "s" : ""
+                    } needed`}
+              </ProgressText>
+            </ProgressSection>
+          )}
         </TaskInfoSection>
 
-        <LabelCreationSection>
-          <SectionTitle>Create Labels</SectionTitle>
-          <LabelInputRow>
-            <LabelInput
-              type="text"
-              placeholder="Enter label name (e.g., 'bolt_hole', 'mating_face')"
-              value={currentLabel}
-              onChange={(e) => setCurrentLabel(e.target.value)}
-              onKeyPress={handleKeyPress}
-            />
-            <AddButton onClick={handleAddLabel} disabled={!currentLabel.trim()}>
-              + Add Label
-            </AddButton>
-          </LabelInputRow>
+        <UploadSection>
+          <SectionTitle>Select Files</SectionTitle>
 
-          {labels.length > 0 && (
-            <LabelsListSection>
-              <ListHeader>Created Labels ({labels.length})</ListHeader>
-              <LabelsList>
-                {labels.map((label, index) => (
-                  <LabelChip key={index}>
-                    <LabelName>{label}</LabelName>
-                    <RemoveButton onClick={() => handleRemoveLabel(index)}>×</RemoveButton>
-                  </LabelChip>
+          <HiddenFileInput
+            ref={fileInputRef}
+            type="file"
+            accept=".step,.stp"
+            multiple
+            onChange={handleFileSelect}
+          />
+
+          <UploadDropZone onClick={handleBrowseClick}>
+            <UploadIcon>📁</UploadIcon>
+            <UploadText>Click to browse for STEP files</UploadText>
+            <UploadHint>Accepts .step and .stp files</UploadHint>
+          </UploadDropZone>
+
+          {selectedFiles.length > 0 && (
+            <FilesListSection>
+              <ListHeader>Selected Files ({selectedFiles.length})</ListHeader>
+              <FilesList>
+                {selectedFiles.map((file, index) => (
+                  <FileItem key={index}>
+                    <FileInfo>
+                      <FileIcon>📄</FileIcon>
+                      <FileDetails>
+                        <FileName>{file.name}</FileName>
+                        <FileSize>{(file.size / 1024).toFixed(1)} KB</FileSize>
+                      </FileDetails>
+                    </FileInfo>
+                    <RemoveButton onClick={() => handleRemoveFile(index)}>×</RemoveButton>
+                  </FileItem>
                 ))}
-              </LabelsList>
-            </LabelsListSection>
+              </FilesList>
+            </FilesListSection>
           )}
 
-          {labels.length === 0 && (
+          {selectedFiles.length === 0 && (
             <EmptyState>
-              <EmptyIcon>🏷️</EmptyIcon>
-              <EmptyText>No labels created yet</EmptyText>
-              <EmptyHint>Type a label name above and press Enter or click Add Label</EmptyHint>
+              <EmptyIcon>📦</EmptyIcon>
+              <EmptyText>No files selected yet</EmptyText>
+              <EmptyHint>Click the area above to select STEP files</EmptyHint>
             </EmptyState>
           )}
-        </LabelCreationSection>
+        </UploadSection>
 
         <ActionsSection>
           <CancelButton onClick={onCancel}>Cancel</CancelButton>
-          <SubmitButton onClick={handleSubmit} disabled={labels.length === 0}>
+          <SubmitButton onClick={handleSubmit} disabled={selectedFiles.length === 0}>
             Submit for Approval
           </SubmitButton>
         </ActionsSection>
@@ -187,6 +215,7 @@ const InfoGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: ${({ theme }) => theme.spacing[4]};
+  margin-bottom: ${({ theme }) => theme.spacing[4]};
 `;
 
 const InfoItem = styled.div`
@@ -208,83 +237,96 @@ const InfoValue = styled.span`
   font-weight: ${({ theme }) => theme.typography.weight.medium};
 `;
 
-const TypeBadge = styled.span`
+const CountBadge = styled.span<{ $complete: boolean }>`
   display: inline-block;
-  padding: ${({ theme }) => `${theme.spacing[1]} ${theme.spacing[2]}`};
-  background: ${({ theme }) => theme.colors.brandPrimary};
+  padding: ${({ theme }) => `${theme.spacing[1]} ${theme.spacing[3]}`};
+  background: ${({ theme, $complete }) =>
+    $complete ? theme.colors.statusSuccess : theme.colors.brandPrimary};
   color: ${({ theme }) => theme.colors.textInverted};
   border-radius: ${({ theme }) => theme.radius.md};
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  text-transform: capitalize;
-`;
-
-const MonoText = styled.span`
+  font-size: ${({ theme }) => theme.typography.size.md};
+  font-weight: ${({ theme }) => theme.typography.weight.semiBold};
   font-family: ${({ theme }) => theme.typography.family.mono};
-  color: ${({ theme }) => theme.colors.accentPrimary};
 `;
 
-const LabelCreationSection = styled.div`
+const ProgressSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing[2]};
+`;
+
+const ProgressBar = styled.div`
+  width: 100%;
+  height: 10px;
+  background: ${({ theme }) => theme.colors.backgroundTertiary};
+  border-radius: ${({ theme }) => theme.radius.pill};
+  overflow: hidden;
+`;
+
+const ProgressFill = styled.div<{ $percent: number; $complete: boolean }>`
+  height: 100%;
+  width: ${({ $percent }) => $percent}%;
+  background: ${({ theme, $complete }) =>
+    $complete ? theme.colors.statusSuccess : theme.colors.brandPrimary};
+  transition: all ${({ theme }) => theme.animation.duration.medium} ${({ theme }) => theme.animation.easing.standard};
+`;
+
+const ProgressText = styled.div<{ $complete: boolean }>`
+  font-size: ${({ theme }) => theme.typography.size.sm};
+  color: ${({ theme, $complete }) =>
+    $complete ? theme.colors.statusSuccess : theme.colors.textMuted};
+  font-weight: ${({ theme, $complete }) =>
+    $complete ? theme.typography.weight.semiBold : theme.typography.weight.regular};
+`;
+
+const UploadSection = styled.div`
   background: ${({ theme }) => theme.colors.backgroundSecondary};
   border: 1px solid ${({ theme }) => theme.colors.borderDefault};
   border-radius: ${({ theme }) => theme.radius.lg};
   padding: ${({ theme }) => theme.spacing[5]};
 `;
 
-const LabelInputRow = styled.div`
+const HiddenFileInput = styled.input`
+  display: none;
+`;
+
+const UploadDropZone = styled.div`
   display: flex;
-  gap: ${({ theme }) => theme.spacing[3]};
-  margin-bottom: ${({ theme }) => theme.spacing[4]};
-`;
-
-const LabelInput = styled.input`
-  flex: 1;
-  padding: ${({ theme }) => theme.spacing[3]};
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: ${({ theme }) => theme.spacing[8]};
+  border: 2px dashed ${({ theme }) => theme.colors.borderDefault};
+  border-radius: ${({ theme }) => theme.radius.lg};
   background: ${({ theme }) => theme.colors.backgroundPrimary};
-  border: 1px solid ${({ theme }) => theme.colors.borderDefault};
-  border-radius: ${({ theme }) => theme.radius.md};
-  color: ${({ theme }) => theme.colors.textPrimary};
-  font-size: ${({ theme }) => theme.typography.size.md};
-  font-family: ${({ theme }) => theme.typography.family.base};
-
-  &:focus {
-    outline: none;
-    border-color: ${({ theme }) => theme.colors.brandPrimary};
-    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.brandPrimary}33;
-  }
-
-  &::placeholder {
-    color: ${({ theme }) => theme.colors.textMuted};
-  }
-`;
-
-const AddButton = styled.button`
-  padding: ${({ theme }) => `${theme.spacing[3]} ${theme.spacing[5]}`};
-  background: ${({ theme }) => theme.colors.brandPrimary};
-  color: ${({ theme }) => theme.colors.textInverted};
-  border: none;
-  border-radius: ${({ theme }) => theme.radius.md};
-  font-size: ${({ theme }) => theme.typography.size.md};
-  font-weight: ${({ theme }) => theme.typography.weight.semiBold};
   cursor: pointer;
   transition: all ${({ theme }) => theme.animation.duration.fast};
-  white-space: nowrap;
+  margin-bottom: ${({ theme }) => theme.spacing[4]};
 
-  &:hover:not(:disabled) {
-    background: ${({ theme }) => theme.colors.brandSecondary};
-    transform: translateY(-1px);
-  }
-
-  &:active:not(:disabled) {
-    transform: translateY(0);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  &:hover {
+    border-color: ${({ theme }) => theme.colors.brandPrimary};
+    background: ${({ theme }) => theme.colors.backgroundTertiary};
   }
 `;
 
-const LabelsListSection = styled.div`
+const UploadIcon = styled.div`
+  font-size: 48px;
+  margin-bottom: ${({ theme }) => theme.spacing[2]};
+`;
+
+const UploadText = styled.div`
+  font-size: ${({ theme }) => theme.typography.size.md};
+  font-weight: ${({ theme }) => theme.typography.weight.semiBold};
+  color: ${({ theme }) => theme.colors.textPrimary};
+  margin-bottom: ${({ theme }) => theme.spacing[1]};
+`;
+
+const UploadHint = styled.div`
+  font-size: ${({ theme }) => theme.typography.size.sm};
+  color: ${({ theme }) => theme.colors.textMuted};
+`;
+
+const FilesListSection = styled.div`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.spacing[3]};
@@ -298,20 +340,20 @@ const ListHeader = styled.div`
   letter-spacing: 0.5px;
 `;
 
-const LabelsList = styled.div`
+const FilesList = styled.div`
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: ${({ theme }) => theme.spacing[2]};
 `;
 
-const LabelChip = styled.div`
+const FileItem = styled.div`
   display: flex;
   align-items: center;
-  gap: ${({ theme }) => theme.spacing[2]};
-  padding: ${({ theme }) => `${theme.spacing[2]} ${theme.spacing[3]}`};
+  justify-content: space-between;
+  padding: ${({ theme }) => theme.spacing[3]};
   background: ${({ theme }) => theme.colors.backgroundTertiary};
   border: 1px solid ${({ theme }) => theme.colors.borderDefault};
-  border-radius: ${({ theme }) => theme.radius.pill};
+  border-radius: ${({ theme }) => theme.radius.md};
   transition: all ${({ theme }) => theme.animation.duration.fast};
 
   &:hover {
@@ -319,27 +361,57 @@ const LabelChip = styled.div`
   }
 `;
 
-const LabelName = styled.span`
+const FileInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing[3]};
+  flex: 1;
+  min-width: 0;
+`;
+
+const FileIcon = styled.div`
+  font-size: ${({ theme }) => theme.typography.size.xl};
+  flex-shrink: 0;
+`;
+
+const FileDetails = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing[1]};
+  min-width: 0;
+`;
+
+const FileName = styled.div`
   font-size: ${({ theme }) => theme.typography.size.sm};
-  color: ${({ theme }) => theme.colors.textPrimary};
   font-weight: ${({ theme }) => theme.typography.weight.medium};
+  color: ${({ theme }) => theme.colors.textPrimary};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const FileSize = styled.div`
+  font-size: ${({ theme }) => theme.typography.size.sm};
+  color: ${({ theme }) => theme.colors.textMuted};
+  font-family: ${({ theme }) => theme.typography.family.mono};
 `;
 
 const RemoveButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   background: ${({ theme }) => theme.colors.statusError};
   color: ${({ theme }) => theme.colors.textInverted};
   border: none;
   border-radius: 50%;
-  font-size: 16px;
+  font-size: 20px;
   line-height: 1;
   cursor: pointer;
   transition: all ${({ theme }) => theme.animation.duration.fast};
+  flex-shrink: 0;
 
   &:hover {
     background: ${({ theme }) => theme.colors.statusError};
@@ -356,7 +428,7 @@ const EmptyState = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: ${({ theme }) => theme.spacing[8]};
+  padding: ${({ theme }) => theme.spacing[6]};
   gap: ${({ theme }) => theme.spacing[2]};
 `;
 

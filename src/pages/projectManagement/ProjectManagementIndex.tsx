@@ -5,7 +5,8 @@ import HomeView from "./home/HomeView";
 import { ViewType } from "./sideMenu/components/sharedComponents";
 import { TaskContext } from "./home/types/types";
 import { SimpleLabelCreator } from "./simpleLabelCreator/SimpleLabelCreator";
-import { updateTaskStatus } from "./home/utils/mockTasks"; // ADD THIS IMPORT
+import { SimpleFileUploader } from "./simpleFileUploader/SimpleFileUploader";
+import { updateTaskStatus } from "./home/utils/mockTasks";
 
 export const ProjectManagementIndex: React.FC = () => {
   const [activeView, setActiveView] = useState<ViewType>("home");
@@ -20,6 +21,12 @@ export const ProjectManagementIndex: React.FC = () => {
 
   const handleLabelSubmit = (taskId: string, labels: string[]) => {
     updateTaskStatus(taskId, "pending", undefined, labels);
+    setActiveView("home");
+    setTaskContext(null);
+  };
+
+  const handleFileUploadSubmit = (taskId: string, fileNames: string[]) => {
+    updateTaskStatus(taskId, "pending", undefined, undefined, fileNames);
     setActiveView("home");
     setTaskContext(null);
   };
@@ -45,6 +52,17 @@ export const ProjectManagementIndex: React.FC = () => {
           <SimpleLabelCreator
             taskContext={taskContext}
             onSubmit={handleLabelSubmit}
+            onCancel={handleCancel}
+          />
+        ) : (
+          <ViewPlaceholder>No task context available</ViewPlaceholder>
+        );
+
+      case "geometry-uploader":
+        return taskContext ? (
+          <SimpleFileUploader
+            taskContext={taskContext}
+            onSubmit={handleFileUploadSubmit}
             onCancel={handleCancel}
           />
         ) : (
