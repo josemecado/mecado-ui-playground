@@ -4,7 +4,7 @@ import {Home, FileText, Bell, Tag, Library} from "lucide-react";
 
 import {MenuHeader} from "./MenuHeader";
 import ThemeToggleButton from "../../../reusable-components/ThemeToggleButton";
-import MenuViewItem from "./components/MenuViewItem";
+import {MenuViewItem} from "./components/MenuViewItem";
 import MenuToolItem from "./components/MenuToolItem";
 import {MenuItem, ViewType} from "./components/sharedComponents";
 
@@ -151,7 +151,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({activeView, onViewChange}) =>
 
                 {/* Tools Section */}
                 <MenuSection>
-                    <SectionHeader $isCollapsed={effectiveCollapsed}>TOOLS</SectionHeader>
+                    <SectionHeader $isCollapsed={false}>TOOLS</SectionHeader>
                     <MenuItemsContainer>
                         {toolMenuItems.map((item) => (
                             <MenuToolItem
@@ -227,6 +227,9 @@ const MenuSection = styled.div`
 `;
 
 const SectionHeader = styled.div<{ $isCollapsed?: boolean }>`
+    display: flex;
+    justify-content: ${(p) => (p.$isCollapsed ? "center" : "flex-start" )};
+    ;
     font-size: ${({theme}) => theme.typography.size.sm};
     font-weight: ${({theme}) => theme.typography.weight.semiBold};
     color: ${({theme}) => theme.colors.brandPrimary};
@@ -237,12 +240,10 @@ const SectionHeader = styled.div<{ $isCollapsed?: boolean }>`
                     ? `0`
                     : `0 ${theme.components.sidebar.paddingX}`};
     margin-bottom: ${({theme}) => theme.spacing[3]};
-    opacity: ${({$isCollapsed}) => ($isCollapsed ? 0 : 1)};
     transition: opacity ${({theme}) => theme.animation.duration.fast} ${({theme}) => theme.animation.easing.standard};
     white-space: nowrap;
     overflow: hidden;
 `;
-
 const MenuItemsContainer = styled.div`
     display: flex;
     flex-direction: column;

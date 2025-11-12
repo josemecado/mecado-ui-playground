@@ -109,6 +109,7 @@ const primitives = {
         lg: "1.1rem",
         xl: "1.25rem",
         xxl: "1.5rem",
+        title: "1.75rem",
     },
 
     fontWeight: {
@@ -223,9 +224,9 @@ const componentTokens = {
         radius: primitives.radius.md,
 
         //Typography
-        titleFontSize: primitives.fontSize.lg,
-        textFontSize: primitives.fontSize.md,
-        fontWeight: primitives.fontWeight.medium,
+        titleFontSize: primitives.fontSize.title,
+        textFontSize: primitives.fontSize.sm,
+        titleFontWeight: primitives.fontWeight.bold,
     },
 
     button: {

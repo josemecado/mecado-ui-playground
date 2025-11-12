@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, {useRef} from "react";
 import styled from "styled-components";
 import {MenuItem} from "./sharedComponents";
 
@@ -8,7 +8,7 @@ interface MenuViewItemProps {
     onClick: () => void;
 }
 
-export default function MenuViewItem({item, $isCollapsed, onClick}: MenuViewItemProps) {
+export function MenuViewItem({item, $isCollapsed, onClick}: MenuViewItemProps) {
     const menuItemRef = useRef<HTMLButtonElement>(null);
 
     const handleClick = () => {
@@ -27,14 +27,19 @@ export default function MenuViewItem({item, $isCollapsed, onClick}: MenuViewItem
             role="button"
             tabIndex={item.disabled ? -1 : 0}
         >
-            <ActiveIndicator $isActive={item.isActive} $disabled={item.disabled}/>
+            {!$isCollapsed && (
+                <ActiveIndicator $isActive={item.isActive} $disabled={item.disabled}/>
+            )}
+
             <ContentWrapper $isActive={item.isActive} $disabled={item.disabled} $isCollapsed={$isCollapsed}>
                 <IconWrapper $isActive={item.isActive} $disabled={item.disabled}>
                     {item.icon}
                 </IconWrapper>
-                <MenuItemTitle $isActive={item.isActive}>
-                    {item.title}
-                </MenuItemTitle>
+                {!$isCollapsed && (
+                    <MenuItemTitle $isActive={item.isActive} $isCollapsed={$isCollapsed}>
+                        {item.title}
+                    </MenuItemTitle>
+                )}
             </ContentWrapper>
         </MenuItemContainer>
     );
@@ -61,9 +66,9 @@ const ActiveIndicator = styled.div<{ $isActive?: boolean; $disabled?: boolean }>
     width: 3px;
     border-radius: 0 ${({theme}) => theme.radius.sm} ${({theme}) => theme.radius.sm} 0;
     background-color: ${({theme, $isActive, $disabled}) => {
-    if ($disabled) return "transparent";
-    return $isActive ? theme.colors.brandPrimary : "transparent";
-}};
+        if ($disabled) return "transparent";
+        return $isActive ? theme.colors.brandPrimary : "transparent";
+    }};
     transition: background-color ${({theme}) => theme.animation.duration.fast} ${({theme}) => theme.animation.easing.standard};
 `;
 
@@ -75,9 +80,8 @@ const ContentWrapper = styled.div<{ $isActive?: boolean; $disabled?: boolean; $i
     height: 100%;
     width: 100%;
     padding: ${({theme}) => `0 ${theme.spacing[2]}`};
-    margin: 0 ${({ theme }) => theme.components.sidebar.paddingX};
-    border-radius: ${({ theme }) => theme.primitives.radius.md};
-    ;
+    margin: 0 ${({theme}) => theme.components.sidebar.paddingX};
+    border-radius: ${({theme}) => theme.primitives.radius.md};
 
     background: ${({theme, $isActive, $disabled}) => {
         if ($disabled) return "transparent";
@@ -89,6 +93,7 @@ const ContentWrapper = styled.div<{ $isActive?: boolean; $disabled?: boolean; $i
         if ($isActive) return theme.primitives.colors.background1000;
         return theme.colors.accentPrimary;
     }};
+
     &:hover {
         background: ${({theme, $isActive, $disabled}) => {
             if ($disabled) return "transparent";
@@ -107,6 +112,7 @@ const IconWrapper = styled.div<{ $isActive?: boolean; $disabled?: boolean }>`
     flex-shrink: 0;
     width: 18px;
     height: 18px;
+
     svg {
         width: 18px;
         height: 18px;
@@ -114,11 +120,15 @@ const IconWrapper = styled.div<{ $isActive?: boolean; $disabled?: boolean }>`
     }
 `;
 
-const MenuItemTitle = styled.span<{ $isActive?: boolean }>`
+const MenuItemTitle = styled.span<{ $isActive?: boolean; $isCollapsed?: boolean }>`
     overflow: hidden;
     white-space: nowrap;
+    font-size: ${({theme}) => theme.components.sidebar.textFontSize};
     font-weight: ${({theme, $isActive}) =>
             $isActive ? theme.typography.weight.semiBold : theme.typography.weight.regular};
     color: ${(p) => (p.$isActive ? p.theme.colors.textPrimary : p.theme.colors.accentPrimary)};
-    transition: opacity ${({theme}) => theme.animation.duration.fast} ${({theme}) => theme.animation.easing.standard};
+    opacity: ${({$isCollapsed}) => ($isCollapsed ? 0 : 1)};
+    width: ${({$isCollapsed}) => ($isCollapsed ? "0" : "auto")};
+    transition: opacity ${({theme}) => theme.animation.duration.fast} ${({theme}) => theme.animation.easing.standard},
+    width ${({theme}) => theme.animation.duration.fast} ${({theme}) => theme.animation.easing.standard};
 `;
