@@ -104,6 +104,7 @@ const ContentWrapper = styled.div<{ $isActive?: boolean; $disabled?: boolean; $i
             return theme.colors.backgroundTertiary;
         }};
         cursor: ${({$disabled}) => ($disabled ? "not-allowed" : "pointer")};
+        color: ${(p) => (p.$isActive ? p.theme.colors.brandPrimary : p.theme.colors.textPrimary)};
     }
 `;
 
@@ -118,7 +119,6 @@ const IconWrapper = styled.div<{ $isActive?: boolean; $disabled?: boolean }>`
     svg {
         width: 18px;
         height: 18px;
-        transition: color ${({theme}) => theme.animation.duration.fast} ${({theme}) => theme.animation.easing.standard};
     }
 `;
 
@@ -128,7 +128,6 @@ const MenuItemTitle = styled.span<{ $isActive?: boolean; $isCollapsed?: boolean 
     font-size: ${({theme}) => theme.components.sidebar.textFontSize};
     font-weight: ${({theme, $isActive}) =>
             $isActive ? theme.typography.weight.semiBold : theme.typography.weight.regular};
-    color: ${(p) => (p.$isActive ? p.theme.colors.textPrimary : p.theme.colors.accentPrimary)};
     opacity: ${({$isCollapsed}) => ($isCollapsed ? 0 : 1)};
     width: ${({$isCollapsed}) => ($isCollapsed ? "0" : "auto")};
     transition: opacity ${({theme}) => theme.animation.duration.fast} ${({theme}) => theme.animation.easing.standard},

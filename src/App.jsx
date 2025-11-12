@@ -1,5 +1,5 @@
 import { Routes, Route } from "react-router-dom";
-import ProjectManagementIndex from "./pages/projectManagement/Index.tsx";
+import ProjectManagementIndex from "./pages/projectManagement/ProjectManagementIndex.tsx";
 
 import { ThemeProvider } from "./utilities/ThemeContext";
 
