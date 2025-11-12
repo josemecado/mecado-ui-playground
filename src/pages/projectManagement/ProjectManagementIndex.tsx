@@ -6,16 +6,69 @@ import { ViewType } from "./sideMenu/components/sharedComponents";
 import { TaskContext } from "./home/types/types";
 import { SimpleLabelCreator } from "./simpleLabelCreator/SimpleLabelCreator";
 import { SimpleFileUploader } from "./simpleFileUploader/SimpleFileUploader";
+import { GeoLabelManagerWrapper } from "./geoLabelWrapper/Geolabelmanagerwrapper";
 import { updateTaskStatus } from "./home/utils/mockTasks";
+import { GeometryData } from "./types/geometry.types";
 
 export const ProjectManagementIndex: React.FC = () => {
   const [activeView, setActiveView] = useState<ViewType>("home");
   const [taskContext, setTaskContext] = useState<TaskContext | null>(null);
+  const [geometryData, setGeometryData] = useState<GeometryData | null>(null);
+  const [geometryLoaded, setGeometryLoaded] = useState(false);
+  const [isLoadingGeometry, setIsLoadingGeometry] = useState(false);
 
   const handleNavigateToTool = (view: ViewType, context?: TaskContext) => {
     setActiveView(view);
     if (context) {
       setTaskContext(context);
+    }
+  };
+
+  const handleLoadGeometry = async () => {
+    if (isLoadingGeometry) return;
+
+    setIsLoadingGeometry(true);
+    try {
+      const result = await window.electron.openFileDialog({
+        properties: ["openFile"],
+        filters: [{ name: "STEP Files", extensions: ["step", "stp", "x_t"] }],
+        title: "Select Geometry File for Demo",
+        buttonLabel: "Load Geometry",
+      });
+
+      if (!result.canceled && result.filePaths.length > 0) {
+        const fullPath = result.filePaths[0];
+        console.log("Loading geometry file:", fullPath);
+
+        // Convert STEP to VTP using the oneOffVisualize API
+        const vtpResult = await window.projectAPI.geometry.oneOffVisualize(
+          fullPath
+        );
+
+        if (vtpResult.error) {
+          alert(`Error loading geometry: ${vtpResult.error}`);
+          return;
+        }
+
+        // Store the geometry data
+        setGeometryData({
+          bodiesFile: vtpResult.bodiesFile,
+          facesFile: vtpResult.facesFile,
+          edgesFile: vtpResult.edgesFile,
+          fileName: fullPath.split(/[\\/]/).pop(),
+        });
+        setGeometryLoaded(true);
+
+        console.log(
+          "Geometry loaded successfully:",
+          fullPath.split(/[\\/]/).pop()
+        );
+      }
+    } catch (error) {
+      console.error("Error loading geometry:", error);
+      alert(`Failed to load geometry: ${error.message || "Unknown error"}`);
+    } finally {
+      setIsLoadingGeometry(false);
     }
   };
 
@@ -39,7 +92,13 @@ export const ProjectManagementIndex: React.FC = () => {
   const renderView = () => {
     switch (activeView) {
       case "home":
-        return <HomeView onNavigateToTool={handleNavigateToTool} />;
+        return (
+          <HomeView
+            onNavigateToTool={handleNavigateToTool}
+            onLoadGeometry={handleLoadGeometry}
+            geometryLoaded={geometryLoaded}
+          />
+        );
 
       case "reports":
         return <ViewPlaceholder>Reports & Submissions View</ViewPlaceholder>;
@@ -49,9 +108,10 @@ export const ProjectManagementIndex: React.FC = () => {
 
       case "geometry-labeler":
         return taskContext ? (
-          <SimpleLabelCreator
+          <GeoLabelManagerWrapper
             taskContext={taskContext}
-            onSubmit={handleLabelSubmit}
+            geometryData={geometryData}
+            onSubmitLabels={handleLabelSubmit}
             onCancel={handleCancel}
           />
         ) : (
@@ -70,17 +130,8 @@ export const ProjectManagementIndex: React.FC = () => {
         );
 
       case "geometry-library":
-        return (
-          <ViewPlaceholder>
-            <div>Geometry Library View</div>
-            {taskContext && (
-              <ContextInfo>
-                <h3>Task Context:</h3>
-                <pre>{JSON.stringify(taskContext, null, 2)}</pre>
-              </ContextInfo>
-            )}
-          </ViewPlaceholder>
-        );
+        // <SimpleGeometryBrowser onGeometrySelect={() => {}} />; for vulcan-desktop 
+        return <ViewPlaceholder>No task context available</ViewPlaceholder>;
 
       default:
         return <ViewPlaceholder>Home Dashboard View</ViewPlaceholder>;
@@ -129,7 +180,6 @@ const MainContent = styled.main`
   }
 `;
 
-// Temporary placeholder for views
 const ViewPlaceholder = styled.div`
   display: flex;
   flex-direction: column;
