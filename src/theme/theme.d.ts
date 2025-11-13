@@ -13,6 +13,8 @@ declare module "styled-components" {
     heights: typeof tokens.heights;
     spacing: typeof tokens.spacing;
     padding: typeof tokens.padding;
+    paddingX: typeof tokens.paddingX;
+    paddingY: typeof tokens.paddingY;
     radius: typeof tokens.radius;
     typography: typeof tokens.typography;
     components: typeof tokens.components;

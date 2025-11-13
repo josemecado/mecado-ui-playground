@@ -32,7 +32,7 @@ const primitives = {
         accent1000: "#D8DFE4", // Tertiary Accent (Light)
 
         // Text Colors
-        text000: "#251B14", // Primary (Light)
+        text000: "#352F36", // Primary (Light)
         text300: "#97979D", // Muted (Dark)
         text700: "#738491", // Muted (Light)
         text1000: "#EAE9F0", // Primary (Dark)
@@ -88,6 +88,29 @@ const primitives = {
     },
 
     padding: {
+        xxxs: "0.125rem", // Standard single-value padding
+        xxs: "0.25rem",
+        xsm: "0.5rem",
+        sm: "0.75rem",
+        md: "1rem",
+        lg: "1.25rem",
+        xl: "1.5rem",
+    },
+
+    // NEW: Explicit padding axes (Reference existing values for consistency)
+    paddingX: {
+        xxxs: "0.125rem",
+        xxs: "0.25rem",
+        xsm: "0.5rem",
+        sm: "0.75rem",
+        md: "1rem",
+        lg: "1.25rem",
+        xl: "1.5rem",
+    },
+
+    paddingY: {
+        xxxs: "0.125rem",
+        xxs: "0.25rem",
         xsm: "0.5rem",
         sm: "0.75rem",
         md: "1rem",
@@ -105,6 +128,7 @@ const primitives = {
     },
 
     fontSize: {
+        xsm: "0.75rem",
         sm: "0.875rem",
         md: "1rem",
         lg: "1.1rem",
@@ -269,6 +293,8 @@ export const tokens = {
     heights: primitives.heights,
     spacing: primitives.spacing,
     padding: primitives.padding,
+    paddingX: primitives.paddingX,
+    paddingY: primitives.paddingY,
     radius: primitives.radius,
     typography: {
         family: primitives.fontFamily,

@@ -13,9 +13,8 @@ export const TaskColumn: React.FC<TaskColumnProps> = ({column, onTaskClick}) => 
     return (
         <ColumnContainer>
             <ColumnHeader>
-                <ColumnTitleRow>
-                    <ColumnTitle>{column.title}</ColumnTitle>
-                </ColumnTitleRow>
+                <ColumnTitle>{column.title}</ColumnTitle>
+
                 <TaskCount>
                     {column.tasks.length} {column.tasks.length === 1 ? "task" : "tasks"}
                 </TaskCount>
@@ -43,10 +42,10 @@ export const TaskColumn: React.FC<TaskColumnProps> = ({column, onTaskClick}) => 
 const ColumnContainer = styled.div`
     display: flex;
     flex-direction: column;
-    min-width: 300px;
-    max-width: 350px;
+    //min-width: 300px;
+    //max-width: 350px;
     height: fit-content;
-    padding: ${({theme}) => theme.spacing[4]};
+    padding: ${({theme}) => theme.spacing[3]};
     gap: ${({theme}) => theme.primitives.spacing[3]};
     border-radius: ${({ theme }) => theme.primitives.radius.lg};
 
@@ -56,17 +55,12 @@ const ColumnContainer = styled.div`
 const ColumnHeader = styled.div`
     display: flex;
     justify-content: space-between;
+    align-items: flex-start;
     gap: ${({theme}) => theme.spacing[1]};
 `;
 
-const ColumnTitleRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${({theme}) => theme.spacing[2]};
-`;
-
 const ColumnTitle = styled.h2`
-    font-size: ${({theme}) => theme.typography.size.lg};
+    font-size: ${({theme}) => theme.typography.size.md};
     font-weight: ${({theme}) => theme.typography.weight.semiBold};
     color: ${({theme}) => theme.colors.textPrimary};
     text-wrap: nowrap;
@@ -79,11 +73,11 @@ const TaskCount = styled.div`
     padding: ${({theme}) => `${theme.spacing[0.5]} ${theme.spacing[2]}`};
     background: ${({ theme }) => theme.colors.accentPrimary};
     
-    color: ${({ theme }) => theme.primitives.colors.text1000};
+    color: #fff;
     
     border-radius: ${({theme}) => theme.radius.pill};
     font-size: ${({theme}) => theme.typography.size.sm};
-    font-weight: ${({theme}) => theme.typography.weight.semiBold};
+    font-weight: ${({theme}) => theme.typography.weight.medium};
     opacity: 0.9;
 `;
 
@@ -113,7 +107,6 @@ const ColumnContent = styled.div`
 `;
 
 const StyledDivider = styled.div`
-    /* Default styles based on the previous Tailwind implementation */
     width: 100%;
     height: 2px;
     background-color: ${({theme}) => theme.colors.accentTertiary};
