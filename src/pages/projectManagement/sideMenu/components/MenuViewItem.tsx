@@ -81,7 +81,7 @@ const ContentWrapper = styled.div<{ $isActive?: boolean; $disabled?: boolean; $i
     width: 100%;
     padding: ${({theme}) => `0 ${theme.spacing[2]}`};
     margin: 0 ${({theme}) => theme.components.sidebar.paddingX};
-    border-radius: ${({theme}) => theme.primitives.radius.md};
+    //border-radius: ${({theme}) => theme.primitives.radius.md};
 
     background: ${({theme, $isActive, $disabled}) => {
         if ($disabled) return "transparent";

@@ -27,24 +27,28 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
 // ======================
 
 const BoardContainer = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.spacing[4]};
-  height: 100%;
-  padding: ${({ theme }) => theme.spacing[6]};
-  overflow-x: auto;
-  overflow-y: hidden;
+    display: flex;
+    gap: ${({theme}) => theme.spacing[4]};
+    height: 100%;
+    padding: ${({theme}) => theme.spacing[6]};
+    background: ${({theme}) => theme.colors.backgroundSecondary};
+    overflow-x: auto;
+    overflow-y: hidden;
 
-  &::-webkit-scrollbar {
-    height: 8px;
-  }
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: ${({ theme }) => theme.colors.accentPrimary};
-    border-radius: ${({ theme }) => theme.radius.sm};
-  }
-  &::-webkit-scrollbar-thumb:hover {
-    background: ${({ theme }) => theme.colors.accentSecondary};
-  }
+    &::-webkit-scrollbar {
+        height: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: ${({theme}) => theme.colors.accentPrimary};
+        border-radius: ${({theme}) => theme.radius.sm};
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+        background: ${({theme}) => theme.colors.accentSecondary};
+    }
 `;

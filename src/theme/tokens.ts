@@ -99,7 +99,8 @@ const primitives = {
         none: "0",
         sm: "0.25rem",
         md: "0.5rem",
-        lg: "1rem",
+        lg: "0.75rem",
+        xl: "1rem",
         pill: "9999px",
     },
 

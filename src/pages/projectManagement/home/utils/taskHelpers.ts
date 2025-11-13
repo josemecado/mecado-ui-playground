@@ -140,21 +140,6 @@ export const getStatusColor = (status: TaskStatus): string => {
     }
 };
 
-export const getStatusIcon = (status: TaskStatus): string => {
-    switch (status) {
-        case "todo":
-            return "📝";
-        case "pending":
-            return "⏳";
-        case "approved":
-            return "✅";
-        case "failed":
-            return "❌";
-        default:
-            return "📋";
-    }
-};
-
 // ============================================================================
 // FILTER & SORT HELPERS
 // ============================================================================
