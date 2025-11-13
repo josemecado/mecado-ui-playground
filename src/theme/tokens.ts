@@ -145,9 +145,11 @@ const primitives = {
     },
 
     fontFamily: {
-        base: "'Inter', sans-serif",
+        base: '"Antarctica Condensed", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
         mono: "'Fira Code', monospace",
+        serif: '"JHA Times Now", Georgia, serif',
     },
+
 } as const;
 
 // ============================================================================

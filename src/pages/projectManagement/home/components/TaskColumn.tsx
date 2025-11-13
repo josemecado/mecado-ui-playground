@@ -60,8 +60,9 @@ const ColumnHeader = styled.div`
 `;
 
 const ColumnTitle = styled.h2`
+    font-family: ${({ theme }) => theme.typography.family.base};
     font-size: ${({theme}) => theme.typography.size.md};
-    font-weight: ${({theme}) => theme.typography.weight.semiBold};
+    font-weight: ${({theme}) => theme.typography.weight.medium};
     color: ${({theme}) => theme.colors.textPrimary};
     text-wrap: nowrap;
 `;
