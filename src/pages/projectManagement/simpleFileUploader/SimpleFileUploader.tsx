@@ -1,158 +1,207 @@
 import React, { useState, useRef } from "react";
 import styled from "styled-components";
+import { ChevronDown, ChevronUp, Upload, X, FileText, Package } from "lucide-react";
 import { TaskContext } from "../home/types/types";
+import {BaseButton} from "components/buttons/BaseButton";
 
 interface SimpleFileUploaderProps {
-  taskContext: TaskContext;
-  onSubmit: (taskId: string, fileNames: string[]) => void;
-  onCancel: () => void;
+    taskContext: TaskContext;
+    onSubmit: (taskId: string, fileNames: string[]) => void;
+    onCancel: () => void;
 }
 
 export const SimpleFileUploader: React.FC<SimpleFileUploaderProps> = ({
-  taskContext,
-  onSubmit,
-  onCancel,
-}) => {
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+                                                                          taskContext,
+                                                                          onSubmit,
+                                                                          onCancel,
+                                                                      }) => {
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    const [detailsExpanded, setDetailsExpanded] = useState(true);
+    const [filesExpanded, setFilesExpanded] = useState(true);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const filesArray = Array.from(e.target.files);
-      // Filter for .step and .stp files only
-      const validFiles = filesArray.filter(
-        (file) =>
-          file.name.toLowerCase().endsWith(".step") ||
-          file.name.toLowerCase().endsWith(".stp")
-      );
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const filesArray = Array.from(e.target.files);
+            const validFiles = filesArray.filter(
+                (file) =>
+                    file.name.toLowerCase().endsWith(".step") ||
+                    file.name.toLowerCase().endsWith(".stp")
+            );
 
-      if (validFiles.length !== filesArray.length) {
-        alert("Only .step and .stp files are allowed");
-      }
+            if (validFiles.length !== filesArray.length) {
+                alert("Only .step and .stp files are allowed");
+            }
 
-      setSelectedFiles([...selectedFiles, ...validFiles]);
-    }
-  };
+            setSelectedFiles([...selectedFiles, ...validFiles]);
+        }
+    };
 
-  const handleRemoveFile = (index: number) => {
-    setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
-  };
+    const handleRemoveFile = (index: number) => {
+        setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
+    };
 
-  const handleBrowseClick = () => {
-    fileInputRef.current?.click();
-  };
+    const handleBrowseClick = () => {
+        fileInputRef.current?.click();
+    };
 
-  const handleSubmit = () => {
-    if (selectedFiles.length === 0) {
-      alert("Please select at least one STEP file before submitting");
-      return;
-    }
+    const handleSubmit = () => {
+        if (selectedFiles.length === 0) {
+            alert("Please select at least one STEP file before submitting");
+            return;
+        }
 
-    const fileNames = selectedFiles.map((file) => file.name);
-    onSubmit(taskContext.taskId, fileNames);
-  };
+        const fileNames = selectedFiles.map((file) => file.name);
+        onSubmit(taskContext.taskId, fileNames);
+    };
 
-  const requiredCount = taskContext.requiredFileCount || 0;
-  const uploadedCount = selectedFiles.length;
-  const progress = requiredCount > 0 ? (uploadedCount / requiredCount) * 100 : 0;
-  const isComplete = uploadedCount >= requiredCount;
+    const requiredCount = taskContext.requiredFileCount || 0;
+    const uploadedCount = selectedFiles.length;
+    const progress = requiredCount > 0 ? (uploadedCount / requiredCount) * 100 : 0;
+    const isComplete = uploadedCount >= requiredCount && requiredCount > 0;
 
-  return (
-    <Container>
-      <ContentWrapper>
-        <Header>
-          <Title>📦 Upload Geometry Files</Title>
-          <Subtitle>Select STEP files for this batch, then submit for approval</Subtitle>
-        </Header>
+    return (
+        <Container>
+            <Header>
+                <HeaderLeft>
+                    <TaskIcon>
+                        <Package size={20} />
+                    </TaskIcon>
+                    <HeaderText>
+                        <Title>{taskContext.batchName || "Upload Geometry Files"}</Title>
+                        <Subtitle>Manage your geometry labeling and upload tasks</Subtitle>
+                    </HeaderText>
+                </HeaderLeft>
+                <HeaderActions>
+                    <StatusBadge $complete={isComplete}>
+                        {uploadedCount} / {requiredCount} files
+                    </StatusBadge>
+                </HeaderActions>
+            </Header>
 
-        <TaskInfoSection>
-          <SectionTitle>Task Information</SectionTitle>
-          <InfoGrid>
-            <InfoItem>
-              <InfoLabel>Batch Name:</InfoLabel>
-              <InfoValue>{taskContext.batchName || "Unknown"}</InfoValue>
-            </InfoItem>
-            <InfoItem>
-              <InfoLabel>Required Files:</InfoLabel>
-              <InfoValue>
-                <CountBadge $complete={isComplete}>
-                  {uploadedCount} / {requiredCount}
-                </CountBadge>
-              </InfoValue>
-            </InfoItem>
-          </InfoGrid>
+            <ContentWrapper>
+                <TaskCard>
+                    {/* Details Section */}
+                    <CardSection>
+                        <SectionHeader onClick={() => setDetailsExpanded(!detailsExpanded)}>
+                            <SectionTitle>Details</SectionTitle>
+                            <ExpandIcon>
+                                {detailsExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                            </ExpandIcon>
+                        </SectionHeader>
 
-          {requiredCount > 0 && (
-            <ProgressSection>
-              <ProgressBar>
-                <ProgressFill $percent={progress} $complete={isComplete} />
-              </ProgressBar>
-              <ProgressText $complete={isComplete}>
-                {isComplete
-                  ? "✓ All required files selected"
-                  : `${requiredCount - uploadedCount} more file${
-                      requiredCount - uploadedCount !== 1 ? "s" : ""
-                    } needed`}
-              </ProgressText>
-            </ProgressSection>
-          )}
-        </TaskInfoSection>
+                        {detailsExpanded && (
+                            <SectionContent>
+                                <DetailLabel>Description:</DetailLabel>
+                                <DetailValue>
+                                    {taskContext.batchName || "Upload required STEP files for this batch"}
+                                </DetailValue>
 
-        <UploadSection>
-          <SectionTitle>Select Files</SectionTitle>
+                                {requiredCount > 0 && (
+                                    <ProgressWrapper>
+                                        <ProgressBar>
+                                            <ProgressFill $percent={progress} $complete={isComplete} />
+                                        </ProgressBar>
+                                        <ProgressText $complete={isComplete}>
+                                            {isComplete
+                                                ? "✓ All required files selected"
+                                                : `${requiredCount - uploadedCount} more file${
+                                                    requiredCount - uploadedCount !== 1 ? "s" : ""
+                                                } needed`}
+                                        </ProgressText>
+                                    </ProgressWrapper>
+                                )}
+                            </SectionContent>
+                        )}
+                    </CardSection>
 
-          <HiddenFileInput
-            ref={fileInputRef}
-            type="file"
-            accept=".step,.stp"
-            multiple
-            onChange={handleFileSelect}
-          />
+                    <SectionDivider />
 
-          <UploadDropZone onClick={handleBrowseClick}>
-            <UploadIcon>📁</UploadIcon>
-            <UploadText>Click to browse for STEP files</UploadText>
-            <UploadHint>Accepts .step and .stp files</UploadHint>
-          </UploadDropZone>
+                    {/* Associated Files Section */}
+                    <CardSection>
+                        <SectionHeader onClick={() => setFilesExpanded(!filesExpanded)}>
+                            <SectionTitle>Associated Files</SectionTitle>
+                            <ExpandIcon>
+                                {filesExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                            </ExpandIcon>
+                        </SectionHeader>
 
-          {selectedFiles.length > 0 && (
-            <FilesListSection>
-              <ListHeader>Selected Files ({selectedFiles.length})</ListHeader>
-              <FilesList>
-                {selectedFiles.map((file, index) => (
-                  <FileItem key={index}>
-                    <FileInfo>
-                      <FileIcon>📄</FileIcon>
-                      <FileDetails>
-                        <FileName>{file.name}</FileName>
-                        <FileSize>{(file.size / 1024).toFixed(1)} KB</FileSize>
-                      </FileDetails>
-                    </FileInfo>
-                    <RemoveButton onClick={() => handleRemoveFile(index)}>×</RemoveButton>
-                  </FileItem>
-                ))}
-              </FilesList>
-            </FilesListSection>
-          )}
+                        {filesExpanded && (
+                            <SectionContent>
+                                <HiddenFileInput
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept=".step,.stp"
+                                    multiple
+                                    onChange={handleFileSelect}
+                                />
 
-          {selectedFiles.length === 0 && (
-            <EmptyState>
-              <EmptyIcon>📦</EmptyIcon>
-              <EmptyText>No files selected yet</EmptyText>
-              <EmptyHint>Click the area above to select STEP files</EmptyHint>
-            </EmptyState>
-          )}
-        </UploadSection>
+                                <UploadZone onClick={handleBrowseClick}>
+                                    <UploadIcon>
+                                        <Upload size={24} />
+                                    </UploadIcon>
+                                    <UploadText>Click to browse for STEP files</UploadText>
+                                    <UploadHint>Accepts .step and .stp files</UploadHint>
+                                </UploadZone>
 
-        <ActionsSection>
-          <CancelButton onClick={onCancel}>Cancel</CancelButton>
-          <SubmitButton onClick={handleSubmit} disabled={selectedFiles.length === 0}>
-            Submit for Approval
-          </SubmitButton>
-        </ActionsSection>
-      </ContentWrapper>
-    </Container>
-  );
+                                {selectedFiles.length > 0 ? (
+                                    <FilesList>
+                                        {selectedFiles.map((file, index) => (
+                                            <FileItem key={index}>
+                                                <FileInfo>
+                                                    <FileIconWrapper>
+                                                        <FileText size={16} />
+                                                    </FileIconWrapper>
+                                                    <FileName>{file.name}</FileName>
+                                                </FileInfo>
+                                                <FileActions>
+                                                    <FileSize>{(file.size / 1024).toFixed(1)} KB</FileSize>
+                                                    <RemoveButton onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleRemoveFile(index);
+                                                    }}>
+                                                        <X size={16} />
+                                                    </RemoveButton>
+                                                </FileActions>
+                                            </FileItem>
+                                        ))}
+                                    </FilesList>
+                                ) : (
+                                    <EmptyState>
+                                        <EmptyIcon>
+                                            <FileText size={32} />
+                                        </EmptyIcon>
+                                        <EmptyText>No files selected yet</EmptyText>
+                                    </EmptyState>
+                                )}
+                            </SectionContent>
+                        )}
+                    </CardSection>
+
+                    <SectionDivider />
+
+                    {/* Footer with badges */}
+                    <CardFooter>
+                        <FooterBadge>
+                            <Upload size={14} />
+                            Upload Files
+                        </FooterBadge>
+                        <FooterRight>
+                            <CompleteBadge>Complete by 1/14/2025</CompleteBadge>
+                        </FooterRight>
+                    </CardFooter>
+                </TaskCard>
+
+                {/* Action Buttons */}
+                <ActionButtons>
+                    <CancelButton $variant={"secondary"} onClick={onCancel}>Cancel</CancelButton>
+                    <SubmitButton $variant={"primary"} onClick={handleSubmit} disabled={selectedFiles.length === 0}>
+                        Submit for Approval
+                    </SubmitButton>
+                </ActionButtons>
+            </ContentWrapper>
+        </Container>
+    );
 };
 
 // ======================
@@ -160,313 +209,360 @@ export const SimpleFileUploader: React.FC<SimpleFileUploaderProps> = ({
 // ======================
 
 const Container = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  width: 100%;
-  height: 100%;
-  background: ${({ theme }) => theme.colors.backgroundPrimary};
-  padding: ${({ theme }) => theme.spacing[8]};
-  overflow-y: auto;
-`;
-
-const ContentWrapper = styled.div`
-  width: 100%;
-  max-width: 800px;
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacing[6]};
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    background: ${({ theme }) => theme.colors.backgroundPrimary};
+    overflow-y: auto;
 `;
 
 const Header = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacing[2]};
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${({ theme }) => theme.spacing[6]};
+    background: ${({ theme }) => theme.colors.backgroundSecondary};
+    border-bottom: 1px solid ${({ theme }) => theme.colors.borderDefault};
+`;
+
+const HeaderLeft = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${({ theme }) => theme.spacing[3]};
+`;
+
+const TaskIcon = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: ${({ theme }) => theme.colors.backgroundTertiary};
+    border-radius: ${({ theme }) => theme.radius.md};
+    color: ${({ theme }) => theme.colors.accentPrimary};
+`;
+
+const HeaderText = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${({ theme }) => theme.spacing[1]};
 `;
 
 const Title = styled.h1`
-  font-size: ${({ theme }) => theme.typography.size.xxl};
-  font-weight: ${({ theme }) => theme.typography.weight.bold};
-  color: ${({ theme }) => theme.colors.textPrimary};
-  margin: 0;
+    font-size: ${({ theme }) => theme.typography.size.xxl};
+    font-weight: ${({ theme }) => theme.typography.weight.bold};
+    color: ${({ theme }) => theme.colors.textPrimary};
+    margin: 0;
 `;
 
 const Subtitle = styled.p`
-  font-size: ${({ theme }) => theme.typography.size.md};
-  color: ${({ theme }) => theme.colors.textMuted};
-  margin: 0;
+    font-size: ${({ theme }) => theme.typography.size.md};
+    color: ${({ theme }) => theme.colors.textMuted};
+    margin: 0;
 `;
 
-const TaskInfoSection = styled.div`
-  background: ${({ theme }) => theme.colors.backgroundSecondary};
-  border: 1px solid ${({ theme }) => theme.colors.borderDefault};
-  border-radius: ${({ theme }) => theme.radius.lg};
-  padding: ${({ theme }) => theme.spacing[5]};
+const HeaderActions = styled.div`
+    display: flex;
+    gap: ${({ theme }) => theme.spacing[3]};
+    align-items: center;
 `;
 
-const SectionTitle = styled.h2`
-  font-size: ${({ theme }) => theme.typography.size.lg};
-  font-weight: ${({ theme }) => theme.typography.weight.semiBold};
-  color: ${({ theme }) => theme.colors.textPrimary};
-  margin: 0 0 ${({ theme }) => theme.spacing[4]} 0;
-`;
-
-const InfoGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: ${({ theme }) => theme.spacing[4]};
-  margin-bottom: ${({ theme }) => theme.spacing[4]};
-`;
-
-const InfoItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacing[1]};
-`;
-
-const InfoLabel = styled.span`
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  color: ${({ theme }) => theme.colors.textMuted};
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-`;
-
-const InfoValue = styled.span`
-  font-size: ${({ theme }) => theme.typography.size.md};
-  color: ${({ theme }) => theme.colors.textPrimary};
-  font-weight: ${({ theme }) => theme.typography.weight.medium};
-`;
-
-const CountBadge = styled.span<{ $complete: boolean }>`
-  display: inline-block;
-  padding: ${({ theme }) => `${theme.spacing[1]} ${theme.spacing[3]}`};
+const StatusBadge = styled.div<{ $complete: boolean }>`
+  padding: ${({ theme }) => `${theme.spacing[2]} ${theme.spacing[3]}`};
   background: ${({ theme, $complete }) =>
-    $complete ? theme.colors.statusSuccess : theme.colors.brandPrimary};
+    $complete ? theme.colors.statusSuccess : theme.colors.accentPrimary};
   color: ${({ theme }) => theme.colors.textInverted};
-  border-radius: ${({ theme }) => theme.radius.md};
-  font-size: ${({ theme }) => theme.typography.size.md};
+  border-radius: ${({ theme }) => theme.radius.pill};
+  font-size: ${({ theme }) => theme.typography.size.sm};
   font-weight: ${({ theme }) => theme.typography.weight.semiBold};
   font-family: ${({ theme }) => theme.typography.family.mono};
 `;
 
-const ProgressSection = styled.div`
+const ContentWrapper = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${({ theme }) => theme.spacing[4]};
+    padding: ${({ theme }) => theme.spacing[6]};
+    max-width: 900px;
+    width: 100%;
+    margin: 0 auto;
+`;
+
+const TaskCard = styled.div`
+    display: flex;
+    flex-direction: column;
+    background: ${({ theme }) => theme.colors.backgroundSecondary};
+    border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
+    border-radius: ${({ theme }) => theme.radius.lg};
+    overflow: hidden;
+`;
+
+const CardSection = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const SectionHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${({ theme }) => theme.spacing[4]};
+    cursor: pointer;
+    user-select: none;
+    transition: background ${({ theme }) => theme.animation.duration.fast};
+
+    &:hover {
+        background: ${({ theme }) => theme.colors.backgroundTertiary};
+    }
+`;
+
+const SectionTitle = styled.h3`
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    font-weight: ${({ theme }) => theme.typography.weight.semiBold};
+    color: ${({ theme }) => theme.colors.textMuted};
+    margin: 0;
+    text-transform: capitalize;
+`;
+
+const ExpandIcon = styled.div`
+    display: flex;
+    align-items: center;
+    color: ${({ theme }) => theme.colors.textMuted};
+    transition: transform ${({ theme }) => theme.animation.duration.fast};
+`;
+
+const SectionContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${({ theme }) => theme.spacing[3]};
+    padding: 0 ${({ theme }) => theme.spacing[4]} ${({ theme }) => theme.spacing[4]};
+`;
+
+const DetailLabel = styled.div`
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    color: ${({ theme }) => theme.colors.textMuted};
+`;
+
+const DetailValue = styled.div`
+  font-size: ${({ theme }) => theme.typography.size.sm};
+  color: ${({ theme }) => theme.colors.textPrimary};
+  padding: ${({ theme }) => theme.spacing[2]};
+  background: ${({ theme }) => theme.colors.backgroundTertiary};
+  border-radius: ${({ theme }) => theme.radius.md};
+`;
+
+const ProgressWrapper = styled.div`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.spacing[2]};
+  margin-top: ${({ theme }) => theme.spacing[2]};
 `;
 
 const ProgressBar = styled.div`
-  width: 100%;
-  height: 10px;
-  background: ${({ theme }) => theme.colors.backgroundTertiary};
-  border-radius: ${({ theme }) => theme.radius.pill};
-  overflow: hidden;
+    width: 100%;
+    height: 8px;
+    background: ${({ theme }) => theme.colors.backgroundTertiary};
+    border-radius: ${({ theme }) => theme.radius.pill};
+    overflow: hidden;
 `;
 
 const ProgressFill = styled.div<{ $percent: number; $complete: boolean }>`
-  height: 100%;
-  width: ${({ $percent }) => $percent}%;
-  background: ${({ theme, $complete }) =>
-    $complete ? theme.colors.statusSuccess : theme.colors.brandPrimary};
-  transition: all ${({ theme }) => theme.animation.duration.medium} ${({ theme }) => theme.animation.easing.standard};
+    height: 100%;
+    width: ${({ $percent }) => $percent}%;
+    background: ${({ theme, $complete }) =>
+            $complete ? theme.colors.statusSuccess : theme.colors.brandPrimary};
+    transition: width ${({ theme }) => theme.animation.duration.medium};
 `;
 
 const ProgressText = styled.div<{ $complete: boolean }>`
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  color: ${({ theme, $complete }) =>
-    $complete ? theme.colors.statusSuccess : theme.colors.textMuted};
-  font-weight: ${({ theme, $complete }) =>
-    $complete ? theme.typography.weight.semiBold : theme.typography.weight.regular};
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    color: ${({ theme, $complete }) =>
+            $complete ? theme.colors.statusSuccess : theme.colors.textMuted};
+    font-weight: ${({ $complete }) => ($complete ? 600 : 400)};
 `;
 
-const UploadSection = styled.div`
-  background: ${({ theme }) => theme.colors.backgroundSecondary};
-  border: 1px solid ${({ theme }) => theme.colors.borderDefault};
-  border-radius: ${({ theme }) => theme.radius.lg};
-  padding: ${({ theme }) => theme.spacing[5]};
+const SectionDivider = styled.div`
+    width: 100%;
+    height: 1px;
+    background: ${({ theme }) => theme.colors.borderSubtle};
 `;
 
 const HiddenFileInput = styled.input`
-  display: none;
+    display: none;
 `;
 
-const UploadDropZone = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: ${({ theme }) => theme.spacing[8]};
-  border: 2px dashed ${({ theme }) => theme.colors.borderDefault};
-  border-radius: ${({ theme }) => theme.radius.lg};
-  background: ${({ theme }) => theme.colors.backgroundPrimary};
-  cursor: pointer;
-  transition: all ${({ theme }) => theme.animation.duration.fast};
-  margin-bottom: ${({ theme }) => theme.spacing[4]};
-
-  &:hover {
-    border-color: ${({ theme }) => theme.colors.brandPrimary};
-    background: ${({ theme }) => theme.colors.backgroundTertiary};
-  }
-`;
-
-const UploadIcon = styled.div`
-  font-size: 48px;
-  margin-bottom: ${({ theme }) => theme.spacing[2]};
-`;
-
-const UploadText = styled.div`
-  font-size: ${({ theme }) => theme.typography.size.md};
-  font-weight: ${({ theme }) => theme.typography.weight.semiBold};
-  color: ${({ theme }) => theme.colors.textPrimary};
-  margin-bottom: ${({ theme }) => theme.spacing[1]};
-`;
-
-const UploadHint = styled.div`
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  color: ${({ theme }) => theme.colors.textMuted};
-`;
-
-const FilesListSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacing[3]};
-`;
-
-const ListHeader = styled.div`
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  font-weight: ${({ theme }) => theme.typography.weight.semiBold};
-  color: ${({ theme }) => theme.colors.textMuted};
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-`;
-
-const FilesList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacing[2]};
-`;
-
-const FileItem = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: ${({ theme }) => theme.spacing[3]};
-  background: ${({ theme }) => theme.colors.backgroundTertiary};
-  border: 1px solid ${({ theme }) => theme.colors.borderDefault};
-  border-radius: ${({ theme }) => theme.radius.md};
-  transition: all ${({ theme }) => theme.animation.duration.fast};
-
-  &:hover {
-    border-color: ${({ theme }) => theme.colors.brandPrimary};
-  }
-`;
-
-const FileInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.spacing[3]};
-  flex: 1;
-  min-width: 0;
-`;
-
-const FileIcon = styled.div`
-  font-size: ${({ theme }) => theme.typography.size.xl};
-  flex-shrink: 0;
-`;
-
-const FileDetails = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacing[1]};
-  min-width: 0;
-`;
-
-const FileName = styled.div`
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  font-weight: ${({ theme }) => theme.typography.weight.medium};
-  color: ${({ theme }) => theme.colors.textPrimary};
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const FileSize = styled.div`
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  color: ${({ theme }) => theme.colors.textMuted};
-  font-family: ${({ theme }) => theme.typography.family.mono};
-`;
-
-const RemoveButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  background: ${({ theme }) => theme.colors.statusError};
-  color: ${({ theme }) => theme.colors.textInverted};
-  border: none;
-  border-radius: 50%;
-  font-size: 20px;
-  line-height: 1;
-  cursor: pointer;
-  transition: all ${({ theme }) => theme.animation.duration.fast};
-  flex-shrink: 0;
-
-  &:hover {
-    background: ${({ theme }) => theme.colors.statusError};
-    transform: scale(1.1);
-  }
-
-  &:active {
-    transform: scale(0.95);
-  }
-`;
-
-const EmptyState = styled.div`
+const UploadZone = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: ${({ theme }) => theme.spacing[6]};
-  gap: ${({ theme }) => theme.spacing[2]};
+  border: 2px dashed ${({ theme }) => theme.colors.borderDefault};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: ${({ theme }) => theme.colors.backgroundTertiary};
+  cursor: pointer;
+  transition: all ${({ theme }) => theme.animation.duration.fast};
+
+  &:hover {
+    border-color: ${({ theme }) => theme.colors.brandPrimary};
+    background: ${({ theme }) => theme.colors.backgroundQuaternary};
+  }
+`;
+
+const UploadIcon = styled.div`
+    display: flex;
+    color: ${({ theme }) => theme.colors.accentPrimary};
+    margin-bottom: ${({ theme }) => theme.spacing[2]};
+`;
+
+const UploadText = styled.div`
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    font-weight: ${({ theme }) => theme.typography.weight.medium};
+    color: ${({ theme }) => theme.colors.textPrimary};
+    margin-bottom: ${({ theme }) => theme.spacing[1]};
+`;
+
+const UploadHint = styled.div`
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    color: ${({ theme }) => theme.colors.textMuted};
+`;
+
+const FilesList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${({ theme }) => theme.spacing[2]};
+    margin-top: ${({ theme }) => theme.spacing[2]};
+`;
+
+const FileItem = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: ${({ theme }) => theme.spacing[2]};
+    background: ${({ theme }) => theme.colors.backgroundTertiary};
+    border-radius: ${({ theme }) => theme.radius.md};
+    transition: background ${({ theme }) => theme.animation.duration.fast};
+
+    &:hover {
+        background: ${({ theme }) => theme.colors.backgroundQuaternary};
+    }
+`;
+
+const FileInfo = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${({ theme }) => theme.spacing[2]};
+    flex: 1;
+    min-width: 0;
+`;
+
+const FileIconWrapper = styled.div`
+    display: flex;
+    align-items: center;
+    color: ${({ theme }) => theme.colors.accentPrimary};
+    flex-shrink: 0;
+`;
+
+const FileName = styled.div`
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    color: ${({ theme }) => theme.colors.textPrimary};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: ${({ theme }) => theme.typography.family.mono};
+`;
+
+const FileActions = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${({ theme }) => theme.spacing[2]};
+    flex-shrink: 0;
+`;
+
+const FileSize = styled.div`
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    color: ${({ theme }) => theme.colors.textMuted};
+    font-family: ${({ theme }) => theme.typography.family.mono};
+`;
+
+const RemoveButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: transparent;
+    color: ${({ theme }) => theme.colors.textMuted};
+    border: none;
+    border-radius: ${({ theme }) => theme.radius.sm};
+    cursor: pointer;
+    transition: all ${({ theme }) => theme.animation.duration.fast};
+
+    &:hover {
+        background: ${({ theme }) => theme.colors.statusError};
+        color: ${({ theme }) => theme.colors.textInverted};
+    }
+`;
+
+const EmptyState = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: ${({ theme }) => theme.spacing[6]};
+    gap: ${({ theme }) => theme.spacing[2]};
 `;
 
 const EmptyIcon = styled.div`
-  font-size: 48px;
+  display: flex;
+  color: ${({ theme }) => theme.colors.textMuted};
   opacity: 0.5;
 `;
 
 const EmptyText = styled.div`
-  font-size: ${({ theme }) => theme.typography.size.md};
+  font-size: ${({ theme }) => theme.typography.size.sm};
   color: ${({ theme }) => theme.colors.textMuted};
+`;
+
+const CardFooter = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${({ theme }) => theme.spacing[4]};
+    gap: ${({ theme }) => theme.spacing[3]};
+`;
+
+const FooterBadge = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing[1.5]};
+  padding: ${({ theme }) => `${theme.primitives.paddingX.xxxs} ${theme.primitives.paddingX.xsm}`};
+  background: ${({ theme }) => theme.colors.accentPrimary};
+  color: ${({ theme }) => theme.primitives.colors.text1000};
+  border-radius: ${({ theme }) => theme.radius.md};
+  font-size: ${({ theme }) => theme.typography.size.xsm};
   font-weight: ${({ theme }) => theme.typography.weight.medium};
 `;
 
-const EmptyHint = styled.div`
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  color: ${({ theme }) => theme.colors.textMuted};
-  text-align: center;
+const FooterRight = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${({ theme }) => theme.spacing[2]};
 `;
 
-const ActionsSection = styled.div`
+const CompleteBadge = styled.div`
+  font-size: ${({ theme }) => theme.typography.size.xsm};
+  color: ${({ theme }) => theme.colors.textMuted};
+`;
+
+const ActionButtons = styled.div`
   display: flex;
   justify-content: flex-end;
   gap: ${({ theme }) => theme.spacing[3]};
-  padding-top: ${({ theme }) => theme.spacing[4]};
-  border-top: 1px solid ${({ theme }) => theme.colors.borderDefault};
 `;
 
-const CancelButton = styled.button`
-  padding: ${({ theme }) => `${theme.spacing[3]} ${theme.spacing[6]}`};
-  background: transparent;
-  color: ${({ theme }) => theme.colors.textMuted};
-  border: 1px solid ${({ theme }) => theme.colors.borderDefault};
-  border-radius: ${({ theme }) => theme.radius.md};
-  font-size: ${({ theme }) => theme.typography.size.md};
-  font-weight: ${({ theme }) => theme.typography.weight.semiBold};
-  cursor: pointer;
-  transition: all ${({ theme }) => theme.animation.duration.fast};
+const CancelButton = styled(BaseButton)<{ $variant: "primary" | "secondary" }>`
 
   &:hover {
     background: ${({ theme }) => theme.colors.backgroundTertiary};
@@ -475,50 +571,14 @@ const CancelButton = styled.button`
   }
 `;
 
-const SubmitButton = styled.button`
-  padding: ${({ theme }) => `${theme.spacing[3]} ${theme.spacing[6]}`};
-  background: ${({ theme }) => theme.colors.statusSuccess};
-  color: ${({ theme }) => theme.colors.textInverted};
-  border: none;
-  border-radius: ${({ theme }) => theme.radius.md};
-  font-size: ${({ theme }) => theme.typography.size.md};
-  font-weight: ${({ theme }) => theme.typography.weight.bold};
-  cursor: pointer;
-  transition: all ${({ theme }) => theme.animation.duration.fast};
-
+const SubmitButton = styled(BaseButton)<{ $variant: "primary" | "secondary" }>`
   &:hover:not(:disabled) {
     background: ${({ theme }) => theme.colors.statusSuccess};
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px ${({ theme }) => theme.colors.statusSuccess}44;
-  }
-
-  &:active:not(:disabled) {
-    transform: translateY(0);
+    opacity: 0.9;
   }
 
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
-`;
-
-const HelpSection = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.spacing[3]};
-  padding: ${({ theme }) => theme.spacing[4]};
-  background: ${({ theme }) => theme.colors.backgroundTertiary};
-  border-radius: ${({ theme }) => theme.radius.md};
-  border-left: 3px solid ${({ theme }) => theme.colors.brandPrimary};
-`;
-
-const HelpIcon = styled.div`
-  font-size: ${({ theme }) => theme.typography.size.xl};
-  flex-shrink: 0;
-`;
-
-const HelpText = styled.p`
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  color: ${({ theme }) => theme.colors.textMuted};
-  margin: 0;
-  line-height: 1.5;
 `;

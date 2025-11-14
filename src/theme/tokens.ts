@@ -145,7 +145,8 @@ const primitives = {
     },
 
     fontFamily: {
-        base: '"Antarctica Condensed", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
+        // base: '"Antarctica Condensed", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
+        base: 'system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
         mono: "'Fira Code', monospace",
         serif: '"JHA Times Now", Georgia, serif',
     },
@@ -257,11 +258,11 @@ const componentTokens = {
     },
 
     button: {
-        paddingX: primitives.spacing[4],
-        paddingY: primitives.spacing[3],
+        paddingX: primitives.padding.xsm,
+        paddingY: primitives.padding.xsm,
         paddingXLarge: primitives.spacing[4],
         paddingYLarge: primitives.spacing[4],
-        gap: primitives.spacing[2],
+        gap: primitives.spacing[1],
         radius: primitives.radius.md,
         height: "2.5rem",
         heightLarge: "3rem",

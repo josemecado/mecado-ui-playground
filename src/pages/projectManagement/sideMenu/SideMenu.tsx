@@ -235,9 +235,8 @@ const MenuSection = styled.div`
 const SectionHeader = styled.div<{ $isCollapsed?: boolean }>`
     display: flex;
     justify-content: ${(p) => (p.$isCollapsed ? "center" : "flex-start" )};
-    ;
     font-size: ${({theme}) => theme.typography.size.sm};
-    font-weight: ${({theme}) => theme.typography.weight.regular};
+    font-weight: ${({theme}) => theme.typography.weight.semiBold};
     color: ${({theme}) => theme.primitives.colors.primary1000};
     text-transform: uppercase;
     letter-spacing: 1px;

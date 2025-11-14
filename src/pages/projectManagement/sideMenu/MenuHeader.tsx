@@ -86,6 +86,7 @@ const LogoIcon = styled.div`
 `;
 
 const Title = styled.h1<{ $isCollapsed?: boolean }>`
+    font-family: ${({ theme }) => theme.typography.family.base};
     font-size: ${({theme}) => theme.components.sidebar.titleFontSize};
     font-weight: ${({theme}) => theme.components.sidebar.titleFontWeight};
     color: ${({theme}) => theme.primitives.colors.text1000};

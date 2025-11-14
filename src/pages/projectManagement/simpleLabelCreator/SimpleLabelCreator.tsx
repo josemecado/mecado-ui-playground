@@ -1,130 +1,205 @@
 import React, { useState } from "react";
 import styled from "styled-components";
+import { ChevronDown, ChevronUp, Tag, Plus, X } from "lucide-react";
 import { TaskContext } from "../home/types/types";
+import {BaseButton} from "components/buttons/BaseButton";
 
 interface SimpleLabelCreatorProps {
-  taskContext: TaskContext;
-  onSubmit: (taskId: string, labels: string[]) => void;
-  onCancel: () => void;
+    taskContext: TaskContext;
+    onSubmit: (taskId: string, labels: string[]) => void;
+    onCancel: () => void;
 }
 
 export const SimpleLabelCreator: React.FC<SimpleLabelCreatorProps> = ({
-  taskContext,
-  onSubmit,
-  onCancel,
-}) => {
-  const [labels, setLabels] = useState<string[]>([]);
-  const [currentLabel, setCurrentLabel] = useState("");
+                                                                          taskContext,
+                                                                          onSubmit,
+                                                                          onCancel,
+                                                                      }) => {
+    const [labels, setLabels] = useState<string[]>([]);
+    const [currentLabel, setCurrentLabel] = useState("");
+    const [detailsExpanded, setDetailsExpanded] = useState(true);
+    const [labelsExpanded, setLabelsExpanded] = useState(true);
 
-  const handleAddLabel = () => {
-    if (currentLabel.trim()) {
-      setLabels([...labels, currentLabel.trim()]);
-      setCurrentLabel("");
-    }
-  };
+    const handleAddLabel = () => {
+        if (currentLabel.trim()) {
+            setLabels([...labels, currentLabel.trim()]);
+            setCurrentLabel("");
+        }
+    };
 
-  const handleRemoveLabel = (index: number) => {
-    setLabels(labels.filter((_, i) => i !== index));
-  };
+    const handleRemoveLabel = (index: number) => {
+        setLabels(labels.filter((_, i) => i !== index));
+    };
 
-  const handleSubmit = () => {
-    if (labels.length === 0) {
-      alert("Please create at least one label before submitting");
-      return;
-    }
-    onSubmit(taskContext.taskId, labels);
-  };
+    const handleSubmit = () => {
+        if (labels.length === 0) {
+            alert("Please create at least one label before submitting");
+            return;
+        }
+        onSubmit(taskContext.taskId, labels);
+    };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleAddLabel();
-    }
-  };
+    const handleKeyPress = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            handleAddLabel();
+        }
+    };
 
-  return (
-    <Container>
-      <ContentWrapper>
-        <Header>
-          <Title>🏷️ Create Labels</Title>
-          <Subtitle>Add labels for the geometry below, then submit for approval</Subtitle>
-        </Header>
+    return (
+        <Container>
+            <Header>
+                <HeaderLeft>
+                    <TaskIcon>
+                        <Tag size={20} />
+                    </TaskIcon>
+                    <HeaderText>
+                        <Title>{taskContext.geometryName || "Create Labels"}</Title>
+                        <Subtitle>Manage your geometry labeling and upload tasks</Subtitle>
+                    </HeaderText>
+                </HeaderLeft>
+                <HeaderActions>
+                    <StatusBadge>
+                        {labels.length} {labels.length === 1 ? "label" : "labels"}
+                    </StatusBadge>
+                </HeaderActions>
+            </Header>
 
-        <TaskInfoSection>
-          <SectionTitle>Task Information</SectionTitle>
-          <InfoGrid>
-            <InfoItem>
-              <InfoLabel>Geometry:</InfoLabel>
-              <InfoValue>{taskContext.geometryName || "Unknown"}</InfoValue>
-            </InfoItem>
-            <InfoItem>
-              <InfoLabel>Type:</InfoLabel>
-              <InfoValue>
-                <TypeBadge>{taskContext.geometryType || "N/A"}</TypeBadge>
-              </InfoValue>
-            </InfoItem>
-            <InfoItem>
-              <InfoLabel>Model ID:</InfoLabel>
-              <InfoValue>
-                <MonoText>{taskContext.modelId || "N/A"}</MonoText>
-              </InfoValue>
-            </InfoItem>
-            <InfoItem>
-              <InfoLabel>Geometry ID:</InfoLabel>
-              <InfoValue>
-                <MonoText>{taskContext.geometryId || "N/A"}</MonoText>
-              </InfoValue>
-            </InfoItem>
-          </InfoGrid>
-        </TaskInfoSection>
+            <ContentWrapper>
+                <TaskCard>
+                    {/* Details Section */}
+                    <CardSection>
+                        <SectionHeader onClick={() => setDetailsExpanded(!detailsExpanded)}>
+                            <SectionTitle>Details</SectionTitle>
+                            <ExpandIcon>
+                                {detailsExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                            </ExpandIcon>
+                        </SectionHeader>
 
-        <LabelCreationSection>
-          <SectionTitle>Create Labels</SectionTitle>
-          <LabelInputRow>
-            <LabelInput
-              type="text"
-              placeholder="Enter label name (e.g., 'bolt_hole', 'mating_face')"
-              value={currentLabel}
-              onChange={(e) => setCurrentLabel(e.target.value)}
-              onKeyPress={handleKeyPress}
-            />
-            <AddButton onClick={handleAddLabel} disabled={!currentLabel.trim()}>
-              + Add Label
-            </AddButton>
-          </LabelInputRow>
+                        {detailsExpanded && (
+                            <SectionContent>
+                                <DetailLabel>Description:</DetailLabel>
+                                <DetailValue>
+                                    Add labels for the geometry below, then submit for approval
+                                </DetailValue>
 
-          {labels.length > 0 && (
-            <LabelsListSection>
-              <ListHeader>Created Labels ({labels.length})</ListHeader>
-              <LabelsList>
-                {labels.map((label, index) => (
-                  <LabelChip key={index}>
-                    <LabelName>{label}</LabelName>
-                    <RemoveButton onClick={() => handleRemoveLabel(index)}>×</RemoveButton>
-                  </LabelChip>
-                ))}
-              </LabelsList>
-            </LabelsListSection>
-          )}
+                                <InfoGrid>
+                                    <InfoItem>
+                                        <InfoLabel>Geometry:</InfoLabel>
+                                        <InfoValue>{taskContext.geometryName || "Unknown"}</InfoValue>
+                                    </InfoItem>
+                                    <InfoItem>
+                                        <InfoLabel>Type:</InfoLabel>
+                                        <TypeBadge>{taskContext.geometryType || "N/A"}</TypeBadge>
+                                    </InfoItem>
+                                    <InfoItem>
+                                        <InfoLabel>Model ID:</InfoLabel>
+                                        <MonoText>{taskContext.modelId || "N/A"}</MonoText>
+                                    </InfoItem>
+                                    <InfoItem>
+                                        <InfoLabel>Geometry ID:</InfoLabel>
+                                        <MonoText>{taskContext.geometryId || "N/A"}</MonoText>
+                                    </InfoItem>
+                                </InfoGrid>
+                            </SectionContent>
+                        )}
+                    </CardSection>
 
-          {labels.length === 0 && (
-            <EmptyState>
-              <EmptyIcon>🏷️</EmptyIcon>
-              <EmptyText>No labels created yet</EmptyText>
-              <EmptyHint>Type a label name above and press Enter or click Add Label</EmptyHint>
-            </EmptyState>
-          )}
-        </LabelCreationSection>
+                    <SectionDivider />
 
-        <ActionsSection>
-          <CancelButton onClick={onCancel}>Cancel</CancelButton>
-          <SubmitButton onClick={handleSubmit} disabled={labels.length === 0}>
-            Submit for Approval
-          </SubmitButton>
-        </ActionsSection>
-      </ContentWrapper>
-    </Container>
-  );
+                    {/* Labels Section */}
+                    <CardSection>
+                        <SectionHeader onClick={() => setLabelsExpanded(!labelsExpanded)}>
+                            <SectionTitle>Create Labels</SectionTitle>
+                            <ExpandIcon>
+                                {labelsExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                            </ExpandIcon>
+                        </SectionHeader>
+
+                        {labelsExpanded && (
+                            <SectionContent>
+                                <LabelInputRow>
+                                    <LabelInput
+                                        type="text"
+                                        placeholder="Enter label name (e.g., 'bolt_hole', 'mating_face')"
+                                        value={currentLabel}
+                                        onChange={(e) => setCurrentLabel(e.target.value)}
+                                        onKeyPress={handleKeyPress}
+                                    />
+                                    <AddButton
+                                        $variant="primary"
+                                        onClick={handleAddLabel}
+                                        disabled={!currentLabel.trim()}
+                                    >
+                                        <Plus size={16} />
+                                        Add Label
+                                    </AddButton>
+                                </LabelInputRow>
+
+                                {labels.length > 0 ? (
+                                    <LabelsList>
+                                        {labels.map((label, index) => (
+                                            <LabelChip key={index}>
+                                                <LabelInfo>
+                                                    <LabelIcon>
+                                                        <Tag size={14} />
+                                                    </LabelIcon>
+                                                    <LabelName>{label}</LabelName>
+                                                </LabelInfo>
+                                                <RemoveButton
+                                                    onClick={() => handleRemoveLabel(index)}
+                                                    aria-label="Remove label"
+                                                >
+                                                    <X size={14} />
+                                                </RemoveButton>
+                                            </LabelChip>
+                                        ))}
+                                    </LabelsList>
+                                ) : (
+                                    <EmptyState>
+                                        <EmptyIcon>
+                                            <Tag size={32} />
+                                        </EmptyIcon>
+                                        <EmptyText>No labels created yet</EmptyText>
+                                        <EmptyHint>
+                                            Type a label name above and press Enter or click Add Label
+                                        </EmptyHint>
+                                    </EmptyState>
+                                )}
+                            </SectionContent>
+                        )}
+                    </CardSection>
+
+                    <SectionDivider />
+
+                    {/* Footer */}
+                    <CardFooter>
+                        <FooterBadge>
+                            <Tag size={14} />
+                            Label Geometry
+                        </FooterBadge>
+                        <FooterRight>
+                            <CompleteBadge>Complete by 1/13/2025</CompleteBadge>
+                        </FooterRight>
+                    </CardFooter>
+                </TaskCard>
+
+                {/* Action Buttons */}
+                <ActionButtons>
+                    <CancelButton $variant="secondary" onClick={onCancel}>
+                        Cancel
+                    </CancelButton>
+                    <SubmitButton
+                        $variant="primary"
+                        onClick={handleSubmit}
+                        disabled={labels.length === 0}
+                    >
+                        Submit for Approval
+                    </SubmitButton>
+                </ActionButtons>
+            </ContentWrapper>
+        </Container>
+    );
 };
 
 // ======================
@@ -133,27 +208,43 @@ export const SimpleLabelCreator: React.FC<SimpleLabelCreatorProps> = ({
 
 const Container = styled.div`
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  flex-direction: column;
   width: 100%;
   height: 100%;
   background: ${({ theme }) => theme.colors.backgroundPrimary};
-  padding: ${({ theme }) => theme.spacing[8]};
   overflow-y: auto;
-`;
-
-const ContentWrapper = styled.div`
-  width: 100%;
-  max-width: 800px;
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacing[6]};
 `;
 
 const Header = styled.div`
   display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: ${({ theme }) => theme.spacing[6]};
+  background: ${({ theme }) => theme.colors.backgroundSecondary};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.borderDefault};
+`;
+
+const HeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing[3]};
+`;
+
+const TaskIcon = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: ${({ theme }) => theme.colors.backgroundTertiary};
+  border-radius: ${({ theme }) => theme.radius.md};
+  color: ${({ theme }) => theme.colors.accentPrimary};
+`;
+
+const HeaderText = styled.div`
+  display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.spacing[2]};
+  gap: ${({ theme }) => theme.spacing[1]};
 `;
 
 const Title = styled.h1`
@@ -169,24 +260,100 @@ const Subtitle = styled.p`
   margin: 0;
 `;
 
-const TaskInfoSection = styled.div`
-  background: ${({ theme }) => theme.colors.backgroundSecondary};
-  border: 1px solid ${({ theme }) => theme.colors.borderDefault};
-  border-radius: ${({ theme }) => theme.radius.lg};
-  padding: ${({ theme }) => theme.spacing[5]};
+const HeaderActions = styled.div`
+  display: flex;
+  gap: ${({ theme }) => theme.spacing[3]};
+  align-items: center;
 `;
 
-const SectionTitle = styled.h2`
-  font-size: ${({ theme }) => theme.typography.size.lg};
+const StatusBadge = styled.div`
+  padding: ${({ theme }) => `${theme.spacing[2]} ${theme.spacing[3]}`};
+  background: ${({ theme }) => theme.colors.accentPrimary};
+  color: ${({ theme }) => theme.colors.textInverted};
+  border-radius: ${({ theme }) => theme.radius.pill};
+  font-size: ${({ theme }) => theme.typography.size.sm};
   font-weight: ${({ theme }) => theme.typography.weight.semiBold};
+  font-family: ${({ theme }) => theme.typography.family.mono};
+`;
+
+const ContentWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing[4]};
+  padding: ${({ theme }) => theme.spacing[6]};
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+`;
+
+const TaskCard = styled.div`
+  display: flex;
+  flex-direction: column;
+  background: ${({ theme }) => theme.colors.backgroundSecondary};
+  border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
+  border-radius: ${({ theme }) => theme.radius.lg};
+  overflow: hidden;
+`;
+
+const CardSection = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const SectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: ${({ theme }) => theme.spacing[4]};
+  cursor: pointer;
+  user-select: none;
+  transition: background ${({ theme }) => theme.animation.duration.fast};
+
+  &:hover {
+    background: ${({ theme }) => theme.colors.backgroundTertiary};
+  }
+`;
+
+const SectionTitle = styled.h3`
+  font-size: ${({ theme }) => theme.typography.size.sm};
+  font-weight: ${({ theme }) => theme.typography.weight.semiBold};
+  color: ${({ theme }) => theme.colors.textMuted};
+  margin: 0;
+  text-transform: capitalize;
+`;
+
+const ExpandIcon = styled.div`
+  display: flex;
+  align-items: center;
+  color: ${({ theme }) => theme.colors.textMuted};
+  transition: transform ${({ theme }) => theme.animation.duration.fast};
+`;
+
+const SectionContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing[3]};
+  padding: 0 ${({ theme }) => theme.spacing[4]} ${({ theme }) => theme.spacing[4]};
+`;
+
+const DetailLabel = styled.div`
+  font-size: ${({ theme }) => theme.typography.size.sm};
+  color: ${({ theme }) => theme.colors.textMuted};
+`;
+
+const DetailValue = styled.div`
+  font-size: ${({ theme }) => theme.typography.size.sm};
   color: ${({ theme }) => theme.colors.textPrimary};
-  margin: 0 0 ${({ theme }) => theme.spacing[4]} 0;
+  padding: ${({ theme }) => theme.spacing[2]};
+  background: ${({ theme }) => theme.colors.backgroundTertiary};
+  border-radius: ${({ theme }) => theme.radius.md};
 `;
 
 const InfoGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: ${({ theme }) => theme.spacing[4]};
+  gap: ${({ theme }) => theme.spacing[3]};
+  margin-top: ${({ theme }) => theme.spacing[2]};
 `;
 
 const InfoItem = styled.div`
@@ -198,12 +365,10 @@ const InfoItem = styled.div`
 const InfoLabel = styled.span`
   font-size: ${({ theme }) => theme.typography.size.sm};
   color: ${({ theme }) => theme.colors.textMuted};
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 `;
 
 const InfoValue = styled.span`
-  font-size: ${({ theme }) => theme.typography.size.md};
+  font-size: ${({ theme }) => theme.typography.size.sm};
   color: ${({ theme }) => theme.colors.textPrimary};
   font-weight: ${({ theme }) => theme.typography.weight.medium};
 `;
@@ -216,40 +381,40 @@ const TypeBadge = styled.span`
   border-radius: ${({ theme }) => theme.radius.md};
   font-size: ${({ theme }) => theme.typography.size.sm};
   text-transform: capitalize;
+  width: fit-content;
 `;
 
 const MonoText = styled.span`
   font-family: ${({ theme }) => theme.typography.family.mono};
   color: ${({ theme }) => theme.colors.accentPrimary};
+  font-size: ${({ theme }) => theme.typography.size.sm};
 `;
 
-const LabelCreationSection = styled.div`
-  background: ${({ theme }) => theme.colors.backgroundSecondary};
-  border: 1px solid ${({ theme }) => theme.colors.borderDefault};
-  border-radius: ${({ theme }) => theme.radius.lg};
-  padding: ${({ theme }) => theme.spacing[5]};
+const SectionDivider = styled.div`
+  width: 100%;
+  height: 1px;
+  background: ${({ theme }) => theme.colors.borderSubtle};
 `;
 
 const LabelInputRow = styled.div`
   display: flex;
-  gap: ${({ theme }) => theme.spacing[3]};
-  margin-bottom: ${({ theme }) => theme.spacing[4]};
+  gap: ${({ theme }) => theme.spacing[2]};
 `;
 
 const LabelInput = styled.input`
   flex: 1;
   padding: ${({ theme }) => theme.spacing[3]};
-  background: ${({ theme }) => theme.colors.backgroundPrimary};
+  background: ${({ theme }) => theme.colors.backgroundTertiary};
   border: 1px solid ${({ theme }) => theme.colors.borderDefault};
   border-radius: ${({ theme }) => theme.radius.md};
   color: ${({ theme }) => theme.colors.textPrimary};
-  font-size: ${({ theme }) => theme.typography.size.md};
+  font-size: ${({ theme }) => theme.typography.size.sm};
   font-family: ${({ theme }) => theme.typography.family.base};
 
   &:focus {
     outline: none;
     border-color: ${({ theme }) => theme.colors.brandPrimary};
-    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.brandPrimary}33;
+    background: ${({ theme }) => theme.colors.backgroundSecondary};
   }
 
   &::placeholder {
@@ -257,97 +422,74 @@ const LabelInput = styled.input`
   }
 `;
 
-const AddButton = styled.button`
-  padding: ${({ theme }) => `${theme.spacing[3]} ${theme.spacing[5]}`};
-  background: ${({ theme }) => theme.colors.brandPrimary};
-  color: ${({ theme }) => theme.colors.textInverted};
-  border: none;
-  border-radius: ${({ theme }) => theme.radius.md};
-  font-size: ${({ theme }) => theme.typography.size.md};
-  font-weight: ${({ theme }) => theme.typography.weight.semiBold};
-  cursor: pointer;
-  transition: all ${({ theme }) => theme.animation.duration.fast};
+const AddButton = styled(BaseButton)`
   white-space: nowrap;
-
-  &:hover:not(:disabled) {
-    background: ${({ theme }) => theme.colors.brandSecondary};
-    transform: translateY(-1px);
-  }
-
-  &:active:not(:disabled) {
-    transform: translateY(0);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const LabelsListSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacing[3]};
-`;
-
-const ListHeader = styled.div`
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  font-weight: ${({ theme }) => theme.typography.weight.semiBold};
-  color: ${({ theme }) => theme.colors.textMuted};
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 `;
 
 const LabelsList = styled.div`
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: ${({ theme }) => theme.spacing[2]};
+  margin-top: ${({ theme }) => theme.spacing[2]};
 `;
 
 const LabelChip = styled.div`
   display: flex;
   align-items: center;
-  gap: ${({ theme }) => theme.spacing[2]};
-  padding: ${({ theme }) => `${theme.spacing[2]} ${theme.spacing[3]}`};
+  justify-content: space-between;
+  padding: ${({ theme }) => theme.spacing[2]};
   background: ${({ theme }) => theme.colors.backgroundTertiary};
-  border: 1px solid ${({ theme }) => theme.colors.borderDefault};
-  border-radius: ${({ theme }) => theme.radius.pill};
-  transition: all ${({ theme }) => theme.animation.duration.fast};
+  border-radius: ${({ theme }) => theme.radius.md};
+  transition: background ${({ theme }) => theme.animation.duration.fast};
 
   &:hover {
-    border-color: ${({ theme }) => theme.colors.brandPrimary};
+    background: ${({ theme }) => theme.colors.backgroundQuaternary};
   }
+`;
+
+const LabelInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing[2]};
+  flex: 1;
+  min-width: 0;
+`;
+
+const LabelIcon = styled.div`
+  display: flex;
+  align-items: center;
+  color: ${({ theme }) => theme.colors.accentPrimary};
+  flex-shrink: 0;
 `;
 
 const LabelName = styled.span`
   font-size: ${({ theme }) => theme.typography.size.sm};
   color: ${({ theme }) => theme.colors.textPrimary};
   font-weight: ${({ theme }) => theme.typography.weight.medium};
+  font-family: ${({ theme }) => theme.typography.family.mono};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const RemoveButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   padding: 0;
-  background: ${({ theme }) => theme.colors.statusError};
-  color: ${({ theme }) => theme.colors.textInverted};
+  background: transparent;
+  color: ${({ theme }) => theme.colors.textMuted};
   border: none;
-  border-radius: 50%;
-  font-size: 16px;
-  line-height: 1;
+  border-radius: ${({ theme }) => theme.radius.sm};
   cursor: pointer;
   transition: all ${({ theme }) => theme.animation.duration.fast};
+  flex-shrink: 0;
 
   &:hover {
     background: ${({ theme }) => theme.colors.statusError};
-    transform: scale(1.1);
-  }
-
-  &:active {
-    transform: scale(0.95);
+    color: ${({ theme }) => theme.colors.textInverted};
   }
 `;
 
@@ -355,18 +497,18 @@ const EmptyState = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: ${({ theme }) => theme.spacing[8]};
+  padding: ${({ theme }) => theme.spacing[6]};
   gap: ${({ theme }) => theme.spacing[2]};
 `;
 
 const EmptyIcon = styled.div`
-  font-size: 48px;
+  display: flex;
+  color: ${({ theme }) => theme.colors.textMuted};
   opacity: 0.5;
 `;
 
 const EmptyText = styled.div`
-  font-size: ${({ theme }) => theme.typography.size.md};
+  font-size: ${({ theme }) => theme.typography.size.sm};
   color: ${({ theme }) => theme.colors.textMuted};
   font-weight: ${({ theme }) => theme.typography.weight.medium};
 `;
@@ -375,27 +517,47 @@ const EmptyHint = styled.div`
   font-size: ${({ theme }) => theme.typography.size.sm};
   color: ${({ theme }) => theme.colors.textMuted};
   text-align: center;
+  max-width: 300px;
 `;
 
-const ActionsSection = styled.div`
+const CardFooter = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: ${({ theme }) => theme.spacing[4]};
+  gap: ${({ theme }) => theme.spacing[3]};
+`;
+
+const FooterBadge = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing[1.5]};
+  padding: ${({ theme }) => `${theme.primitives.paddingX.xxxs} ${theme.primitives.paddingX.xsm}`};
+  background: ${({ theme }) => theme.colors.accentPrimary};
+  color: ${({ theme }) => theme.primitives.colors.text1000};
+  border-radius: ${({ theme }) => theme.radius.md};
+  font-size: ${({ theme }) => theme.typography.size.xsm};
+  font-weight: ${({ theme }) => theme.typography.weight.medium};
+`;
+
+const FooterRight = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing[2]};
+`;
+
+const CompleteBadge = styled.div`
+  font-size: ${({ theme }) => theme.typography.size.xsm};
+  color: ${({ theme }) => theme.colors.textMuted};
+`;
+
+const ActionButtons = styled.div`
   display: flex;
   justify-content: flex-end;
   gap: ${({ theme }) => theme.spacing[3]};
-  padding-top: ${({ theme }) => theme.spacing[4]};
-  border-top: 1px solid ${({ theme }) => theme.colors.borderDefault};
 `;
 
-const CancelButton = styled.button`
-  padding: ${({ theme }) => `${theme.spacing[3]} ${theme.spacing[6]}`};
-  background: transparent;
-  color: ${({ theme }) => theme.colors.textMuted};
-  border: 1px solid ${({ theme }) => theme.colors.borderDefault};
-  border-radius: ${({ theme }) => theme.radius.md};
-  font-size: ${({ theme }) => theme.typography.size.md};
-  font-weight: ${({ theme }) => theme.typography.weight.semiBold};
-  cursor: pointer;
-  transition: all ${({ theme }) => theme.animation.duration.fast};
-
+const CancelButton = styled(BaseButton)`
   &:hover {
     background: ${({ theme }) => theme.colors.backgroundTertiary};
     border-color: ${({ theme }) => theme.colors.accentPrimary};
@@ -403,50 +565,17 @@ const CancelButton = styled.button`
   }
 `;
 
-const SubmitButton = styled.button`
-  padding: ${({ theme }) => `${theme.spacing[3]} ${theme.spacing[6]}`};
+const SubmitButton = styled(BaseButton)`
   background: ${({ theme }) => theme.colors.statusSuccess};
-  color: ${({ theme }) => theme.colors.textInverted};
-  border: none;
-  border-radius: ${({ theme }) => theme.radius.md};
-  font-size: ${({ theme }) => theme.typography.size.md};
-  font-weight: ${({ theme }) => theme.typography.weight.bold};
-  cursor: pointer;
-  transition: all ${({ theme }) => theme.animation.duration.fast};
+  border-color: ${({ theme }) => theme.colors.statusSuccess};
 
   &:hover:not(:disabled) {
     background: ${({ theme }) => theme.colors.statusSuccess};
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px ${({ theme }) => theme.colors.statusSuccess}44;
-  }
-
-  &:active:not(:disabled) {
-    transform: translateY(0);
+    opacity: 0.9;
   }
 
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
-`;
-
-const HelpSection = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.spacing[3]};
-  padding: ${({ theme }) => theme.spacing[4]};
-  background: ${({ theme }) => theme.colors.backgroundTertiary};
-  border-radius: ${({ theme }) => theme.radius.md};
-  border-left: 3px solid ${({ theme }) => theme.colors.brandPrimary};
-`;
-
-const HelpIcon = styled.div`
-  font-size: ${({ theme }) => theme.typography.size.xl};
-  flex-shrink: 0;
-`;
-
-const HelpText = styled.p`
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  color: ${({ theme }) => theme.colors.textMuted};
-  margin: 0;
-  line-height: 1.5;
 `;

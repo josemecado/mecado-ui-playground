@@ -9,9 +9,11 @@ export const BaseButton = styled.button<{
     align-items: center;
     justify-content: center;
     gap: ${(p) => p.theme.components.button.gap};
-    height: ${(p) =>
-            p.$config === "large" ? p.theme.components.button.heightLarge : p.theme.components.button.height};
-    padding: 0 ${(p) => p.theme.components.button.paddingX};
+
+    padding-left: ${({theme}) => theme.components.button.paddingX};
+    padding-right: ${({theme}) => theme.components.button.paddingX};
+    padding-top: ${({theme}) => theme.components.button.paddingY};
+    padding-bottom: ${({theme}) => theme.components.button.paddingY};
     border-radius: ${(p) =>
             p.$variant === "pill"
                     ? p.theme.radius.pill
@@ -29,8 +31,8 @@ export const BaseButton = styled.button<{
     }};
 
     /* Typography */
-    font-size: ${(p) => p.theme.typography.size.md};
-    font-weight: ${(p) => p.theme.typography.weight.medium};
+    font-size: ${({theme}) => theme.typography.size.sm};
+    font-weight: ${({theme}) => theme.typography.weight.medium};
     font-family: ${(p) => p.theme.typography.family.base};
     color: ${(p) => {
         switch (p.$variant) {
@@ -49,7 +51,7 @@ export const BaseButton = styled.button<{
         switch (p.$variant) {
             case "primary":
             case "pill":
-                return p.theme.colors.brandSecondary;
+                return p.theme.colors.brandPrimary;
             case "destructive":
                 return p.theme.colors.statusError;
             default:

@@ -1,6 +1,6 @@
-import React from "react";
+import React, {useState} from "react";
 import styled from "styled-components";
-import {FileText, Paperclip, Calendar} from "lucide-react";
+import {FileText, Paperclip, Calendar, Tags, Box, ChevronDown, ChevronUp} from "lucide-react";
 import {Task} from "../types/types";
 import {
     formatRelativeDate,
@@ -13,6 +13,9 @@ interface TaskCardProps {
 }
 
 export const TaskCard: React.FC<TaskCardProps> = ({task, onClick}) => {
+    const [isFilesExpanded, setIsFilesExpanded] = useState(true);
+    const [isDetailsExpanded, setIsDetailsExpanded] = useState(true);
+
     const isPending = task.status === "pending";
     const isApproved = task.status === "approved";
     const isFailed = task.status === "failed";
@@ -23,117 +26,186 @@ export const TaskCard: React.FC<TaskCardProps> = ({task, onClick}) => {
     const taskTitle = task.description ||
         (task.type === "geometry_labeling" ? task.geometryName : task.batchName);
 
+    // Check if we should show details section
+    const hasDetails = task.description || (showReviewInfo && task.reviewNotes);
+
     return (
         <CardContainer onClick={() => onClick(task)}>
             {/* Title */}
-            <CardTitle>{taskTitle}</CardTitle>
-
-            <ContentSection>
-                <SectionHeader>Associated Files</SectionHeader>
-
-                {/* Associated Files Section */}
-                <AssociatedFilesSection>
-                    {task.type === "geometry_labeling" && (
-                        <FileList>
-                            {/*New format*/}
-                            <FileItem>
-                                <FileDetails>
-                                    <FileIcon>
-                                        <FileText size={16}/>
-                                    </FileIcon>
-                                    <FileName>{task.geometryName}</FileName>
-                                </FileDetails>
-                                <FileSize>200 KB</FileSize>
-                            </FileItem>
-
-                            {/* Show labels if submitted */}
-                            {task.labels && task.labels.length > 0 && (
-                                <FileItem>
-                                    <FileDetails>
-                                        <FileIcon>
-                                            <Paperclip size={16}/>
-                                        </FileIcon>
-                                        <FileName>{task.labels.length} more...</FileName>
-                                    </FileDetails>
-                                    <FileSize>200 KB</FileSize>
-                                </FileItem>
-                            )}
-
-                            {/* Show default "more files" if no labels */}
-                            {(!task.labels || task.labels.length === 0) && (
-                                <FileItem>
-                                    <FileDetails>
-                                        <FileIcon>
-                                            <Paperclip size={16}/>
-                                        </FileIcon>
-                                        <FileName>2 more...</FileName>
-                                    </FileDetails>
-                                    <FileSize>200 KB</FileSize>
-                                </FileItem>
-                            )}
-                        </FileList>
+            <TitleRow>
+                <TitleIcon>
+                    {task.type === "geometry_labeling" ? (
+                        <Tags size={14}/>
+                    ) : (
+                        <Box size={14}/>
                     )}
+                </TitleIcon>
+                <CardTitle>{taskTitle}</CardTitle>
+            </TitleRow>
 
-                    {task.type === "geometry_upload" && (
-                        <FileList>
-                            {task.fileNames && task.fileNames.length > 0 ? (
-                                <>
-                                    {task.fileNames.slice(0, 2).map((fileName, idx) => (
-                                        <FileItem key={idx}>
-                                            <FileDetails>
-                                                <FileIcon>
-                                                    <FileText size={16}/>
-                                                </FileIcon>
-                                                <FileName>{fileName}</FileName>
-                                            </FileDetails>
-                                            <FileSize>200 KB</FileSize>
-                                        </FileItem>
-                                    ))}
-                                    {task.fileNames.length > 2 && (
-                                        <FileItem>
-                                            <FileDetails>
-                                                <FileIcon>
-                                                    <Paperclip size={16}/>
-                                                </FileIcon>
-                                                <FileName>{task.fileNames.length - 2} more...</FileName>
-                                            </FileDetails>
-                                            <FileSize>200 KB</FileSize>
-                                        </FileItem>
-                                    )}
-                                </>
-                            ) : (
-                                <>
+            {/* Associated Files Section */}
+            <ContentSection>
+
+                {/* Details Section - Only show if there's content */}
+                {hasDetails && (
+                    <ContentSection>
+                        <SectionHeaderRow>
+                            <SectionHeader>Details</SectionHeader>
+                            <CollapseButton
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsDetailsExpanded(!isDetailsExpanded);
+                                }}
+                            >
+                                {isDetailsExpanded ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
+                            </CollapseButton>
+                        </SectionHeaderRow>
+
+                        {isDetailsExpanded && (
+                            <DetailsContent>
+                                {task.description && (
+                                    <DetailItem>
+                                        <DetailLabel>Description:</DetailLabel>
+                                        <DetailText>{task.description}</DetailText>
+                                    </DetailItem>
+                                )}
+
+                                {showReviewInfo && task.reviewNotes && (
+                                    <DetailItem>
+                                        <DetailLabel>
+                                            {isFailed ? "Rejection Reason:" : "Review Notes:"}
+                                        </DetailLabel>
+                                        <DetailText $isError={isFailed}>
+                                            {task.reviewNotes}
+                                        </DetailText>
+                                    </DetailItem>
+                                )}
+                            </DetailsContent>
+                        )}
+                    </ContentSection>
+                )}
+
+                <StyledDivider/>
+
+                <SectionHeaderRow>
+                    <SectionHeader>Associated Files</SectionHeader>
+                    <CollapseButton
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsFilesExpanded(!isFilesExpanded);
+                        }}
+                    >
+                        {isFilesExpanded ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
+                    </CollapseButton>
+                </SectionHeaderRow>
+
+                {isFilesExpanded && (
+                    <AssociatedFilesSection>
+                        {task.type === "geometry_labeling" && (
+                            <FileList>
+                                <FileItem>
+                                    <FileDetails>
+                                        <FileIcon>
+                                            <FileText size={15}/>
+                                        </FileIcon>
+                                        <FileName>{task.geometryName}</FileName>
+                                    </FileDetails>
+                                    <FileSize>200 KB</FileSize>
+                                </FileItem>
+
+                                {/* Show labels if submitted */}
+                                {task.labels && task.labels.length > 0 && (
                                     <FileItem>
                                         <FileDetails>
                                             <FileIcon>
-                                                <FileText size={16}/>
+                                                <Paperclip size={15}/>
                                             </FileIcon>
-                                            <FileName>{task.batchName}.step</FileName>
+                                            <FileName>{task.labels.length} more...</FileName>
                                         </FileDetails>
                                         <FileSize>200 KB</FileSize>
                                     </FileItem>
+                                )}
+
+                                {/* Show default "more files" if no labels */}
+                                {(!task.labels || task.labels.length === 0) && (
                                     <FileItem>
                                         <FileDetails>
                                             <FileIcon>
-                                                <Paperclip size={16}/>
+                                                <Paperclip size={15}/>
                                             </FileIcon>
                                             <FileName>2 more...</FileName>
                                         </FileDetails>
                                         <FileSize>200 KB</FileSize>
                                     </FileItem>
-                                </>
-                            )}
-                        </FileList>
-                    )}
-                </AssociatedFilesSection>
+                                )}
+                            </FileList>
+                        )}
+
+                        {task.type === "geometry_upload" && (
+                            <FileList>
+                                {task.fileNames && task.fileNames.length > 0 ? (
+                                    <>
+                                        {task.fileNames.slice(0, 2).map((fileName, idx) => (
+                                            <FileItem key={idx}>
+                                                <FileDetails>
+                                                    <FileIcon>
+                                                        <FileText size={15}/>
+                                                    </FileIcon>
+                                                    <FileName>{fileName}</FileName>
+                                                </FileDetails>
+                                                <FileSize>200 KB</FileSize>
+                                            </FileItem>
+                                        ))}
+                                        {task.fileNames.length > 2 && (
+                                            <FileItem>
+                                                <FileDetails>
+                                                    <FileIcon>
+                                                        <Paperclip size={15}/>
+                                                    </FileIcon>
+                                                    <FileName>{task.fileNames.length - 2} more...</FileName>
+                                                </FileDetails>
+                                                <FileSize>200 KB</FileSize>
+                                            </FileItem>
+                                        )}
+                                    </>
+                                ) : (
+                                    <>
+                                        <FileItem>
+                                            <FileDetails>
+                                                <FileIcon>
+                                                    <FileText size={15}/>
+                                                </FileIcon>
+                                                <FileName>{task.batchName}.step</FileName>
+                                            </FileDetails>
+                                            <FileSize>200 KB</FileSize>
+                                        </FileItem>
+                                        <FileItem>
+                                            <FileDetails>
+                                                <FileIcon>
+                                                    <Paperclip size={15}/>
+                                                </FileIcon>
+                                                <FileName>2 more...</FileName>
+                                            </FileDetails>
+                                            <FileSize>200 KB</FileSize>
+                                        </FileItem>
+                                    </>
+                                )}
+                            </FileList>
+                        )}
+                    </AssociatedFilesSection>
+                )}
             </ContentSection>
 
             <StyledDivider/>
 
             <FooterSection>
-                {/* Footer with badge and date */}
                 <CardFooter>
                     <TaskTypeBadge>
+                        {task.type === "geometry_labeling" ? (
+                            <Tags size={13}/>
+                        ) : (
+                            <Box size={13}/>
+                        )}
                         {getTaskTypeLabel(task.type)}
                     </TaskTypeBadge>
 
@@ -178,7 +250,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({task, onClick}) => {
                     )}
                 </CardFooter>
             </FooterSection>
-
         </CardContainer>
     );
 };
@@ -222,14 +293,39 @@ const FooterSection = styled.div`
 const CardTitle = styled.h3`
     display: flex;
     width: 100%;
-    font-size: ${({theme}) => theme.typography.size.md};
+    font-size: ${({theme}) => theme.typography.size.sm};
     font-weight: ${({theme}) => theme.typography.weight.medium};
     color: ${({theme}) => theme.colors.textPrimary};
 `;
 
-const AssociatedFilesSection = styled.div`
+const TitleRow = styled.div`
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    gap: ${({theme}) => theme.primitives.spacing[1]};
+    padding-left: ${({theme}) => theme.primitives.paddingX.xxs};
+    padding-right: ${({theme}) => theme.primitives.paddingX.xxs};
+    padding-top: ${({theme}) => theme.primitives.paddingX.xxs};
+    padding-bottom: ${({theme}) => theme.primitives.paddingX.xxs};
+    background: ${({theme}) => theme.colors.backgroundTertiary};
+    border: 1px solid ${({theme}) => theme.colors.borderSubtle};
+    border-radius: ${({theme}) => theme.radius.md};
+`;
+
+const TitleIcon = styled.span`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: ${({theme}) => theme.colors.brandPrimary};
+    padding: ${({theme}) => theme.primitives.padding.xxs};
+    border-radius: ${({theme}) => theme.primitives.radius.md};
+    color: ${({theme}) => theme.colors.textInverted};
+`;
+
+const SectionHeaderRow = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 `;
 
 const SectionHeader = styled.div`
@@ -237,6 +333,33 @@ const SectionHeader = styled.div`
     font-weight: ${({theme}) => theme.typography.weight.medium};
     color: ${({theme}) => theme.colors.textMuted};
     text-transform: capitalize;
+`;
+
+const CollapseButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: ${({theme}) => theme.colors.textMuted};
+    cursor: pointer;
+    padding: ${({theme}) => theme.primitives.padding.xxs};
+    border-radius: ${({theme}) => theme.radius.sm};
+    transition: all 0.2s;
+
+    &:hover {
+        background: ${({theme}) => theme.colors.backgroundTertiary};
+        color: ${({theme}) => theme.colors.textPrimary};
+    }
+
+    &:active {
+        transform: scale(0.95);
+    }
+`;
+
+const AssociatedFilesSection = styled.div`
+    display: flex;
+    flex-direction: column;
 `;
 
 const FileList = styled.div`
@@ -287,6 +410,41 @@ const FileSize = styled.span`
     margin-left: ${({theme}) => theme.spacing[2]};
 `;
 
+const DetailsContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${({theme}) => theme.spacing[2]};
+    margin-bottom: ${({ theme }) => theme.primitives.padding.xxs};
+    ;
+`;
+
+const DetailItem = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${({theme}) => theme.primitives.spacing[0.5]};
+`;
+
+const DetailLabel = styled.span`
+    font-size: ${({theme}) => theme.typography.size.xsm};
+    font-weight: ${({theme}) => theme.typography.weight.medium};
+    color: ${({theme}) => theme.colors.textMuted};
+`;
+
+const DetailText = styled.p<{ $isError?: boolean }>`
+    font-size: ${({theme}) => theme.typography.size.xsm};
+    color: ${({theme, $isError}) =>
+            $isError ? theme.colors.statusError : theme.colors.textPrimary
+    };
+    margin: 0;
+    padding: ${({theme}) => theme.primitives.paddingX.xsm};
+    background: ${({theme}) => theme.colors.backgroundTertiary};
+    border-radius: ${({theme}) => theme.radius.md};
+    line-height: 1.4;
+    ${({$isError, theme}) => $isError && `
+        border-left: 2px solid ${theme.colors.statusError};
+    `}
+`;
+
 const CardFooter = styled.div`
     display: flex;
     justify-content: space-between;
@@ -295,6 +453,9 @@ const CardFooter = styled.div`
 `;
 
 const TaskTypeBadge = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${({theme}) => theme.spacing[1]};
     padding-left: ${({theme}) => theme.primitives.paddingX.xsm};
     padding-right: ${({theme}) => theme.primitives.paddingX.xsm};
     padding-top: ${({theme}) => theme.primitives.paddingX.xxxs};
