@@ -7,7 +7,9 @@ export type ViewType =
     | "notifications"
     | "geometry-labeler"
     | "geometry-uploader"
-    | "geometry-library";
+    | "geometry-library"
+    | "admin-dashboard";  // NEW: Admin view
+
 
 // Menu item interface with tooltip support
 export interface MenuItem {

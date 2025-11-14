@@ -9,6 +9,8 @@ import { SimpleFileUploader } from "./simpleFileUploader/SimpleFileUploader";
 import { GeoLabelManagerWrapper } from "./geoLabelWrapper/Geolabelmanagerwrapper";
 import { updateTaskStatus } from "./home/utils/mockTasks";
 import { GeometryData } from "./types/geometry.types";
+import { AdminDashboardView } from "./admin";
+import type { UnifiedTask } from "./admin/types/admin.types";
 
 export const ProjectManagementIndex: React.FC = () => {
     const [activeView, setActiveView] = useState<ViewType>("home");
@@ -89,6 +91,20 @@ export const ProjectManagementIndex: React.FC = () => {
         setTaskContext(null);
     };
 
+    // ===== NEW: Admin handlers =====
+    const handleAdminTaskClick = (task: UnifiedTask) => {
+        console.log("Admin clicked task:", task);
+        // TODO: Navigate to task detail view or open modal
+        alert(`Task: ${task.title}\nStage: ${task.stage}\nAssigned to: ${task.assignedTo}`);
+    };
+
+    const handleCreateTask = () => {
+        console.log("Create task clicked");
+        // TODO: Navigate to task creation form
+        alert("Task creation form will be implemented in Phase 2");
+    };
+    // ===============================
+
     const renderView = () => {
         switch (activeView) {
             case "home":
@@ -105,6 +121,16 @@ export const ProjectManagementIndex: React.FC = () => {
 
             case "notifications":
                 return <ViewPlaceholder>Notifications View</ViewPlaceholder>;
+
+            // ===== NEW: Admin dashboard view =====
+            case "admin-dashboard":
+                return (
+                    <AdminDashboardView
+                        onTaskClick={handleAdminTaskClick}
+                        onCreateTask={handleCreateTask}
+                    />
+                );
+            // =====================================
 
             case "geometry-labeler":
                 return taskContext ? (

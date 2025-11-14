@@ -1,6 +1,6 @@
 import React, {useState, useEffect, useRef} from "react";
 import styled from "styled-components";
-import {Home, FileText, Bell, Tag, Library, Upload} from "lucide-react";
+import {Home, FileText, Bell, Tag, Library, Upload, LayoutDashboard} from "lucide-react";
 
 import {MenuHeader} from "./MenuHeader";
 import ThemeToggleButton from "../../../reusable-components/ThemeToggleButton";
@@ -106,7 +106,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({activeView, onViewChange}) =>
             title: "Geometry Labeler",
             isActive: activeView === "geometry-labeler",
         },
-                {
+        {
             id: "geometry-uploader",
             icon: <Upload size={18}/>,
             title: "Geometry Uploader",
@@ -119,6 +119,17 @@ export const SideMenu: React.FC<SideMenuProps> = ({activeView, onViewChange}) =>
             isActive: activeView === "geometry-library",
         },
     ];
+
+    // ===== NEW: Admin menu items =====
+    const adminMenuItems: MenuItem[] = [
+        {
+            id: "admin-dashboard",
+            icon: <LayoutDashboard size={18}/>,
+            title: "Task Dashboard",
+            isActive: activeView === "admin-dashboard",
+        },
+    ];
+    // =================================
 
     return (
         <SidebarContainer
@@ -140,6 +151,21 @@ export const SideMenu: React.FC<SideMenuProps> = ({activeView, onViewChange}) =>
             />
 
             <ContentContainer>
+                {/* ===== NEW: Admin Section ===== */}
+                <MenuSection>
+                    <SectionHeader $isCollapsed={effectiveCollapsed}>ADMIN</SectionHeader>
+                    <MenuItemsContainer>
+                        {adminMenuItems.map((item) => (
+                            <MenuViewItem
+                                key={item.id}
+                                item={item}
+                                $isCollapsed={effectiveCollapsed}
+                                onClick={() => onViewChange(item.id)}
+                            />
+                        ))}
+                    </MenuItemsContainer>
+                </MenuSection>
+
                 {/* Core Navigation Section */}
                 <MenuSection>
                     <SectionHeader $isCollapsed={effectiveCollapsed}>CORE</SectionHeader>
@@ -220,13 +246,14 @@ const ContentContainer = styled.div`
     display: flex;
     flex-direction: column;
     flex: 1;
-    gap: ${({ theme }) => theme.primitives.spacing[3]};
+    gap: ${({theme}) => theme.primitives.spacing[3]};
 `;
 
 const MenuSection = styled.div`
     display: flex;
     flex-direction: column;
     margin-bottom: ${({theme}) => theme.spacing[6]};
+
     &:last-of-type {
         border-bottom: none;
     }
@@ -234,7 +261,7 @@ const MenuSection = styled.div`
 
 const SectionHeader = styled.div<{ $isCollapsed?: boolean }>`
     display: flex;
-    justify-content: ${(p) => (p.$isCollapsed ? "center" : "flex-start" )};
+    justify-content: ${(p) => (p.$isCollapsed ? "center" : "flex-start")};
     font-size: ${({theme}) => theme.typography.size.sm};
     font-weight: ${({theme}) => theme.typography.weight.semiBold};
     color: ${({theme}) => theme.primitives.colors.primary1000};
@@ -249,6 +276,7 @@ const SectionHeader = styled.div<{ $isCollapsed?: boolean }>`
     white-space: nowrap;
     overflow: hidden;
 `;
+
 const MenuItemsContainer = styled.div`
     display: flex;
     flex-direction: column;
