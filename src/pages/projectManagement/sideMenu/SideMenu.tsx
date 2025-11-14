@@ -192,10 +192,11 @@ const SidebarContainer = styled.div<{ $collapsed?: boolean }>`
     flex-direction: column;
     width: ${(p) => p.$collapsed ? p.theme.widths.collapsedSideMenu : p.theme.widths.sideMenu};
     min-width: ${(p) => p.theme.widths.collapsedSideMenu};
-    background-color: ${({theme}) => theme.colors.backgroundSecondary};
+    background-color: ${({theme}) => theme.primitives.colors.background200};
     overflow-y: auto;
     overflow-x: hidden;
     transition: width ${({theme}) => theme.animation.duration.slow} ${({theme}) => theme.animation.easing.standard};
+    gap: 1rem;
 
     &::-webkit-scrollbar {
         width: 6px;
@@ -206,12 +207,12 @@ const SidebarContainer = styled.div<{ $collapsed?: boolean }>`
     }
 
     &::-webkit-scrollbar-thumb {
-        background: ${({theme}) => theme.colors.accentPrimary};
+        background: ${({theme}) => theme.primitives.colors.accent400};
         border-radius: ${({theme}) => theme.radius.sm};
     }
 
     &::-webkit-scrollbar-thumb:hover {
-        background: ${({theme}) => theme.colors.accentSecondary};
+        background: ${({theme}) => theme.primitives.colors.accent200};
     }
 `;
 
@@ -219,14 +220,13 @@ const ContentContainer = styled.div`
     display: flex;
     flex-direction: column;
     flex: 1;
-    padding: ${({ theme }) => theme.components.sidebar.paddingY} 0;
+    gap: ${({ theme }) => theme.primitives.spacing[3]};
 `;
 
 const MenuSection = styled.div`
     display: flex;
     flex-direction: column;
     margin-bottom: ${({theme}) => theme.spacing[6]};
-
     &:last-of-type {
         border-bottom: none;
     }
@@ -237,10 +237,10 @@ const SectionHeader = styled.div<{ $isCollapsed?: boolean }>`
     justify-content: ${(p) => (p.$isCollapsed ? "center" : "flex-start" )};
     ;
     font-size: ${({theme}) => theme.typography.size.sm};
-    font-weight: ${({theme}) => theme.typography.weight.semiBold};
-    color: ${({theme}) => theme.colors.brandPrimary};
+    font-weight: ${({theme}) => theme.typography.weight.regular};
+    color: ${({theme}) => theme.primitives.colors.primary1000};
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
     padding: ${({theme, $isCollapsed}) =>
             $isCollapsed
                     ? `0`
@@ -253,7 +253,7 @@ const SectionHeader = styled.div<{ $isCollapsed?: boolean }>`
 const MenuItemsContainer = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${({theme}) => theme.spacing[1]};
+    gap: ${({theme}) => theme.spacing[2]};
 `;
 
 const ToggleButtonContainer = styled.div`

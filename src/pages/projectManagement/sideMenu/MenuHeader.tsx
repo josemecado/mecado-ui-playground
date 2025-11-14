@@ -2,7 +2,6 @@ import React from "react";
 import styled from "styled-components";
 import {PanelLeft, PanelLeftClose} from "lucide-react";
 import Logo from "../../../assets/vulcan-logo-white.svg";
-import LogoBlack from "../../../assets/vulcan-logo-black.svg";
 import {useTheme} from "../../../utilities/ThemeContext";
 
 interface MenuHeaderProps {
@@ -19,17 +18,19 @@ export const MenuHeader: React.FC<MenuHeaderProps> = ({
                                                           onToggleCollapse,
                                                       }) => {
     const {theme} = useTheme();
-    const currentLogo = theme === "light" ? LogoBlack : Logo;
+    const currentLogo = Logo;
 
     return (
         <HeaderContainer $isCollapsed={isCollapsed}>
-            <LogoContainer>
+            <LogoContainer $isCollapsed={isCollapsed}>
                 <TitleSection>
                     <LogoIcon>
                         <img src={currentLogo} alt="Vulcan Logo"/>
                     </LogoIcon>
 
-                    <Title $isCollapsed={isCollapsed}>{title}</Title>
+                    {!isCollapsed && (
+                        <Title $isCollapsed={isCollapsed}>{title}</Title>
+                    )}
                 </TitleSection>
 
                 {!isCollapsed && (
@@ -58,10 +59,10 @@ const HeaderContainer = styled.div<{ $isCollapsed?: boolean }>`
     padding: ${({theme}) => theme.components.sidebar.paddingY} ${({theme}) => theme.components.sidebar.paddingY};;
 `;
 
-const LogoContainer = styled.div`
+const LogoContainer = styled.div<{ $isCollapsed?: boolean }>`
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: ${(p) => (p.$isCollapsed ? "center" : "space-between")};
     width: 100%;
 `;
 
@@ -87,8 +88,9 @@ const LogoIcon = styled.div`
 const Title = styled.h1<{ $isCollapsed?: boolean }>`
     font-size: ${({theme}) => theme.components.sidebar.titleFontSize};
     font-weight: ${({theme}) => theme.components.sidebar.titleFontWeight};
-    color: ${({theme}) => theme.colors.textPrimary};
+    color: ${({theme}) => theme.primitives.colors.text1000};
     margin: 0;
+    margin-bottom: -2px;
     opacity: ${({$isCollapsed}) => ($isCollapsed ? 0 : 1)};
     width: ${({$isCollapsed}) => ($isCollapsed ? "0" : "auto")};
     overflow: hidden;
@@ -103,8 +105,8 @@ const ToggleButton = styled.button<{ $isCollapsed?: boolean }>`
     justify-content: center;
     cursor: pointer;
     border: none;
-    background: ${({theme}) => theme.colors.brandSecondary};
-    color: ${({theme}) => theme.colors.textMuted};
+    background: ${({theme}) => theme.primitives.colors.secondary000};
+    color: ${({theme}) => theme.primitives.colors.text300};
     border-radius: ${({theme}) => theme.radius.md};
     padding: ${({theme}) => theme.padding.xsm};
     transition: all ${({theme}) => theme.animation.duration.fast} ${({theme}) => theme.animation.easing.standard};
@@ -112,8 +114,8 @@ const ToggleButton = styled.button<{ $isCollapsed?: boolean }>`
             $isCollapsed ? "rotate(0deg)" : "rotate(180deg)"};
 
     &:hover {
-        background: ${({theme}) => theme.colors.hoverBackground};
-        color: ${({theme}) => theme.colors.textPrimary};
+        background: ${({theme}) => theme.primitives.colors.gray400};
+        color: ${({theme}) => theme.primitives.colors.text1000};
     }
 
     &:active {

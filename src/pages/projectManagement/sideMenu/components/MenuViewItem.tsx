@@ -67,7 +67,7 @@ const ActiveIndicator = styled.div<{ $isActive?: boolean; $disabled?: boolean }>
     border-radius: 0 ${({theme}) => theme.radius.sm} ${({theme}) => theme.radius.sm} 0;
     background-color: ${({theme, $isActive, $disabled}) => {
         if ($disabled) return "transparent";
-        return $isActive ? theme.colors.brandPrimary : "transparent";
+        return $isActive ? theme.primitives.colors.primary1000 : "transparent";
     }};
     transition: background-color ${({theme}) => theme.animation.duration.fast} ${({theme}) => theme.animation.easing.standard};
 `;
@@ -81,28 +81,30 @@ const ContentWrapper = styled.div<{ $isActive?: boolean; $disabled?: boolean; $i
     width: 100%;
     padding: ${({theme}) => `0 ${theme.spacing[2]}`};
     margin: 0 ${({theme}) => theme.components.sidebar.paddingX};
-    //border-radius: ${({theme}) => theme.primitives.radius.md};
+    border-radius: ${({theme}) => theme.primitives.radius.md};
 
     background: ${({theme, $isActive, $disabled}) => {
         if ($disabled) return "transparent";
-        if ($isActive) return theme.colors.backgroundQuaternary;
+        if ($isActive) return theme.primitives.colors.background450;
         return "transparent";
     }};
     color: ${({theme, $isActive, $disabled}) => {
-        if ($disabled) return theme.colors.accentPrimary;
+        if ($disabled) return theme.primitives.colors.accent400;
         if ($isActive) return theme.primitives.colors.background1000;
-        return theme.colors.accentPrimary;
+        return theme.primitives.colors.accent400;
     }};
 
     &:hover {
         background: ${({theme, $isActive, $disabled}) => {
             if ($disabled) return "transparent";
-            if ($isActive) return theme.colors.backgroundQuaternary;
-            return theme.colors.backgroundTertiary;
+            if ($isActive) return theme.primitives.colors.background450;
+            return theme.primitives.colors.background400;
         }};
         cursor: ${({$disabled}) => ($disabled ? "not-allowed" : "pointer")};
-        color: ${(p) => (p.$isActive ? p.theme.colors.brandPrimary : p.theme.colors.textPrimary)};
+        color: ${(p) => (p.theme.primitives.colors.text1000)};
     }
+    
+    transition: all ${(p) => p.theme.animation.duration.fast};
 `;
 
 const IconWrapper = styled.div<{ $isActive?: boolean; $disabled?: boolean }>`
@@ -124,7 +126,7 @@ const MenuItemTitle = styled.span<{ $isActive?: boolean; $isCollapsed?: boolean 
     white-space: nowrap;
     font-size: ${({theme}) => theme.components.sidebar.textFontSize};
     font-weight: ${({theme, $isActive}) =>
-            $isActive ? theme.typography.weight.semiBold : theme.typography.weight.regular};
+            $isActive ? theme.typography.weight.medium : theme.typography.weight.regular};
     opacity: ${({$isCollapsed}) => ($isCollapsed ? 0 : 1)};
     width: ${({$isCollapsed}) => ($isCollapsed ? "0" : "auto")};
     transition: opacity ${({theme}) => theme.animation.duration.fast} ${({theme}) => theme.animation.easing.standard},

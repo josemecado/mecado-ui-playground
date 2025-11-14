@@ -86,25 +86,27 @@ const ContentWrapper = styled.div<{ $isActive?: boolean; $disabled?: boolean; $i
     /* Outline/Stroke instead of background */
     background: transparent;
     border: 1px solid ${({theme, $isActive, $disabled}) => {
-        if ($disabled) return "transparent";
-        if ($isActive) return theme.colors.backgroundQuaternary;
-        return "transparent";
+        if ($disabled) "transparent";
+        if ($isActive) return theme.primitives.colors.primary1000;
+        return theme.primitives.colors.background450;
     }};
 
     color: ${({theme, $isActive, $disabled}) => {
-        if ($disabled) return theme.colors.accentPrimary;
+        if ($disabled) return theme.primitives.colors.accent400;
         if ($isActive) return theme.primitives.colors.background1000;
-        return theme.colors.accentPrimary;
+        return theme.primitives.colors.accent400;
     }};
+
+    transition: all ${({theme}) => theme.animation.duration.fast};
 
     &:hover {
         border-color: ${({theme, $isActive, $disabled}) => {
             if ($disabled) return "transparent";
-            if ($isActive) return theme.colors.backgroundQuaternary;
-            return theme.colors.backgroundTertiary;
+            if ($isActive) return theme.primitives.colors.primary1000;
+            return theme.primitives.colors.accent400;
         }};
         cursor: ${({$disabled}) => ($disabled ? "not-allowed" : "pointer")};
-        color: ${(p) => (p.$isActive ? p.theme.colors.brandPrimary : p.theme.colors.textPrimary)};
+        color: ${(p) => (p.theme.primitives.colors.text1000)};
     }
 `;
 
@@ -127,7 +129,7 @@ const MenuItemTitle = styled.span<{ $isActive?: boolean; $isCollapsed?: boolean 
     white-space: nowrap;
     font-size: ${({theme}) => theme.components.sidebar.textFontSize};
     font-weight: ${({theme, $isActive}) =>
-            $isActive ? theme.typography.weight.semiBold : theme.typography.weight.regular};
+            $isActive ? theme.typography.weight.medium : theme.typography.weight.regular};
     opacity: ${({$isCollapsed}) => ($isCollapsed ? 0 : 1)};
     width: ${({$isCollapsed}) => ($isCollapsed ? "0" : "auto")};
     transition: opacity ${({theme}) => theme.animation.duration.fast} ${({theme}) => theme.animation.easing.standard},

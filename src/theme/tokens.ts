@@ -253,7 +253,7 @@ const componentTokens = {
         //Typography
         titleFontSize: primitives.fontSize.title,
         textFontSize: primitives.fontSize.sm,
-        titleFontWeight: primitives.fontWeight.bold,
+        titleFontWeight: primitives.fontWeight.medium,
     },
 
     button: {
