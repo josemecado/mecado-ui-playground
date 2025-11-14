@@ -8,6 +8,7 @@ export * from './types/admin.types';
 export { AdminTaskCard } from './components/AdminTaskCard';
 export { AdminTaskColumn } from './components/AdminTaskColumn';
 export { AdminTaskBoard } from './components/AdminTaskBoard';
+export { TaskCreationForm } from './components/TaskCreationForm';
 
 // Views
 export { AdminDashboardView } from './views/AdminDashboardView';

@@ -51,7 +51,6 @@ const ColumnContainer = styled.div`
   flex-direction: column;
   min-width: 320px;
   max-width: 380px;
-  height: fit-content;
   padding: ${({ theme }) => theme.spacing[3]};
   gap: ${({ theme }) => theme.primitives.spacing[3]};
   border-radius: ${({ theme }) => theme.primitives.radius.lg};

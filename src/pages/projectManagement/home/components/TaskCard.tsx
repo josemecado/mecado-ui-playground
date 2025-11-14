@@ -414,8 +414,7 @@ const DetailsContent = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${({theme}) => theme.spacing[2]};
-    margin-bottom: ${({ theme }) => theme.primitives.padding.xxs};
-    ;
+    margin-bottom: ${({theme}) => theme.primitives.padding.xxs};;
 `;
 
 const DetailItem = styled.div`
