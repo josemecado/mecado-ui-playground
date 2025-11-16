@@ -13,7 +13,7 @@ import { AdminDashboardView } from "./admin";
 import type { UnifiedTask } from "./admin/types/admin.types";
 
 export const ProjectManagementIndex: React.FC = () => {
-    const [activeView, setActiveView] = useState<ViewType>("home");
+    const [activeView, setActiveView] = useState<ViewType>("admin-dashboard");
     const [taskContext, setTaskContext] = useState<TaskContext | null>(null);
     const [geometryData, setGeometryData] = useState<GeometryData | null>(null);
     const [geometryLoaded, setGeometryLoaded] = useState(false);

@@ -7,22 +7,26 @@ import { Inbox } from "lucide-react";
 
 interface AdminTaskColumnProps {
     column: AdminBoardColumn;
-    onTaskClick: (task: UnifiedTask) => void;
+    onViewSubmission?: (task: UnifiedTask) => void;
+    onEdit?: (task: UnifiedTask) => void;
 }
 
-export const AdminTaskColumn: React.FC<AdminTaskColumnProps> = ({ column, onTaskClick }) => {
+export const AdminTaskColumn: React.FC<AdminTaskColumnProps> = ({
+                                                                    column,
+                                                                    onViewSubmission,
+                                                                    onEdit,
+                                                                }) => {
     const isEmpty = column.tasks.length === 0;
+    const taskCountText = `${column.tasks.length} Task${column.tasks.length === 1 ? '' : 's'}`;
 
     return (
         <ColumnContainer>
             <ColumnHeader>
                 <ColumnTitle>{column.title}</ColumnTitle>
                 <TaskCount $status={column.status}>
-                    {column.tasks.length} {column.tasks.length === 1 ? "task" : "tasks"}
+                    {taskCountText}
                 </TaskCount>
             </ColumnHeader>
-
-            <StyledDivider />
 
             <ColumnContent>
                 {isEmpty ? (
@@ -30,11 +34,16 @@ export const AdminTaskColumn: React.FC<AdminTaskColumnProps> = ({ column, onTask
                         <EmptyIcon>
                             <Inbox size={32} />
                         </EmptyIcon>
-                        <EmptyText>No tasks {column.status.replace('_', ' ')}</EmptyText>
+                        <EmptyText>No tasks</EmptyText>
                     </EmptyState>
                 ) : (
                     column.tasks.map((task) => (
-                        <AdminTaskCard key={task.id} task={task} onClick={onTaskClick} />
+                        <AdminTaskCard
+                            key={task.id}
+                            task={task}
+                            onViewSubmission={onViewSubmission}
+                            onEdit={onEdit}
+                        />
                     ))
                 )}
             </ColumnContent>
@@ -47,104 +56,93 @@ export const AdminTaskColumn: React.FC<AdminTaskColumnProps> = ({ column, onTask
 // ======================
 
 const ColumnContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  min-width: 320px;
-  max-width: 380px;
-  padding: ${({ theme }) => theme.spacing[3]};
-  gap: ${({ theme }) => theme.primitives.spacing[3]};
-  border-radius: ${({ theme }) => theme.primitives.radius.lg};
-  background: ${({ theme }) => theme.colors.backgroundTertiary};
+    display: flex;
+    flex-direction: column;
+    min-width: 340px;
+    max-width: 380px;
+    flex: 1;
+    background: ${({ theme }) => theme.colors.backgroundTertiary};
+    border-radius: ${({ theme }) => theme.radius.lg};
+    overflow: hidden;
 `;
 
 const ColumnHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: ${({ theme }) => theme.spacing[2]};
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${({ theme }) => theme.primitives.paddingX.md};
+    background: ${({ theme }) => theme.colors.backgroundSecondary};
+    border-bottom: 2px solid ${({ theme }) => theme.colors.borderSubtle};
 `;
 
 const ColumnTitle = styled.h2`
-  font-family: ${({ theme }) => theme.typography.family.base};
-  font-size: ${({ theme }) => theme.typography.size.md};
-  font-weight: ${({ theme }) => theme.typography.weight.medium};
-  color: ${({ theme }) => theme.colors.textPrimary};
-  text-wrap: nowrap;
-  margin: 0;
+    font-size: ${({ theme }) => theme.typography.size.md};
+    font-weight: ${({ theme }) => theme.typography.weight.semiBold};
+    color: ${({ theme }) => theme.colors.textPrimary};
+    margin: 0;
 `;
 
 const TaskCount = styled.div<{ $status: string }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: ${({ theme }) => `${theme.spacing[0.5]} ${theme.spacing[2]}`};
-  background: ${({ theme, $status }) => {
-    switch ($status) {
-        case 'needs_review':
-            return theme.colors.statusWarning;
-        case 'completed':
-            return theme.colors.statusSuccess;
-        case 'failed':
-            return theme.colors.statusError;
-        default:
-            return theme.colors.accentPrimary;
-    }
-}};
-  color: ${({ theme }) => theme.colors.textInverted};
-  border-radius: ${({ theme }) => theme.radius.pill};
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  font-weight: ${({ theme }) => theme.typography.weight.medium};
+    padding: ${({ theme }) => `${theme.primitives.paddingY.xxxs} ${theme.primitives.paddingX.xsm}`};
+    background: ${({ theme, $status }) => {
+        switch ($status) {
+            case 'awaiting_review':
+                return theme.colors.statusWarning;
+            case 'completed':
+                return theme.colors.statusSuccess;
+            default:
+                return theme.colors.accentPrimary;
+        }
+    }};
+    color: ${({ theme }) => theme.colors.textInverted};
+    border-radius: ${({ theme }) => theme.radius.pill};
+    font-size: ${({ theme }) => theme.typography.size.xsm};
+    font-weight: ${({ theme }) => theme.typography.weight.medium};
 `;
 
 const ColumnContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacing[3]};
-  border-radius: ${({ theme }) => `0 0 ${theme.radius.lg} ${theme.radius.lg}`};
-  overflow-y: auto;
-  max-height: calc(100vh - 250px);
+    display: flex;
+    flex-direction: column;
+    gap: ${({ theme }) => theme.spacing[3]};
+    padding: ${({ theme }) => theme.primitives.paddingX.md};
+    overflow-y: auto;
+    max-height: calc(100vh - 280px);
 
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
 
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
 
-  &::-webkit-scrollbar-thumb {
-    background: ${({ theme }) => theme.colors.accentPrimary};
-    border-radius: ${({ theme }) => theme.radius.sm};
-  }
+    &::-webkit-scrollbar-thumb {
+        background: ${({ theme }) => theme.colors.accentPrimary};
+        border-radius: ${({ theme }) => theme.radius.pill};
+    }
 
-  &::-webkit-scrollbar-thumb:hover {
-    background: ${({ theme }) => theme.colors.accentSecondary};
-  }
-`;
-
-const StyledDivider = styled.div`
-  width: 100%;
-  height: 2px;
-  background-color: ${({ theme }) => theme.colors.accentTertiary};
+    &::-webkit-scrollbar-thumb:hover {
+        background: ${({ theme }) => theme.colors.accentSecondary};
+    }
 `;
 
 const EmptyState = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: ${({ theme }) => theme.spacing[8]} ${({ theme }) => theme.spacing[4]};
-  gap: ${({ theme }) => theme.spacing[2]};
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${({ theme }) => theme.spacing[12]};
+    gap: ${({ theme }) => theme.spacing[2]};
 `;
 
 const EmptyIcon = styled.div`
-  color: ${({ theme }) => theme.colors.textMuted};
-  opacity: 0.5;
+    color: ${({ theme }) => theme.colors.textMuted};
+    opacity: 0.4;
 `;
 
 const EmptyText = styled.p`
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  color: ${({ theme }) => theme.colors.textMuted};
-  margin: 0;
-  text-align: center;
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    color: ${({ theme }) => theme.colors.textMuted};
+    margin: 0;
+    text-align: center;
 `;

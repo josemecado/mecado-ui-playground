@@ -122,6 +122,7 @@ const primitives = {
         none: "0",
         sm: "0.25rem",
         md: "0.5rem",
+        md2: "0.625rem",
         lg: "0.75rem",
         xl: "1rem",
         pill: "9999px",
@@ -258,12 +259,12 @@ const componentTokens = {
     },
 
     button: {
-        paddingX: primitives.padding.xsm,
+        paddingX: primitives.padding.sm,
         paddingY: primitives.padding.xsm,
         paddingXLarge: primitives.spacing[4],
         paddingYLarge: primitives.spacing[4],
         gap: primitives.spacing[1],
-        radius: primitives.radius.md,
+        radius: primitives.radius.md2,
         height: "2.5rem",
         heightLarge: "3rem",
         fontSize: primitives.fontSize.md,

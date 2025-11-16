@@ -1,225 +1,217 @@
 // admin/components/AdminTaskCard.tsx
-import React, {useState} from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
 import {
     FileText,
-    Paperclip,
-    Calendar,
-    Tag,
     ChevronDown,
     ChevronUp,
-    User,
+    Upload,
+    Tag,
     AlertCircle,
-    CheckCircle,
-    Clock,
+    CheckCircle2,
 } from "lucide-react";
-import {UnifiedTask} from "../types/admin.types";
+import { UnifiedTask } from "../types/admin.types";
 import {
-    formatRelativeDate,
     formatFileSize,
-    getStageLabel,
-    getPriorityInfo,
-    getDaysUntilDue,
-    isTaskOverdue,
-    getUploadProgress,
     getUsernameFromEmail,
 } from "../utils/adminHelpers";
+import {BaseButton} from "components/buttons/BaseButton";
 
 interface AdminTaskCardProps {
     task: UnifiedTask;
-    onClick: (task: UnifiedTask) => void;
+    onViewSubmission?: (task: UnifiedTask) => void;
+    onEdit?: (task: UnifiedTask) => void;
 }
 
-export const AdminTaskCard: React.FC<AdminTaskCardProps> = ({task, onClick}) => {
-    const [isFilesExpanded, setIsFilesExpanded] = useState(false);
-    const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
+export const AdminTaskCard: React.FC<AdminTaskCardProps> = ({
+                                                                task,
+                                                                onViewSubmission,
+                                                                onEdit,
+                                                            }) => {
+    const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+    const [isAttachmentsExpanded, setIsAttachmentsExpanded] = useState(false);
 
-    const priorityInfo = getPriorityInfo(task.priority);
-    const stageLabel = getStageLabel(task.stage);
-    const daysUntilDue = getDaysUntilDue(task);
-    const overdue = isTaskOverdue(task);
-    const uploadProgress = getUploadProgress(task);
+    // Determine task state and stage
+    const isAwaitingReview = task.stage === 'upload_review' || task.stage === 'labeling_review';
+    const isCompleted = task.stage === 'completed' || task.stage === 'labeling_approved';
+    const isInProgress = !isAwaitingReview && !isCompleted;
+
+    // Determine which stage (upload or labeling)
+    const isUploadStage = task.stage === 'pending_upload' || task.stage === 'upload_review' || task.stage === 'upload_approved';
+    const isLabelingStage = task.stage === 'pending_labeling' || task.stage === 'labeling_review' || task.stage === 'labeling_approved' || task.stage === 'completed';
+
+    // Get review data
+    const uploadReview = task.uploadData?.review;
+    const labelingReview = task.labelingData?.review;
+    const hasRejection = (uploadReview && !uploadReview.approved) || (labelingReview && !labelingReview.approved);
+    const rejectionReason = uploadReview && !uploadReview.approved
+        ? uploadReview.notes
+        : labelingReview && !labelingReview.approved
+            ? labelingReview.notes
+            : null;
+
+    const approvalNotes = isCompleted && labelingReview?.approved
+        ? labelingReview.notes
+        : isCompleted && uploadReview?.approved
+            ? uploadReview.notes
+            : null;
+
+    // Get status badge text
+    const getStatusBadgeText = () => {
+        switch (task.stage) {
+            case 'pending_upload':
+                return 'Pending Upload';
+            case 'upload_review':
+                return 'Pending Approval';
+            case 'upload_approved':
+            case 'pending_labeling':
+                return 'Pending Labeling';
+            case 'labeling_review':
+                return 'Pending Approval';
+            case 'labeling_approved':
+            case 'completed':
+                return 'Completed';
+            default:
+                return 'In Progress';
+        }
+    };
+
     const assignedUser = getUsernameFromEmail(task.assignedTo);
 
-    const needsReview = task.stage === 'upload_review' || task.stage === 'labeling_review';
-    const isCompleted = task.stage === 'completed' || task.stage === 'labeling_approved';
-    const isFailed = task.stage === 'failed';
-
-    // Get review data based on stage
-    const reviewData =
-        task.stage === 'upload_review' || task.stage === 'upload_approved'
-            ? task.uploadData?.review
-            : task.labelingData?.review;
-
     return (
-        <CardContainer onClick={() => onClick(task)} $needsReview={needsReview}>
-            {/* Title Row */}
-            <TitleRow>
-                <TitleIcon $priority={task.priority}>
-                    <Tag size={14}/>
-                </TitleIcon>
+        <CardContainer>
+            {/* Header with stage icon and title */}
+            <CardHeader>
+                <StageIcon $isUpload={isUploadStage}>
+                    {isUploadStage ? <Upload size={16} /> : <Tag size={16} />}
+                </StageIcon>
                 <CardTitle>{task.title}</CardTitle>
-            </TitleRow>
+            </CardHeader>
 
-            <FooterSection>
-                <AssignedTo>
-                    <User size={12}/>
-                    {assignedUser}
-                </AssignedTo>
-                <PriorityBadge $color={priorityInfo.color}>
-                    {priorityInfo.label}
-                </PriorityBadge>
-            </FooterSection>
-
-            <ContentSection>
-                {/* Details Section */}
-                <SectionHeaderRow>
-                    <SectionHeader>Details</SectionHeader>
-                    <CollapseButton
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setIsDetailsExpanded(!isDetailsExpanded);
-                        }}
-                    >
-                        {isDetailsExpanded ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
-                    </CollapseButton>
-                </SectionHeaderRow>
-
-                {isDetailsExpanded && (
-                    <DetailsContent>
-                        <DetailItem>
-                            <DetailLabel>Description:</DetailLabel>
-                            <DetailText>{task.description}</DetailText>
-                        </DetailItem>
-
+            {/* Description Section */}
+            <ExpandableSection>
+                <SectionHeader onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
+                    <SectionTitle>Description</SectionTitle>
+                    <ExpandIcon>
+                        {isDescriptionExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </ExpandIcon>
+                </SectionHeader>
+                {isDescriptionExpanded && (
+                    <SectionContent>
+                        <DescriptionText>{task.description}</DescriptionText>
                         {task.requirements && (
-                            <DetailItem>
-                                <DetailLabel>Requirements:</DetailLabel>
-                                <DetailText>{task.requirements}</DetailText>
-                            </DetailItem>
+                            <RequirementsText>{task.requirements}</RequirementsText>
                         )}
-
-                        {reviewData && (
-                            <DetailItem>
-                                <DetailLabel>
-                                    {reviewData.approved ? 'Review Notes:' : 'Rejection Reason:'}
-                                </DetailLabel>
-                                <DetailText $isError={!reviewData.approved}>
-                                    {reviewData.notes}
-                                </DetailText>
-                            </DetailItem>
-                        )}
-                    </DetailsContent>
+                    </SectionContent>
                 )}
-            </ContentSection>
+            </ExpandableSection>
 
-            <StyledDivider/>
-
-            {/* Upload Progress (if applicable) */}
-            {task.uploadData && task.uploadData.requiredFileCount > 0 && (
-                <ProgressSection>
-                    <ProgressHeader>
-                        <ProgressLabel>Upload Progress</ProgressLabel>
-                        <ProgressPercentage>{uploadProgress}%</ProgressPercentage>
-                    </ProgressHeader>
-                    <ProgressBar>
-                        <ProgressFill $progress={uploadProgress}/>
-                    </ProgressBar>
-                    <ProgressText>
-                        {task.uploadData.uploadedFiles.length} of {task.uploadData.requiredFileCount} files uploaded
-                    </ProgressText>
-                </ProgressSection>
-            )}
-
-            {/* Associated Files Section */}
+            {/* Attachments Section */}
             {task.uploadData && task.uploadData.uploadedFiles.length > 0 && (
-                <ContentSection>
-                    <SectionHeaderRow>
-                        <SectionHeader>Uploaded Files</SectionHeader>
-                        <CollapseButton
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsFilesExpanded(!isFilesExpanded);
-                            }}
-                        >
-                            {isFilesExpanded ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
-                        </CollapseButton>
-                    </SectionHeaderRow>
-
-                    {isFilesExpanded && (
-                        <FileList>
-                            {task.uploadData.uploadedFiles.slice(0, 3).map((file, idx) => (
-                                <FileItem key={idx}>
-                                    <FileDetails>
+                <ExpandableSection>
+                    <SectionHeader onClick={() => setIsAttachmentsExpanded(!isAttachmentsExpanded)}>
+                        <SectionTitle>Attachments</SectionTitle>
+                        <ExpandIcon>
+                            {isAttachmentsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </ExpandIcon>
+                    </SectionHeader>
+                    {isAttachmentsExpanded && (
+                        <SectionContent>
+                            {task.uploadData.uploadedFiles.map((file, idx) => (
+                                <FileRow key={idx}>
+                                    <FileInfo>
                                         <FileIcon>
-                                            <FileText size={15}/>
+                                            <FileText size={14} />
                                         </FileIcon>
                                         <FileName>{file.name}</FileName>
-                                    </FileDetails>
+                                    </FileInfo>
                                     <FileSize>{formatFileSize(file.size)}</FileSize>
-                                </FileItem>
+                                </FileRow>
                             ))}
-                            {task.uploadData.uploadedFiles.length > 3 && (
-                                <FileItem>
-                                    <FileDetails>
-                                        <FileIcon>
-                                            <Paperclip size={15}/>
-                                        </FileIcon>
-                                        <FileName>{task.uploadData.uploadedFiles.length - 3} more...</FileName>
-                                    </FileDetails>
-                                </FileItem>
+                            {task.referenceLinks && task.referenceLinks.length > 0 && (
+                                <>
+                                    {task.referenceLinks.map((link, idx) => (
+                                        <FileRow key={`link-${idx}`}>
+                                            <FileInfo>
+                                                <FileIcon>🔗</FileIcon>
+                                                <FileName>{link}</FileName>
+                                            </FileInfo>
+                                            <FileSize>n/a</FileSize>
+                                        </FileRow>
+                                    ))}
+                                </>
                             )}
-                        </FileList>
+                        </SectionContent>
                     )}
-                </ContentSection>
+                </ExpandableSection>
             )}
 
-            {/* Labels (if any) */}
+            {/* Rejection Reason Section (only if rejected) */}
+            {hasRejection && rejectionReason && (
+                <RejectionSection>
+                    <SectionHeader>
+                        <SectionTitle>Rejection Reason</SectionTitle>
+                    </SectionHeader>
+                    <RejectionContent>
+                        <RejectionText>{rejectionReason}</RejectionText>
+                    </RejectionContent>
+                </RejectionSection>
+            )}
+
+            {/* Review Notes Section (only if completed with notes) */}
+            {isCompleted && approvalNotes && (
+                <ReviewNotesSection>
+                    <SectionHeader>
+                        <SectionTitle>Review Notes</SectionTitle>
+                    </SectionHeader>
+                    <ReviewNotesContent>
+                        <ReviewNotesText>{approvalNotes}</ReviewNotesText>
+                    </ReviewNotesContent>
+                </ReviewNotesSection>
+            )}
+
+            {/* Labels Section (if in labeling stage and has labels) */}
             {task.labelingData && task.labelingData.labels.length > 0 && (
-                <LabelsSection>
-                    <SectionHeader>Applied Labels</SectionHeader>
-                    <LabelChips>
-                        {task.labelingData.labels.slice(0, 4).map((label, idx) => (
-                            <LabelChip key={idx}>{label}</LabelChip>
-                        ))}
-                        {task.labelingData.labels.length > 4 && (
-                            <LabelChip>+{task.labelingData.labels.length - 4} more</LabelChip>
-                        )}
-                    </LabelChips>
-                </LabelsSection>
+                <LabelsRow>
+                    {task.labelingData.labels.slice(0, 2).map((label, idx) => (
+                        <LabelBadge key={idx}>
+                            <CheckCircle2 size={12} />
+                            {label}
+                        </LabelBadge>
+                    ))}
+                    {task.labelingData.labels.length > 2 && (
+                        <LabelBadge>
+                            <CheckCircle2 size={12} />
+                            +{task.labelingData.labels.length - 2}
+                        </LabelBadge>
+                    )}
+                </LabelsRow>
             )}
 
-            <StyledDivider/>
+            {/* Footer with status and action button */}
+            <CardFooter>
+                <StatusBadge $stage={task.stage}>
+                    {getStatusBadgeText()}
+                </StatusBadge>
 
-            {/* Footer */}
-            <FooterSection>
-                <FooterLeft>
-                    {/* Stage Badge */}
-                    <StageBadge $stage={task.stage}>
-                        {needsReview && <AlertCircle size={12}/>}
-                        {isCompleted && <CheckCircle size={12}/>}
-                        {isFailed && <AlertCircle size={12}/>}
-                        {!needsReview && !isCompleted && !isFailed && <Clock size={12}/>}
-                        {stageLabel}
-                    </StageBadge>
-                </FooterLeft>
+                {isAwaitingReview && (
+                    <ActionButton
+                        $variant="primary"
+                        onClick={() => onViewSubmission?.(task)}
+                    >
+                        View Submission
+                    </ActionButton>
+                )}
 
-                <FooterRight>
-                    {task.dueDate && (
-                        <DueDate $overdue={overdue}>
-                            <Calendar size={12}/>
-                            {daysUntilDue !== null && daysUntilDue >= 0
-                                ? `${daysUntilDue}d left`
-                                : overdue
-                                    ? `${Math.abs(daysUntilDue || 0)}d overdue`
-                                    : 'No due date'}
-                        </DueDate>
-                    )}
-                    {task.updatedAt && (
-                        <UpdatedAt>Updated {formatRelativeDate(task.updatedAt)}</UpdatedAt>
-                    )}
-                </FooterRight>
-            </FooterSection>
+                {isInProgress && (
+                    <ActionButton
+                        $variant="secondary"
+                        onClick={() => onEdit?.(task)}
+                    >
+                        Edit
+                    </ActionButton>
+                )}
+            </CardFooter>
         </CardContainer>
     );
 };
@@ -228,324 +220,230 @@ export const AdminTaskCard: React.FC<AdminTaskCardProps> = ({task, onClick}) => 
 // 🔹 Styled Components
 // ======================
 
-const CardContainer = styled.div<{ $needsReview?: boolean }>`
+const CardContainer = styled.div`
     display: flex;
     flex-direction: column;
-    padding: ${({theme}) => theme.padding.sm} ${({theme}) => theme.padding.xsm};
-    gap: ${({theme}) => theme.primitives.spacing[2]};
-    background: ${({theme}) => theme.colors.backgroundSecondary};
-    border: 2px solid ${({theme, $needsReview}) =>
-            $needsReview ? theme.colors.statusWarning : theme.colors.borderSubtle};
-    border-radius: ${({theme}) => theme.radius.lg};
-    cursor: pointer;
-    transition: all 0.2s;
+    gap: ${({ theme }) => theme.spacing[2]};
+    padding: ${({ theme }) => theme.primitives.paddingX.sm};
+    background: ${({ theme }) => theme.colors.backgroundSecondary};
+    border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
+    border-radius: ${({ theme }) => theme.radius.lg};
+    transition: all ${({ theme }) => theme.animation.duration.fast} ${({ theme }) => theme.animation.easing.standard};
 
     &:hover {
-        border-color: ${({theme, $needsReview}) =>
-                $needsReview ? theme.colors.statusWarning : theme.colors.borderDefault};
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        transform: translateY(-2px);
-    }
-
-    &:active {
-        transform: translateY(0);
+        border-color: ${({ theme }) => theme.colors.borderDefault};
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     }
 `;
 
-const ContentSection = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${({theme}) => theme.primitives.spacing[1]};
-`;
-
-const TitleRow = styled.div`
+const CardHeader = styled.div`
     display: flex;
     align-items: center;
-    gap: ${({theme}) => theme.primitives.spacing[1]};
-    padding: ${({theme}) => theme.primitives.paddingX.xxs};
-    background: ${({theme}) => theme.colors.backgroundTertiary};
-    border: 1px solid ${({theme}) => theme.colors.borderSubtle};
-    border-radius: ${({theme}) => theme.radius.md};
+    gap: ${({ theme }) => theme.spacing[2]};
 `;
 
-const TitleIcon = styled.span<{ $priority: string }>`
+const StageIcon = styled.div<{ $isUpload: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
-    background: ${({theme, $priority}) => {
-        const colors = {
-            urgent: '#ef4444',
-            high: '#f59e0b',
-            medium: '#3b82f6',
-            low: '#6b7280',
-        };
-        return colors[$priority as keyof typeof colors] || theme.colors.brandPrimary;
-    }};
-    padding: ${({theme}) => theme.primitives.padding.xxs};
-    border-radius: ${({theme}) => theme.primitives.radius.md};
-    color: ${({theme}) => theme.colors.textInverted};
+    width: 28px;
+    height: 28px;
+    background: ${({ theme, $isUpload }) =>
+            $isUpload ? theme.colors.accentPrimary : theme.colors.brandPrimary};
+    color: ${({ theme }) => theme.colors.textInverted};
+    border-radius: ${({ theme }) => theme.radius.md};
 `;
 
 const CardTitle = styled.h3`
-    font-size: ${({theme}) => theme.typography.size.sm};
-    font-weight: ${({theme}) => theme.typography.weight.medium};
-    color: ${({theme}) => theme.colors.textPrimary};
+    font-size: ${({ theme }) => theme.typography.size.md};
+    font-weight: ${({ theme }) => theme.typography.weight.medium};
+    color: ${({ theme }) => theme.colors.textPrimary};
     margin: 0;
     flex: 1;
 `;
 
-const StageBadge = styled.div<{ $stage: string }>`
+const ExpandableSection = styled.div`
     display: flex;
-    align-items: center;
-    gap: ${({theme}) => theme.spacing[1]};
-    padding: ${({theme}) => `${theme.primitives.paddingX.xxs} ${theme.primitives.paddingX.xsm}`};
-    background: ${({theme, $stage}) => {
-        if ($stage.includes('review')) return theme.colors.statusWarning;
-        if ($stage === 'completed' || $stage === 'labeling_approved') return theme.colors.statusSuccess;
-        if ($stage === 'failed') return theme.colors.statusError;
-        return theme.colors.accentPrimary;
-    }};
-    color: ${({theme}) => theme.colors.textInverted};
-    border-radius: ${({theme}) => theme.radius.md};
-    font-size: ${({theme}) => theme.typography.size.xsm};
-    font-weight: ${({theme}) => theme.typography.weight.medium};
-    width: fit-content;
-`;
-
-const SectionHeaderRow = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: ${({ theme }) => theme.spacing[1]};
 `;
 
 const SectionHeader = styled.div`
-    font-size: ${({theme}) => theme.typography.size.sm};
-    font-weight: ${({theme}) => theme.typography.weight.medium};
-    color: ${({theme}) => theme.colors.textMuted};
-    text-transform: capitalize;
-`;
-
-const CollapseButton = styled.button`
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    background: none;
-    border: none;
-    color: ${({theme}) => theme.colors.textMuted};
+    padding: ${({ theme }) => `${theme.primitives.paddingY.xxs} 0`};
     cursor: pointer;
-    padding: ${({theme}) => theme.primitives.padding.xxs};
-    border-radius: ${({theme}) => theme.radius.sm};
-    transition: all 0.2s;
+    user-select: none;
 
     &:hover {
-        background: ${({theme}) => theme.colors.backgroundTertiary};
-        color: ${({theme}) => theme.colors.textPrimary};
+        opacity: 0.8;
     }
 `;
 
-const DetailsContent = styled.div`
+const SectionTitle = styled.span`
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    font-weight: ${({ theme }) => theme.typography.weight.medium};
+    color: ${({ theme }) => theme.colors.textMuted};
+`;
+
+const ExpandIcon = styled.div`
+    display: flex;
+    color: ${({ theme }) => theme.colors.textMuted};
+`;
+
+const SectionContent = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${({theme}) => theme.spacing[2]};
-    margin-bottom: ${({theme}) => theme.primitives.padding.xxs};
+    gap: ${({ theme }) => theme.spacing[2]};
+    padding: ${({ theme }) => theme.primitives.paddingX.xsm};
+    background: ${({ theme }) => theme.colors.backgroundTertiary};
+    border-radius: ${({ theme }) => theme.radius.md};
 `;
 
-const DetailItem = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${({theme}) => theme.primitives.spacing[0.5]};
-`;
-
-const DetailLabel = styled.span`
-    font-size: ${({theme}) => theme.typography.size.xsm};
-    font-weight: ${({theme}) => theme.typography.weight.medium};
-    color: ${({theme}) => theme.colors.textMuted};
-`;
-
-const DetailText = styled.p<{ $isError?: boolean }>`
-    font-size: ${({theme}) => theme.typography.size.xsm};
-    color: ${({theme, $isError}) =>
-            $isError ? theme.colors.statusError : theme.colors.textPrimary};
+const DescriptionText = styled.p`
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    color: ${({ theme }) => theme.colors.textPrimary};
     margin: 0;
-    padding: ${({theme}) => theme.primitives.paddingX.xsm};
-    background: ${({theme}) => theme.colors.backgroundTertiary};
-    border-radius: ${({theme}) => theme.radius.md};
-    line-height: 1.4;
-    ${({$isError, theme}) =>
-            $isError &&
-            `
-    border-left: 2px solid ${theme.colors.statusError};
-  `}
+    line-height: 1.5;
 `;
 
-const ProgressSection = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${({theme}) => theme.spacing[1]};
-    padding: ${({theme}) => theme.primitives.paddingX.xsm};
-    background: ${({theme}) => theme.colors.backgroundTertiary};
-    border-radius: ${({theme}) => theme.radius.md};
+const RequirementsText = styled.p`
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    color: ${({ theme }) => theme.colors.textMuted};
+    margin: 0;
+    line-height: 1.5;
+    font-style: italic;
 `;
 
-const ProgressHeader = styled.div`
+const FileRow = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
 `;
 
-const ProgressLabel = styled.span`
-    font-size: ${({theme}) => theme.typography.size.xsm};
-    font-weight: ${({theme}) => theme.typography.weight.medium};
-    color: ${({theme}) => theme.colors.textMuted};
-`;
-
-const ProgressPercentage = styled.span`
-    font-size: ${({theme}) => theme.typography.size.xsm};
-    font-weight: ${({theme}) => theme.typography.weight.semiBold};
-    color: ${({theme}) => theme.colors.textPrimary};
-`;
-
-const ProgressBar = styled.div`
-    width: 100%;
-    height: 6px;
-    background: ${({theme}) => theme.colors.backgroundPrimary};
-    border-radius: ${({theme}) => theme.radius.pill};
-    overflow: hidden;
-`;
-
-const ProgressFill = styled.div<{ $progress: number }>`
-    width: ${({$progress}) => $progress}%;
-    height: 100%;
-    background: ${({theme}) => theme.colors.brandPrimary};
-    transition: width 0.3s ease;
-`;
-
-const ProgressText = styled.span`
-    font-size: ${({theme}) => theme.typography.size.xsm};
-    color: ${({theme}) => theme.colors.textMuted};
-`;
-
-const FileList = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${({theme}) => theme.spacing[2]};
-`;
-
-const FileItem = styled.div`
+const FileInfo = styled.div`
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: ${({ theme }) => theme.spacing[1]};
 `;
 
 const FileIcon = styled.span`
     display: flex;
     align-items: center;
-    color: ${({theme}) => theme.colors.textMuted};
-`;
-
-const FileDetails = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${({theme}) => theme.primitives.spacing[0.5]};
-    background: ${({theme}) => theme.colors.backgroundTertiary};
-    padding: ${({theme}) => `${theme.primitives.paddingX.xxs} ${theme.primitives.paddingX.xsm}`};
-    border-radius: ${({theme}) => theme.radius.md};
+    color: ${({ theme }) => theme.colors.textMuted};
 `;
 
 const FileName = styled.span`
-    font-size: ${({theme}) => theme.typography.size.xsm};
-    color: ${({theme}) => theme.colors.textPrimary};
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    color: ${({ theme }) => theme.colors.textPrimary};
+    font-family: ${({ theme }) => theme.typography.family.mono};
 `;
 
 const FileSize = styled.span`
-    font-size: ${({theme}) => theme.typography.size.xsm};
-    color: ${({theme}) => theme.colors.textMuted};
-    margin-left: ${({theme}) => theme.spacing[2]};
+    font-size: ${({ theme }) => theme.typography.size.xsm};
+    color: ${({ theme }) => theme.colors.textMuted};
 `;
 
-const LabelsSection = styled.div`
+const RejectionSection = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${({theme}) => theme.spacing[1]};
+    gap: ${({ theme }) => theme.spacing[1]};
 `;
 
-const LabelChips = styled.div`
+const RejectionContent = styled.div`
+    padding: ${({ theme }) => theme.primitives.paddingX.xsm};
+    background: ${({ theme }) => theme.colors.backgroundTertiary};
+    border-left: 3px solid ${({ theme }) => theme.colors.statusError};
+    border-radius: ${({ theme }) => theme.radius.md};
+`;
+
+const RejectionText = styled.p`
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    color: ${({ theme }) => theme.colors.statusError};
+    margin: 0;
+    line-height: 1.5;
+`;
+
+const ReviewNotesSection = styled.div`
     display: flex;
+    flex-direction: column;
+    gap: ${({ theme }) => theme.spacing[1]};
+`;
+
+const ReviewNotesContent = styled.div`
+    padding: ${({ theme }) => theme.primitives.paddingX.xsm};
+    background: ${({ theme }) => theme.colors.backgroundTertiary};
+    border-left: 3px solid ${({ theme }) => theme.colors.statusSuccess};
+    border-radius: ${({ theme }) => theme.radius.md};
+`;
+
+const ReviewNotesText = styled.p`
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    color: ${({ theme }) => theme.colors.textPrimary};
+    margin: 0;
+    line-height: 1.5;
+`;
+
+const LabelsRow = styled.div`
+    display: flex;
+    gap: ${({ theme }) => theme.spacing[1]};
     flex-wrap: wrap;
-    gap: ${({theme}) => theme.spacing[1]};
 `;
 
-const LabelChip = styled.span`
-    display: inline-flex;
+const LabelBadge = styled.div`
+    display: flex;
     align-items: center;
-    padding: ${({theme}) => `${theme.primitives.paddingX.xxxs} ${theme.primitives.paddingX.xsm}`};
-    background: ${({theme}) => theme.colors.accentPrimary};
-    color: ${({theme}) => theme.colors.textInverted};
-    border-radius: ${({theme}) => theme.radius.md};
-    font-size: ${({theme}) => theme.typography.size.xsm};
-    font-weight: ${({theme}) => theme.typography.weight.medium};
+    gap: ${({ theme }) => theme.spacing[1]};
+    padding: ${({ theme }) => `${theme.primitives.paddingY.xxxs} ${theme.primitives.paddingX.xsm}`};
+    background: ${({ theme }) => theme.colors.statusSuccess};
+    color: ${({ theme }) => theme.colors.textInverted};
+    border-radius: ${({ theme }) => theme.radius.md};
+    font-size: ${({ theme }) => theme.typography.size.xsm};
+    font-weight: ${({ theme }) => theme.typography.weight.medium};
 `;
 
-const StyledDivider = styled.div`
-    width: 100%;
-    height: 2px;
-    background-color: ${({theme}) => theme.colors.borderSubtle};
-`;
-
-const FooterSection = styled.div`
+const CardFooter = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: ${({theme}) => theme.spacing[2]};
+    gap: ${({ theme }) => theme.spacing[2]};
+    padding-top: ${({ theme }) => theme.spacing[2]};
+    border-top: 1px solid ${({ theme }) => theme.colors.borderSubtle};
 `;
 
-const FooterLeft = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${({theme}) => theme.spacing[2]};
-    flex-wrap: wrap;
+const StatusBadge = styled.div<{ $stage: string }>`
+    padding: ${({ theme }) => `${theme.primitives.paddingY.xxxs} ${theme.primitives.paddingX.xsm}`};
+    background: ${({ theme }) => theme.colors.backgroundTertiary};
+    border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
+    color: ${({ theme }) => theme.colors.textMuted};
+    border-radius: ${({ theme }) => theme.radius.md};
+    font-size: ${({ theme }) => theme.typography.size.xsm};
+    font-weight: ${({ theme }) => theme.typography.weight.medium};
 `;
 
-const FooterRight = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: ${({theme}) => theme.spacing[0.5]};
-`;
+const ActionButton = styled(BaseButton)`
+    padding: ${({ theme }) => `${theme.primitives.paddingY.xxs} ${theme.primitives.paddingX.sm}`};
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    border-radius: ${({ theme }) => theme.radius.md};
+    min-width: 120px;
 
-const AssignedTo = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${({theme}) => theme.spacing[1]};
-    padding: ${({theme}) => `${theme.primitives.paddingX.xxxs} ${theme.primitives.paddingX.xsm}`};
-    background: ${({theme}) => theme.colors.backgroundTertiary};
-    border: 1px solid ${({theme}) => theme.colors.borderSubtle};
-    border-radius: ${({theme}) => theme.radius.md};
-    font-size: ${({theme}) => theme.typography.size.xsm};
-    color: ${({theme}) => theme.colors.textPrimary};
-`;
+    ${({ $variant, theme }) => $variant === 'primary' && `
+        background: ${theme.colors.brandPrimary};
+        color: ${theme.colors.textInverted};
+        
+        &:hover:not(:disabled) {
+            opacity: 0.9;
+        }
+    `}
 
-const PriorityBadge = styled.div<{ $color: string }>`
-    padding: ${({theme}) => `${theme.primitives.paddingX.xxxs} ${theme.primitives.paddingX.xsm}`};
-    background: ${({$color}) => $color};
-    color: white;
-    border-radius: ${({theme}) => theme.radius.md};
-    font-size: ${({theme}) => theme.typography.size.xsm};
-    font-weight: ${({theme}) => theme.typography.weight.medium};
-`;
-
-const DueDate = styled.div<{ $overdue: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: ${({theme}) => theme.spacing[1]};
-    font-size: ${({theme}) => theme.typography.size.xsm};
-    color: ${({theme, $overdue}) =>
-            $overdue ? theme.colors.statusError : theme.colors.textMuted};
-    font-weight: ${({$overdue}) => ($overdue ? 600 : 400)};
-`;
-
-const UpdatedAt = styled.span`
-    font-size: ${({theme}) => theme.typography.size.xsm};
-    color: ${({theme}) => theme.colors.textMuted};
+    ${({ $variant, theme }) => $variant === 'secondary' && `
+        background: transparent;
+        color: ${theme.colors.textPrimary};
+        border: 1px solid ${theme.colors.borderDefault};
+        
+        &:hover:not(:disabled) {
+            background: ${theme.colors.backgroundTertiary};
+        }
+    `}
 `;

@@ -31,8 +31,8 @@ export const BaseButton = styled.button<{
     }};
 
     /* Typography */
-    font-size: ${({theme}) => theme.typography.size.sm};
-    font-weight: ${({theme}) => theme.typography.weight.medium};
+    font-size: ${({theme}) => theme.components.button.fontSize};
+    font-weight: ${({theme}) => theme.components.button.fontWeight};
     font-family: ${(p) => p.theme.typography.family.base};
     color: ${(p) => {
         switch (p.$variant) {
