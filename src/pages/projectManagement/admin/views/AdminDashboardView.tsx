@@ -1,12 +1,14 @@
 // admin/views/AdminDashboardView.tsx
-import React, { useState } from "react";
+import React, {useState, useMemo} from "react";
 import styled from "styled-components";
-import { Plus, Filter, Search } from "lucide-react";
-import { UnifiedTask, CreateTaskInput, ReviewAction } from "../types/admin.types";
-import { AdminTaskBoard } from "../components/AdminTaskBoard";
-import { TaskCreationForm } from "../components/TaskCreationForm";
-import { ReviewSubmissionModal } from "../components/ReviewSubmissionModal";
-import { mockAdminTasks } from "../utils/mockAdminData";
+import {Plus} from "lucide-react";
+import {UnifiedTask, CreateTaskInput, ReviewAction} from "../types/admin.types";
+import {AdminTaskBoard} from "../components/AdminTaskBoard";
+import {AdminTasksTable} from "../components/AdminTasksTable";
+import {TaskCreationForm} from "../components/TaskCreationForm";
+import {ReviewSubmissionModal} from "../components/ReviewSubmissionModal";
+import {AdminViewControls, ViewMode, SortBy, SortOrder, StatusFilter} from "../components/AdminViewControls";
+import {mockAdminTasks} from "../utils/mockAdminData";
 import {BaseButton} from "components/buttons/BaseButton";
 
 interface AdminDashboardViewProps {
@@ -14,36 +16,136 @@ interface AdminDashboardViewProps {
     onCreateTask?: () => void;
 }
 
+// Helper to map stage to column status for filtering
+const getColumnStatus = (stage: UnifiedTask['stage']): StatusFilter => {
+    switch (stage) {
+        case 'pending_upload':
+        case 'upload_approved':
+        case 'pending_labeling':
+            return 'assigned';
+        case 'upload_review':
+        case 'labeling_review':
+            return 'awaiting_review';
+        case 'labeling_approved':
+        case 'completed':
+            return 'completed';
+        default:
+            return 'assigned';
+    }
+};
+
 export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                                                                           onTaskClick,
                                                                       }) => {
     const [tasks, setTasks] = useState<UnifiedTask[]>(mockAdminTasks);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [filterPriority, setFilterPriority] = useState<string>("all");
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [reviewingTask, setReviewingTask] = useState<UnifiedTask | null>(null);
 
-    // Filter tasks based on search and priority
-    const filteredTasks = tasks.filter((task) => {
-        const matchesSearch =
-            task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            task.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            task.assignedTo.toLowerCase().includes(searchQuery.toLowerCase());
+    // View mode
+    const [viewMode, setViewMode] = useState<ViewMode>('board');
 
-        const matchesPriority = filterPriority === "all" || task.priority === filterPriority;
+    // Search
+    const [searchQuery, setSearchQuery] = useState("");
 
-        return matchesSearch && matchesPriority;
-    });
+    // Filters
+    const [filterPriority, setFilterPriority] = useState<string>("all");
+    const [filterStatus, setFilterStatus] = useState<StatusFilter>("all");
+    const [filterAssignedTo, setFilterAssignedTo] = useState<string>("all");
+
+    // Sorting
+    const [sortBy, setSortBy] = useState<SortBy>('status');
+    const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
+    // Get unique users for filter dropdown
+    const availableUsers = useMemo(() => {
+        const users = Array.from(new Set(tasks.map(t => t.assignedTo)));
+        return users.sort();
+    }, [tasks]);
+
+    // Filter and sort tasks
+    const filteredAndSortedTasks = useMemo(() => {
+        let result = [...tasks];
+
+        // Apply search filter
+        if (searchQuery) {
+            result = result.filter((task) =>
+                task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                task.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                task.assignedTo.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
+
+        // Apply priority filter
+        if (filterPriority !== "all") {
+            result = result.filter(task => task.priority === filterPriority);
+        }
+
+        // Apply status filter
+        if (filterStatus !== "all") {
+            result = result.filter(task => {
+                const columnStatus = getColumnStatus(task.stage);
+                return columnStatus === filterStatus;
+            });
+        }
+
+        // Apply assigned to filter
+        if (filterAssignedTo !== "all") {
+            result = result.filter(task => task.assignedTo === filterAssignedTo);
+        }
+
+        // Apply sorting
+        result.sort((a, b) => {
+            let comparison = 0;
+
+            switch (sortBy) {
+                case 'title':
+                    comparison = a.title.localeCompare(b.title);
+                    break;
+
+                case 'assignedTo':
+                    comparison = a.assignedTo.localeCompare(b.assignedTo);
+                    break;
+
+                case 'priority':
+                    const priorityOrder = {urgent: 0, high: 1, medium: 2, low: 3};
+                    comparison = priorityOrder[a.priority] - priorityOrder[b.priority];
+                    break;
+
+                case 'dueDate':
+                    const aDate = a.dueDate?.getTime() || Infinity;
+                    const bDate = b.dueDate?.getTime() || Infinity;
+                    comparison = aDate - bDate;
+                    break;
+
+                case 'status':
+                    const statusOrder = {
+                        pending_upload: 0,
+                        upload_review: 1,
+                        upload_approved: 2,
+                        pending_labeling: 3,
+                        labeling_review: 4,
+                        labeling_approved: 5,
+                        completed: 6,
+                        failed: 7,
+                    };
+                    comparison = statusOrder[a.stage] - statusOrder[b.stage];
+                    break;
+            }
+
+            return sortOrder === 'asc' ? comparison : -comparison;
+        });
+
+        return result;
+    }, [tasks, searchQuery, filterPriority, filterStatus, filterAssignedTo, sortBy, sortOrder]);
 
     const handleViewSubmission = (task: UnifiedTask) => {
-        console.log("🔍 View submission clicked:", task); // Add this
+        console.log("🔍 View submission clicked for task:", task.id, task.title);
         setReviewingTask(task);
     };
 
     const handleEdit = (task: UnifiedTask) => {
         console.log("Edit task:", task);
         onTaskClick?.(task);
-        // TODO: Navigate to edit view or open edit modal
     };
 
     const handleApproveSubmission = (action: ReviewAction) => {
@@ -51,19 +153,15 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             prev.map((task) => {
                 if (task.id !== action.taskId) return task;
 
-                // Determine which stage to advance to
                 let newStage: UnifiedTask['stage'];
                 const isUploadReview = task.stage === 'upload_review';
 
                 if (isUploadReview) {
-                    // Upload approved -> ready for labeling
                     newStage = 'upload_approved';
                 } else {
-                    // Labeling approved -> completed
                     newStage = 'labeling_approved';
                 }
 
-                // Update the appropriate review data
                 const updatedTask: UnifiedTask = {
                     ...task,
                     stage: newStage,
@@ -74,7 +172,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     updatedTask.uploadData = {
                         ...task.uploadData,
                         review: {
-                            reviewedBy: 'admin@mecado.com', // TODO: Get from auth
+                            reviewedBy: 'admin@mecado.com',
                             reviewedAt: new Date(),
                             approved: true,
                             notes: action.notes,
@@ -84,7 +182,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     updatedTask.labelingData = {
                         ...task.labelingData,
                         review: {
-                            reviewedBy: 'admin@mecado.com', // TODO: Get from auth
+                            reviewedBy: 'admin@mecado.com',
                             reviewedAt: new Date(),
                             approved: true,
                             notes: action.notes,
@@ -92,7 +190,6 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     };
                 }
 
-                // Add to history
                 updatedTask.history = [
                     ...task.history,
                     {
@@ -108,9 +205,6 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         );
 
         setReviewingTask(null);
-        console.log("Approved submission:", action);
-        // TODO Phase 2: Call API
-        // await taskService.reviewTask(action.taskId, action);
     };
 
     const handleRejectSubmission = (action: ReviewAction) => {
@@ -118,19 +212,15 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             prev.map((task) => {
                 if (task.id !== action.taskId) return task;
 
-                // Determine which stage to send back to
                 let newStage: UnifiedTask['stage'];
                 const isUploadReview = task.stage === 'upload_review';
 
                 if (isUploadReview) {
-                    // Upload rejected -> back to pending upload
                     newStage = 'pending_upload';
                 } else {
-                    // Labeling rejected -> back to pending labeling (don't redo upload)
                     newStage = 'pending_labeling';
                 }
 
-                // Update the appropriate review data with rejection
                 const updatedTask: UnifiedTask = {
                     ...task,
                     stage: newStage,
@@ -141,25 +231,24 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     updatedTask.uploadData = {
                         ...task.uploadData,
                         review: {
-                            reviewedBy: 'admin@mecado.com', // TODO: Get from auth
+                            reviewedBy: 'admin@mecado.com',
                             reviewedAt: new Date(),
                             approved: false,
-                            notes: action.notes, // This is the rejection reason
+                            notes: action.notes,
                         },
                     };
                 } else if (task.labelingData) {
                     updatedTask.labelingData = {
                         ...task.labelingData,
                         review: {
-                            reviewedBy: 'admin@mecado.com', // TODO: Get from auth
+                            reviewedBy: 'admin@mecado.com',
                             reviewedAt: new Date(),
                             approved: false,
-                            notes: action.notes, // This is the rejection reason
+                            notes: action.notes,
                         },
                     };
                 }
 
-                // Add to history
                 updatedTask.history = [
                     ...task.history,
                     {
@@ -175,9 +264,6 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         );
 
         setReviewingTask(null);
-        console.log("Rejected submission:", action);
-        // TODO Phase 2: Call API
-        // await taskService.reviewTask(action.taskId, action);
     };
 
     const handleCreateTaskSubmit = (input: CreateTaskInput) => {
@@ -190,7 +276,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             requirements: input.requirements,
             referenceLinks: input.referenceLinks,
             assignedTo: input.assignedTo,
-            createdBy: "admin@mecado.com", // TODO: Get from auth
+            createdBy: "admin@mecado.com",
             createdAt: new Date(),
             updatedAt: new Date(),
             dueDate: input.dueDate,
@@ -213,10 +299,6 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
         setTasks([newTask, ...tasks]);
         setShowCreateForm(false);
-
-        console.log("Created task:", newTask);
-        // TODO Phase 2: Call API
-        // await taskService.createTask(input);
     };
 
     return (
@@ -225,7 +307,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 <DashboardHeader>
                     <HeaderTop>
                         <HeaderContent>
-                            <Title>⚙️ Admin Task Management</Title>
+                            <Title>Task Management</Title>
                             <Subtitle>Manage and review all annotation tasks</Subtitle>
                         </HeaderContent>
                         <HeaderActions>
@@ -233,55 +315,49 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                                 $variant="primary"
                                 onClick={() => setShowCreateForm(true)}
                             >
-                                <Plus size={18} />
+                                <Plus size={18}/>
                                 Create Task
                             </CreateTaskButton>
                         </HeaderActions>
                     </HeaderTop>
 
-                    {/* Filters */}
-                    <FiltersRow>
-                        <SearchBar>
-                            <SearchIcon>
-                                <Search size={16} />
-                            </SearchIcon>
-                            <SearchInput
-                                type="text"
-                                placeholder="Search tasks by title, description, or user..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </SearchBar>
-
-                        <FilterGroup>
-                            <FilterIcon>
-                                <Filter size={16} />
-                            </FilterIcon>
-                            <FilterLabel>Priority:</FilterLabel>
-                            <FilterSelect
-                                value={filterPriority}
-                                onChange={(e) => setFilterPriority(e.target.value)}
-                            >
-                                <option value="all">All</option>
-                                <option value="urgent">Urgent</option>
-                                <option value="high">High</option>
-                                <option value="medium">Medium</option>
-                                <option value="low">Low</option>
-                            </FilterSelect>
-                        </FilterGroup>
-                    </FiltersRow>
+                    {/* View Controls: Tabs, Filters, Sorting */}
+                    <AdminViewControls
+                        viewMode={viewMode}
+                        onViewModeChange={setViewMode}
+                        searchQuery={searchQuery}
+                        onSearchChange={setSearchQuery}
+                        filterPriority={filterPriority}
+                        onFilterPriorityChange={setFilterPriority}
+                        filterStatus={filterStatus}
+                        onFilterStatusChange={setFilterStatus}
+                        filterAssignedTo={filterAssignedTo}
+                        onFilterAssignedToChange={setFilterAssignedTo}
+                        sortBy={sortBy}
+                        onSortByChange={setSortBy}
+                        sortOrder={sortOrder}
+                        onSortOrderChange={setSortOrder}
+                        availableUsers={availableUsers}
+                    />
                 </DashboardHeader>
 
-                <BoardWrapper>
-                    <AdminTaskBoard
-                        tasks={filteredTasks}
-                        onViewSubmission={handleViewSubmission}
-                        onEdit={handleEdit}
-                    />
-                </BoardWrapper>
+                <ContentWrapper>
+                    {viewMode === 'board' ? (
+                        <AdminTaskBoard
+                            tasks={filteredAndSortedTasks}
+                            onViewSubmission={handleViewSubmission}
+                            onEdit={handleEdit}
+                        />
+                    ) : (
+                        <AdminTasksTable
+                            tasks={filteredAndSortedTasks}
+                            onViewSubmission={handleViewSubmission}
+                            onEdit={handleEdit}
+                        />
+                    )}
+                </ContentWrapper>
             </DashboardContainer>
 
-            {/* Task Creation Form Modal */}
             {showCreateForm && (
                 <TaskCreationForm
                     onSubmit={handleCreateTaskSubmit}
@@ -289,7 +365,6 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 />
             )}
 
-            {/* Review Submission Modal */}
             {reviewingTask && (
                 <ReviewSubmissionModal
                     task={reviewingTask}
@@ -303,7 +378,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 };
 
 // ======================
-// 🔹 Styled Components (same as before)
+// 🔹 Styled Components
 // ======================
 
 const DashboardContainer = styled.div`
@@ -311,16 +386,16 @@ const DashboardContainer = styled.div`
     flex-direction: column;
     height: 100%;
     width: 100%;
-    background: ${({ theme }) => theme.colors.backgroundPrimary};
+    background: ${({theme}) => theme.colors.backgroundPrimary};
 `;
 
 const DashboardHeader = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${({ theme }) => theme.spacing[4]};
-    padding: ${({ theme }) => theme.spacing[6]};
-    background: ${({ theme }) => theme.colors.backgroundSecondary};
-    border-bottom: 1px solid ${({ theme }) => theme.colors.borderDefault};
+    gap: ${({theme}) => theme.spacing[4]};
+    padding: ${({theme}) => theme.spacing[6]};
+    background: ${({theme}) => theme.colors.backgroundSecondary};
+    border-bottom: 1px solid ${({theme}) => theme.colors.borderDefault};
 `;
 
 const HeaderTop = styled.div`
@@ -332,34 +407,35 @@ const HeaderTop = styled.div`
 const HeaderContent = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${({ theme }) => theme.spacing[1]};
+    gap: ${({theme}) => theme.spacing[1]};
 `;
 
 const Title = styled.h1`
-    font-size: ${({ theme }) => theme.typography.size.xxl};
-    font-weight: ${({ theme }) => theme.typography.weight.bold};
-    color: ${({ theme }) => theme.colors.textPrimary};
+    font-size: ${({theme}) => theme.typography.size.xxl};
+    font-weight: ${({theme}) => theme.typography.weight.bold};
+    color: ${({theme}) => theme.colors.textPrimary};
     margin: 0;
 `;
 
 const Subtitle = styled.p`
-    font-size: ${({ theme }) => theme.typography.size.md};
-    color: ${({ theme }) => theme.colors.textMuted};
+    font-size: ${({theme}) => theme.typography.size.md};
+    color: ${({theme}) => theme.colors.textMuted};
     margin: 0;
 `;
 
 const HeaderActions = styled.div`
     display: flex;
-    gap: ${({ theme }) => theme.spacing[3]};
+    gap: ${({theme}) => theme.spacing[3]};
     align-items: center;
 `;
 
 const CreateTaskButton = styled(BaseButton)`
     display: flex;
     align-items: center;
-    gap: ${({ theme }) => theme.spacing[1]};
-    background: ${({ theme }) => theme.colors.brandPrimary};
-    color: ${({ theme }) => theme.colors.textInverted};
+    gap: ${({theme}) => theme.spacing[1]};
+    background: ${({theme}) => theme.colors.brandPrimary};
+    color: ${({theme}) => theme.colors.textInverted};
+    padding: ${({theme}) => `${theme.primitives.paddingY.sm} ${theme.primitives.paddingX.lg}`};
 
     &:hover:not(:disabled) {
         opacity: 0.9;
@@ -371,85 +447,7 @@ const CreateTaskButton = styled(BaseButton)`
     }
 `;
 
-const FiltersRow = styled.div`
-    display: flex;
-    gap: ${({ theme }) => theme.spacing[4]};
-    align-items: center;
-    flex-wrap: wrap;
-`;
-
-const SearchBar = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${({ theme }) => theme.spacing[2]};
-    flex: 1;
-    min-width: 300px;
-    padding: ${({ theme }) => `${theme.primitives.paddingY.xsm} ${theme.primitives.paddingX.sm}`};
-    background: ${({ theme }) => theme.colors.backgroundTertiary};
-    border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
-    border-radius: ${({ theme }) => theme.radius.md};
-
-    &:focus-within {
-        border-color: ${({ theme }) => theme.colors.brandPrimary};
-    }
-`;
-
-const SearchIcon = styled.div`
-    display: flex;
-    color: ${({ theme }) => theme.colors.textMuted};
-`;
-
-const SearchInput = styled.input`
-    flex: 1;
-    border: none;
-    background: none;
-    outline: none;
-    font-size: ${({ theme }) => theme.typography.size.md};
-    color: ${({ theme }) => theme.colors.textPrimary};
-
-    &::placeholder {
-        color: ${({ theme }) => theme.colors.textMuted};
-    }
-`;
-
-const FilterGroup = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${({ theme }) => theme.spacing[2]};
-    padding: ${({ theme }) => `${theme.primitives.paddingY.xsm} ${theme.primitives.paddingX.sm}`};
-    background: ${({ theme }) => theme.colors.backgroundTertiary};
-    border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
-    border-radius: ${({ theme }) => theme.radius.md};
-`;
-
-const FilterIcon = styled.div`
-    display: flex;
-    color: ${({ theme }) => theme.colors.textMuted};
-`;
-
-const FilterLabel = styled.span`
-    font-size: ${({ theme }) => theme.typography.size.sm};
-    color: ${({ theme }) => theme.colors.textMuted};
-    font-weight: ${({ theme }) => theme.typography.weight.medium};
-`;
-
-const FilterSelect = styled.select`
-    border: none;
-    background: none;
-    outline: none;
-    font-size: ${({ theme }) => theme.typography.size.md};
-    color: ${({ theme }) => theme.colors.textPrimary};
-    font-weight: ${({ theme }) => theme.typography.weight.medium};
-    cursor: pointer;
-    padding: ${({ theme }) => `${theme.primitives.paddingY.xxs} ${theme.primitives.paddingX.xsm}`};
-    border-radius: ${({ theme }) => theme.radius.sm};
-
-    &:hover {
-        background: ${({ theme }) => theme.colors.backgroundPrimary};
-    }
-`;
-
-const BoardWrapper = styled.div`
+const ContentWrapper = styled.div`
     flex: 1;
     overflow: hidden;
 `;
