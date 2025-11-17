@@ -1,10 +1,23 @@
 import React, { useState, useCallback } from "react";
 import styled from "styled-components";
 import { AlertCircle } from "lucide-react";
-import { TaskContext } from "../home/types/types";
+import { BaseButton } from "components/buttons/BaseButton";
 import { GeometryData } from "../types/geometry.types";
 import { SimpleLabelCreator } from "../simpleLabelCreator/SimpleLabelCreator";
-import {BaseButton} from "components/buttons/BaseButton";
+import { taskService } from "../api/services/taskService";
+import { useUser } from "../context/UserContext";
+
+interface TaskContext {
+    taskId: string;
+    taskType: 'geometry_upload' | 'geometry_labeling';
+    requiredFileCount?: number;
+    modelId?: string;
+    geometryId?: string;
+    geometryType?: 'edge' | 'face' | 'body';
+    geometryName?: string;
+    batchName?: string;
+}
+
 interface GeoLabelManagerWrapperProps {
     taskContext: TaskContext;
     geometryData: GeometryData | null;
@@ -18,32 +31,67 @@ export const GeoLabelManagerWrapper: React.FC<GeoLabelManagerWrapperProps> = ({
                                                                                   onSubmitLabels,
                                                                                   onCancel,
                                                                               }) => {
+    const { currentUser } = useUser();
     const [labelCount, setLabelCount] = useState(0);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleLabelsChange = useCallback((count: number) => {
         setLabelCount(count);
     }, []);
 
-    const handleSubmit = () => {
-        // Extract label names from localStorage (where GeoLabelManager saves them)
-        try {
-            const storageKey = `labels_${taskContext.geometryId}`;
-            const savedLabels = localStorage.getItem(storageKey);
+    const handleSubmit = async () => {
+        if (!currentUser) {
+            alert("No user logged in");
+            return;
+        }
 
-            if (savedLabels) {
-                const labelsData = JSON.parse(savedLabels);
-                const labelNames = labelsData.map((label: any) => label.name);
-                onSubmitLabels(taskContext.taskId, labelNames);
-            } else if (labelCount > 0) {
-                // Fallback: submit with placeholder if we know labels exist
-                const placeholderLabels = Array.from({ length: labelCount }, (_, i) => `Label ${i + 1}`);
-                onSubmitLabels(taskContext.taskId, placeholderLabels);
-            } else {
-                alert("Please create at least one label before submitting");
+        if (labelCount === 0) {
+            alert("Please create at least one label before submitting");
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            // Extract label names from localStorage (where GeoLabelManager saves them)
+            let labels: string[] = [];
+
+            try {
+                const storageKey = `labels_${taskContext.geometryId}`;
+                const savedLabels = localStorage.getItem(storageKey);
+
+                if (savedLabels) {
+                    const labelsData = JSON.parse(savedLabels);
+                    labels = labelsData.map((label: any) => label.name);
+                } else {
+                    // Fallback: create placeholder labels
+                    labels = Array.from({ length: labelCount }, (_, i) => `Label ${i + 1}`);
+                }
+            } catch (error) {
+                console.error("Error extracting labels:", error);
+                // Fallback: create placeholder labels
+                labels = Array.from({ length: labelCount }, (_, i) => `Label ${i + 1}`);
             }
+
+            console.log(`[GeoLabelManagerWrapper] Submitting ${labels.length} labels for task ${taskContext.taskId}`);
+
+            // Submit labels for review via taskService
+            await taskService.submitLabelsForReview(
+                taskContext.taskId,
+                labels,
+                taskContext.geometryId || taskContext.modelId || 'unknown',
+                currentUser.email
+            );
+
+            console.log(`[GeoLabelManagerWrapper] Labels submitted successfully for task ${taskContext.taskId}`);
+
+            // Call parent callback to navigate back
+            onSubmitLabels(taskContext.taskId, labels);
         } catch (error) {
-            console.error("Error extracting labels:", error);
-            alert("Error extracting labels. Please try again.");
+            console.error('[GeoLabelManagerWrapper] Failed to submit labels:', error);
+            alert(`Failed to submit labels: ${error.message || 'Unknown error'}`);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -66,7 +114,27 @@ export const GeoLabelManagerWrapper: React.FC<GeoLabelManagerWrapperProps> = ({
 
                 <SimpleLabelCreator
                     taskContext={taskContext}
-                    onSubmit={onSubmitLabels}
+                    onSubmit={async (taskId: string, labels: string[]) => {
+                        // SimpleLabelCreator calls this - we need to route through taskService
+                        if (!currentUser) {
+                            alert("No user logged in");
+                            return;
+                        }
+
+                        try {
+                            await taskService.submitLabelsForReview(
+                                taskId,
+                                labels,
+                                taskContext.geometryId || taskContext.modelId || 'unknown',
+                                currentUser.email
+                            );
+
+                            onSubmitLabels(taskId, labels);
+                        } catch (error) {
+                            console.error('[GeoLabelManagerWrapper] Failed to submit labels:', error);
+                            alert(`Failed to submit labels: ${error.message || 'Unknown error'}`);
+                        }
+                    }}
                     onCancel={onCancel}
                 />
             </Container>
@@ -77,15 +145,24 @@ export const GeoLabelManagerWrapper: React.FC<GeoLabelManagerWrapperProps> = ({
     return (
         <Container>
             <GeoLabelManagerContainer>
-                {/* <GeoLabelManager
-          geometryData={geometryData}
-          geometryId={taskContext.geometryId}
-          geometryMetadata={{
-            filename: taskContext.geometryName,
-            originalPath: taskContext.modelId,
-          }}
-          onLabelsChange={handleLabelsChange}
-        /> */}
+                {/* Placeholder for actual GeoLabelManager component */}
+                <PlaceholderMessage>
+                    <h2>3D Geometry Labeler</h2>
+                    <p>The full 3D geometry labeling interface would appear here.</p>
+                    <p>Geometry loaded: {geometryData.fileName}</p>
+                    <p>For now, you can use the submit button below to test the workflow.</p>
+                </PlaceholderMessage>
+                {/*
+                <GeoLabelManager
+                  geometryData={geometryData}
+                  geometryId={taskContext.geometryId}
+                  geometryMetadata={{
+                    filename: taskContext.geometryName,
+                    originalPath: taskContext.modelId,
+                  }}
+                  onLabelsChange={handleLabelsChange}
+                />
+                */}
             </GeoLabelManagerContainer>
 
             <SubmitBar>
@@ -99,15 +176,15 @@ export const GeoLabelManagerWrapper: React.FC<GeoLabelManagerWrapperProps> = ({
                 </TaskInfo>
 
                 <SubmitActions>
-                    <CancelButton $variant="secondary" onClick={onCancel}>
+                    <CancelButton $variant="secondary" onClick={onCancel} disabled={isSubmitting}>
                         Cancel
                     </CancelButton>
                     <SubmitButton
                         $variant="primary"
                         onClick={handleSubmit}
-                        disabled={labelCount === 0}
+                        disabled={labelCount === 0 || isSubmitting}
                     >
-                        Submit for Approval
+                        {isSubmitting ? "Submitting..." : "Submit for Approval"}
                     </SubmitButton>
                 </SubmitActions>
             </SubmitBar>
@@ -169,6 +246,28 @@ const GeoLabelManagerContainer = styled.div`
     overflow: hidden;
 `;
 
+const PlaceholderMessage = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: ${({ theme }) => theme.spacing[6]};
+    text-align: center;
+    color: ${({ theme }) => theme.colors.textMuted};
+
+    h2 {
+        font-size: ${({ theme }) => theme.typography.size.xl};
+        color: ${({ theme }) => theme.colors.textPrimary};
+        margin-bottom: ${({ theme }) => theme.spacing[4]};
+    }
+
+    p {
+        margin: ${({ theme }) => theme.spacing[2]} 0;
+        font-size: ${({ theme }) => theme.typography.size.md};
+    }
+`;
+
 const SubmitBar = styled.div`
     display: flex;
     justify-content: space-between;
@@ -216,24 +315,29 @@ const SubmitActions = styled.div`
 `;
 
 const CancelButton = styled(BaseButton)`
-  &:hover {
+  &:hover:not(:disabled) {
     background: ${({ theme }) => theme.colors.backgroundTertiary};
     border-color: ${({ theme }) => theme.colors.accentPrimary};
     color: ${({ theme }) => theme.colors.textPrimary};
-  }
-`;
-
-const SubmitButton = styled(BaseButton)`
-  background: ${({ theme }) => theme.colors.statusSuccess};
-  border-color: ${({ theme }) => theme.colors.statusSuccess};
-
-  &:hover:not(:disabled) {
-    background: ${({ theme }) => theme.colors.statusSuccess};
-    opacity: 0.9;
   }
 
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
+`;
+
+const SubmitButton = styled(BaseButton)`
+    background: ${({ theme }) => theme.colors.statusSuccess};
+    border-color: ${({ theme }) => theme.colors.statusSuccess};
+
+    &:hover:not(:disabled) {
+        background: ${({ theme }) => theme.colors.statusSuccess};
+        opacity: 0.9;
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
 `;

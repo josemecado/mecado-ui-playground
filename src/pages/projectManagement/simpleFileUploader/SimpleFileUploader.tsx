@@ -1,8 +1,20 @@
 import React, { useState, useRef } from "react";
 import styled from "styled-components";
 import { ChevronDown, ChevronUp, Upload, X, FileText, Package } from "lucide-react";
-import { TaskContext } from "../home/types/types";
-import {BaseButton} from "components/buttons/BaseButton";
+import { BaseButton } from "components/buttons/BaseButton";
+import { taskService } from "../api/services/taskService";
+import { useUser } from "../context/UserContext";
+
+interface TaskContext {
+    taskId: string;
+    taskType: 'geometry_upload' | 'geometry_labeling';
+    requiredFileCount?: number;
+    modelId?: string;
+    geometryId?: string;
+    geometryType?: 'edge' | 'face' | 'body';
+    geometryName?: string;
+    batchName?: string;
+}
 
 interface SimpleFileUploaderProps {
     taskContext: TaskContext;
@@ -15,9 +27,11 @@ export const SimpleFileUploader: React.FC<SimpleFileUploaderProps> = ({
                                                                           onSubmit,
                                                                           onCancel,
                                                                       }) => {
+    const { currentUser } = useUser();
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [detailsExpanded, setDetailsExpanded] = useState(true);
     const [filesExpanded, setFilesExpanded] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,14 +59,45 @@ export const SimpleFileUploader: React.FC<SimpleFileUploaderProps> = ({
         fileInputRef.current?.click();
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (selectedFiles.length === 0) {
             alert("Please select at least one STEP file before submitting");
             return;
         }
 
-        const fileNames = selectedFiles.map((file) => file.name);
-        onSubmit(taskContext.taskId, fileNames);
+        if (!currentUser) {
+            alert("No user logged in");
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            // Prepare file metadata (in real implementation, you'd upload to S3 here)
+            const fileMetadata = selectedFiles.map(file => ({
+                name: file.name,
+                size: file.size,
+            }));
+
+            console.log(`[SimpleFileUploader] Submitting ${fileMetadata.length} files for task ${taskContext.taskId}`);
+
+            // Submit files for review via taskService
+            await taskService.submitFilesForReview(
+                taskContext.taskId,
+                fileMetadata,
+                currentUser.email
+            );
+
+            console.log(`[SimpleFileUploader] Files submitted successfully for task ${taskContext.taskId}`);
+
+            // Call parent callback to navigate back
+            onSubmit(taskContext.taskId, selectedFiles.map(f => f.name));
+        } catch (error) {
+            console.error('[SimpleFileUploader] Failed to submit files:', error);
+            alert(`Failed to submit files: ${error.message || 'Unknown error'}`);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const requiredCount = taskContext.requiredFileCount || 0;
@@ -69,7 +114,7 @@ export const SimpleFileUploader: React.FC<SimpleFileUploaderProps> = ({
                     </TaskIcon>
                     <HeaderText>
                         <Title>{taskContext.batchName || "Upload Geometry Files"}</Title>
-                        <Subtitle>Manage your geometry labeling and upload tasks</Subtitle>
+                        <Subtitle>Upload STEP files for review</Subtitle>
                     </HeaderText>
                 </HeaderLeft>
                 <HeaderActions>
@@ -187,16 +232,22 @@ export const SimpleFileUploader: React.FC<SimpleFileUploaderProps> = ({
                             Upload Files
                         </FooterBadge>
                         <FooterRight>
-                            <CompleteBadge>Complete by 1/14/2025</CompleteBadge>
+                            <CompleteBadge>Task ID: {taskContext.taskId}</CompleteBadge>
                         </FooterRight>
                     </CardFooter>
                 </TaskCard>
 
                 {/* Action Buttons */}
                 <ActionButtons>
-                    <CancelButton $variant={"secondary"} onClick={onCancel}>Cancel</CancelButton>
-                    <SubmitButton $variant={"primary"} onClick={handleSubmit} disabled={selectedFiles.length === 0}>
-                        Submit for Approval
+                    <CancelButton $variant={"secondary"} onClick={onCancel} disabled={isSubmitting}>
+                        Cancel
+                    </CancelButton>
+                    <SubmitButton
+                        $variant={"primary"}
+                        onClick={handleSubmit}
+                        disabled={selectedFiles.length === 0 || isSubmitting}
+                    >
+                        {isSubmitting ? "Submitting..." : "Submit for Approval"}
                     </SubmitButton>
                 </ActionButtons>
             </ContentWrapper>
@@ -269,14 +320,14 @@ const HeaderActions = styled.div`
 `;
 
 const StatusBadge = styled.div<{ $complete: boolean }>`
-  padding: ${({ theme }) => `${theme.spacing[2]} ${theme.spacing[3]}`};
-  background: ${({ theme, $complete }) =>
-    $complete ? theme.colors.statusSuccess : theme.colors.accentPrimary};
-  color: ${({ theme }) => theme.colors.textInverted};
-  border-radius: ${({ theme }) => theme.radius.pill};
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  font-weight: ${({ theme }) => theme.typography.weight.semiBold};
-  font-family: ${({ theme }) => theme.typography.family.mono};
+    padding: ${({ theme }) => `${theme.spacing[2]} ${theme.spacing[3]}`};
+    background: ${({ theme, $complete }) =>
+            $complete ? theme.colors.statusSuccess : theme.colors.accentPrimary};
+    color: ${({ theme }) => theme.colors.textInverted};
+    border-radius: ${({ theme }) => theme.radius.pill};
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    font-weight: ${({ theme }) => theme.typography.weight.semiBold};
+    font-family: ${({ theme }) => theme.typography.family.mono};
 `;
 
 const ContentWrapper = styled.div`
@@ -299,8 +350,8 @@ const TaskCard = styled.div`
 `;
 
 const CardSection = styled.div`
-  display: flex;
-  flex-direction: column;
+    display: flex;
+    flex-direction: column;
 `;
 
 const SectionHeader = styled.div`
@@ -345,18 +396,18 @@ const DetailLabel = styled.div`
 `;
 
 const DetailValue = styled.div`
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  color: ${({ theme }) => theme.colors.textPrimary};
-  padding: ${({ theme }) => theme.spacing[2]};
-  background: ${({ theme }) => theme.colors.backgroundTertiary};
-  border-radius: ${({ theme }) => theme.radius.md};
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    color: ${({ theme }) => theme.colors.textPrimary};
+    padding: ${({ theme }) => theme.spacing[2]};
+    background: ${({ theme }) => theme.colors.backgroundTertiary};
+    border-radius: ${({ theme }) => theme.radius.md};
 `;
 
 const ProgressWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacing[2]};
-  margin-top: ${({ theme }) => theme.spacing[2]};
+    display: flex;
+    flex-direction: column;
+    gap: ${({ theme }) => theme.spacing[2]};
+    margin-top: ${({ theme }) => theme.spacing[2]};
 `;
 
 const ProgressBar = styled.div`
@@ -393,21 +444,21 @@ const HiddenFileInput = styled.input`
 `;
 
 const UploadZone = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: ${({ theme }) => theme.spacing[6]};
-  border: 2px dashed ${({ theme }) => theme.colors.borderDefault};
-  border-radius: ${({ theme }) => theme.radius.md};
-  background: ${({ theme }) => theme.colors.backgroundTertiary};
-  cursor: pointer;
-  transition: all ${({ theme }) => theme.animation.duration.fast};
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${({ theme }) => theme.spacing[6]};
+    border: 2px dashed ${({ theme }) => theme.colors.borderDefault};
+    border-radius: ${({ theme }) => theme.radius.md};
+    background: ${({ theme }) => theme.colors.backgroundTertiary};
+    cursor: pointer;
+    transition: all ${({ theme }) => theme.animation.duration.fast};
 
-  &:hover {
-    border-color: ${({ theme }) => theme.colors.brandPrimary};
-    background: ${({ theme }) => theme.colors.backgroundQuaternary};
-  }
+    &:hover {
+        border-color: ${({ theme }) => theme.colors.brandPrimary};
+        background: ${({ theme }) => theme.colors.backgroundQuaternary};
+    }
 `;
 
 const UploadIcon = styled.div`
@@ -515,14 +566,14 @@ const EmptyState = styled.div`
 `;
 
 const EmptyIcon = styled.div`
-  display: flex;
-  color: ${({ theme }) => theme.colors.textMuted};
-  opacity: 0.5;
+    display: flex;
+    color: ${({ theme }) => theme.colors.textMuted};
+    opacity: 0.5;
 `;
 
 const EmptyText = styled.div`
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  color: ${({ theme }) => theme.colors.textMuted};
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    color: ${({ theme }) => theme.colors.textMuted};
 `;
 
 const CardFooter = styled.div`
@@ -534,15 +585,15 @@ const CardFooter = styled.div`
 `;
 
 const FooterBadge = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.spacing[1.5]};
-  padding: ${({ theme }) => `${theme.primitives.paddingX.xxxs} ${theme.primitives.paddingX.xsm}`};
-  background: ${({ theme }) => theme.colors.accentPrimary};
-  color: ${({ theme }) => theme.primitives.colors.text1000};
-  border-radius: ${({ theme }) => theme.radius.md};
-  font-size: ${({ theme }) => theme.typography.size.xsm};
-  font-weight: ${({ theme }) => theme.typography.weight.medium};
+    display: flex;
+    align-items: center;
+    gap: ${({ theme }) => theme.spacing[1.5]};
+    padding: ${({ theme }) => `${theme.primitives.paddingX.xxxs} ${theme.primitives.paddingX.xsm}`};
+    background: ${({ theme }) => theme.colors.accentPrimary};
+    color: ${({ theme }) => theme.primitives.colors.text1000};
+    border-radius: ${({ theme }) => theme.radius.md};
+    font-size: ${({ theme }) => theme.typography.size.xsm};
+    font-weight: ${({ theme }) => theme.typography.weight.medium};
 `;
 
 const FooterRight = styled.div`
@@ -552,33 +603,38 @@ const FooterRight = styled.div`
 `;
 
 const CompleteBadge = styled.div`
-  font-size: ${({ theme }) => theme.typography.size.xsm};
-  color: ${({ theme }) => theme.colors.textMuted};
+    font-size: ${({ theme }) => theme.typography.size.xsm};
+    color: ${({ theme }) => theme.colors.textMuted};
 `;
 
 const ActionButtons = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: ${({ theme }) => theme.spacing[3]};
+    display: flex;
+    justify-content: flex-end;
+    gap: ${({ theme }) => theme.spacing[3]};
 `;
 
 const CancelButton = styled(BaseButton)<{ $variant: "primary" | "secondary" }>`
 
-  &:hover {
-    background: ${({ theme }) => theme.colors.backgroundTertiary};
-    border-color: ${({ theme }) => theme.colors.accentPrimary};
-    color: ${({ theme }) => theme.colors.textPrimary};
-  }
+    &:hover:not(:disabled) {
+        background: ${({ theme }) => theme.colors.backgroundTertiary};
+        border-color: ${({ theme }) => theme.colors.accentPrimary};
+        color: ${({ theme }) => theme.colors.textPrimary};
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
 `;
 
 const SubmitButton = styled(BaseButton)<{ $variant: "primary" | "secondary" }>`
-  &:hover:not(:disabled) {
-    background: ${({ theme }) => theme.colors.statusSuccess};
-    opacity: 0.9;
-  }
+    &:hover:not(:disabled) {
+        background: ${({ theme }) => theme.colors.statusSuccess};
+        opacity: 0.9;
+    }
 
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
 `;
