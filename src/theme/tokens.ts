@@ -33,9 +33,13 @@ const primitives = {
 
         // Text Colors
         text000: "#352F36", // Primary (Light)
-        text300: "#97979D", // Muted (Dark)
-        text700: "#738491", // Muted (Light)
+        text300: "#636369", // Muted (Dark)
+        text400: "#97979D", // MutedStrong (Dark)
+        text600: "#636369", // MutedStrong (Light)
+        text700: "#97979D", // Muted (Light)
         text1000: "#EAE9F0", // Primary (Dark)
+        textAccent000: "#738491",
+        textAccent1000: "#6e7f8c",
 
         // Grays (organized from darkest to lightest)
         gray000: "#000000", // Black
@@ -120,7 +124,8 @@ const primitives = {
 
     radius: {
         none: "0",
-        sm: "0.25rem",
+        xsm: "0.25rem",
+        sm: "0.4rem",
         md: "0.5rem",
         md2: "0.625rem",
         lg: "0.75rem",
@@ -129,6 +134,7 @@ const primitives = {
     },
 
     fontSize: {
+        xxs: "0.6rem",
         xsm: "0.75rem",
         sm: "0.875rem",
         md: "1rem",
@@ -170,6 +176,8 @@ const aliasTokens = {
         // Text (--text-*)
         textPrimary: primitives.colors.text000,
         textMuted: primitives.colors.text700,
+        textMutedStrong: primitives.colors.text600,
+        textAccent: primitives.colors.textAccent000,
         textInverted: primitives.colors.text1000,
 
         // Borders (--border-*)
@@ -209,6 +217,8 @@ const aliasTokens = {
         // Text (--text-*)
         textPrimary: primitives.colors.text1000,
         textMuted: primitives.colors.text300,
+        textMutedStrong: primitives.colors.text400,
+        textAccent: primitives.colors.textAccent1000,
         textInverted: primitives.colors.text000,
 
         // Borders (--border-*)
@@ -272,10 +282,19 @@ const componentTokens = {
     },
 
     card: {
+        typography: {
+            titleFontSize: primitives.fontSize.sm,
+            subTitleFontSize: primitives.fontSize.xsm,
+            titleFontWeight: primitives.fontWeight.medium,
+        },
         width: primitives.widths.mediumCard,
         heightMedium: primitives.heights.mediumCard,
-        padding: primitives.spacing[4],
-        radius: primitives.radius.lg,
+        padding: {
+            containerPadding: primitives.padding.sm,
+            componentPadding: primitives.padding.xsm,
+            tinyPadding: primitives.padding.xxs,
+        },
+        radius: primitives.radius.md,
         gap: primitives.spacing[3],
     },
 

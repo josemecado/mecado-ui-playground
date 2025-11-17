@@ -2,7 +2,7 @@
 import React from "react";
 import styled from "styled-components";
 import { AdminBoardColumn, UnifiedTask } from "../types/admin.types";
-import { AdminTaskCard } from "./AdminTaskCard";
+import { AdminTaskCard } from "./card/AdminTaskCard";
 import { Inbox } from "lucide-react";
 
 interface AdminTaskColumnProps {
