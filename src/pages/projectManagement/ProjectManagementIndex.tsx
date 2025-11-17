@@ -1,19 +1,31 @@
+// ProjectManagementIndex.tsx
+// Updated to use UserContext and unified task system
+
 import React, { useState } from "react";
 import styled from "styled-components";
 import SideMenu from "./sideMenu/SideMenu";
 import HomeView from "./home/HomeView";
 import { ViewType } from "./sideMenu/components/sharedComponents";
-import { TaskContext } from "./home/types/types";
-import { SimpleLabelCreator } from "./simpleLabelCreator/SimpleLabelCreator";
 import { SimpleFileUploader } from "./simpleFileUploader/SimpleFileUploader";
 import { GeoLabelManagerWrapper } from "./geoLabelWrapper/Geolabelmanagerwrapper";
-import { updateTaskStatus } from "./home/utils/mockTasks";
 import { GeometryData } from "./types/geometry.types";
 import { AdminDashboardView } from "./admin";
+import { UserProvider } from "./context/UserContext";
 import type { UnifiedTask } from "./admin/types/admin.types";
 
-export const ProjectManagementIndex: React.FC = () => {
-    const [activeView, setActiveView] = useState<ViewType>("admin-dashboard");
+interface TaskContext {
+    taskId: string;
+    taskType: 'geometry_upload' | 'geometry_labeling';
+    requiredFileCount?: number;
+    modelId?: string;
+    geometryId?: string;
+    geometryType?: 'edge' | 'face' | 'body';
+    geometryName?: string;
+    batchName?: string;
+}
+
+const ProjectManagementIndexInner: React.FC = () => {
+    const [activeView, setActiveView] = useState<ViewType>("home");
     const [taskContext, setTaskContext] = useState<TaskContext | null>(null);
     const [geometryData, setGeometryData] = useState<GeometryData | null>(null);
     const [geometryLoaded, setGeometryLoaded] = useState(false);
@@ -74,14 +86,14 @@ export const ProjectManagementIndex: React.FC = () => {
         }
     };
 
-    const handleLabelSubmit = (taskId: string, labels: string[]) => {
-        updateTaskStatus(taskId, "pending", undefined, labels);
+    const handleFileUploadComplete = (taskId: string, fileNames: string[]) => {
+        console.log(`[ProjectManagementIndex] File upload completed for task ${taskId}`);
         setActiveView("home");
         setTaskContext(null);
     };
 
-    const handleFileUploadSubmit = (taskId: string, fileNames: string[]) => {
-        updateTaskStatus(taskId, "pending", undefined, undefined, fileNames);
+    const handleLabelingComplete = (taskId: string, labels: string[]) => {
+        console.log(`[ProjectManagementIndex] Labeling completed for task ${taskId}`);
         setActiveView("home");
         setTaskContext(null);
     };
@@ -91,19 +103,12 @@ export const ProjectManagementIndex: React.FC = () => {
         setTaskContext(null);
     };
 
-    // ===== NEW: Admin handlers =====
+    // Admin handlers
     const handleAdminTaskClick = (task: UnifiedTask) => {
-        console.log("Admin clicked task:", task);
-        // TODO: Navigate to task detail view or open modal
+        console.log('[ProjectManagementIndex] Admin clicked task:', task);
+        // TODO: Navigate to task detail view or open edit modal
         alert(`Task: ${task.title}\nStage: ${task.stage}\nAssigned to: ${task.assignedTo}`);
     };
-
-    const handleCreateTask = () => {
-        console.log("Create task clicked");
-        // TODO: Navigate to task creation form
-        alert("Task creation form will be implemented in Phase 2");
-    };
-    // ===============================
 
     const renderView = () => {
         switch (activeView) {
@@ -122,22 +127,19 @@ export const ProjectManagementIndex: React.FC = () => {
             case "notifications":
                 return <ViewPlaceholder>Notifications View</ViewPlaceholder>;
 
-            // ===== NEW: Admin dashboard view =====
             case "admin-dashboard":
                 return (
                     <AdminDashboardView
                         onTaskClick={handleAdminTaskClick}
-                        onCreateTask={handleCreateTask}
                     />
                 );
-            // =====================================
 
             case "geometry-labeler":
                 return taskContext ? (
                     <GeoLabelManagerWrapper
                         taskContext={taskContext}
                         geometryData={geometryData}
-                        onSubmitLabels={handleLabelSubmit}
+                        onSubmitLabels={handleLabelingComplete}
                         onCancel={handleCancel}
                     />
                 ) : (
@@ -148,7 +150,7 @@ export const ProjectManagementIndex: React.FC = () => {
                 return taskContext ? (
                     <SimpleFileUploader
                         taskContext={taskContext}
-                        onSubmit={handleFileUploadSubmit}
+                        onSubmit={handleFileUploadComplete}
                         onCancel={handleCancel}
                     />
                 ) : (
@@ -156,11 +158,10 @@ export const ProjectManagementIndex: React.FC = () => {
                 );
 
             case "geometry-library":
-                // <SimpleGeometryBrowser onGeometrySelect={() => {}} />; for vulcan-desktop
-                return <ViewPlaceholder>No task context available</ViewPlaceholder>;
+                return <ViewPlaceholder>Geometry Library (Coming Soon)</ViewPlaceholder>;
 
             default:
-                return <ViewPlaceholder>Home Dashboard View</ViewPlaceholder>;
+                return <ViewPlaceholder>View Not Found</ViewPlaceholder>;
         }
     };
 
@@ -169,6 +170,15 @@ export const ProjectManagementIndex: React.FC = () => {
             <SideMenu activeView={activeView} onViewChange={setActiveView} />
             <MainContent>{renderView()}</MainContent>
         </LayoutContainer>
+    );
+};
+
+// Wrap with UserProvider
+export const ProjectManagementIndex: React.FC = () => {
+    return (
+        <UserProvider>
+            <ProjectManagementIndexInner />
+        </UserProvider>
     );
 };
 
@@ -215,29 +225,4 @@ const ViewPlaceholder = styled.div`
     font-size: ${({ theme }) => theme.typography.size.xl};
     color: ${({ theme }) => theme.colors.textMuted};
     gap: ${({ theme }) => theme.spacing[4]};
-`;
-
-const ContextInfo = styled.div`
-    padding: ${({ theme }) => theme.spacing[4]};
-    background: ${({ theme }) => theme.colors.backgroundSecondary};
-    border: 1px solid ${({ theme }) => theme.colors.borderDefault};
-    border-radius: ${({ theme }) => theme.radius.lg};
-    max-width: 600px;
-
-    h3 {
-        margin: 0 0 ${({ theme }) => theme.spacing[2]} 0;
-        color: ${({ theme }) => theme.colors.textPrimary};
-        font-size: ${({ theme }) => theme.typography.size.lg};
-    }
-
-    pre {
-        margin: 0;
-        padding: ${({ theme }) => theme.spacing[3]};
-        background: ${({ theme }) => theme.colors.backgroundPrimary};
-        border-radius: ${({ theme }) => theme.radius.md};
-        font-family: ${({ theme }) => theme.typography.family.mono};
-        font-size: ${({ theme }) => theme.typography.size.sm};
-        color: ${({ theme }) => theme.colors.accentPrimary};
-        overflow-x: auto;
-    }
 `;

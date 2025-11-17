@@ -1,15 +1,18 @@
 // admin/views/AdminDashboardView.tsx
-import React, {useState, useMemo} from "react";
+// Updated to use unified task service
+
+import React, { useState, useMemo, useEffect } from "react";
 import styled from "styled-components";
-import {Plus} from "lucide-react";
-import {UnifiedTask, CreateTaskInput, ReviewAction} from "../types/admin.types";
-import {AdminTaskBoard} from "../components/AdminTaskBoard";
-import {AdminTasksTable} from "../components/AdminTasksTable";
-import {TaskCreationForm} from "../components/TaskCreationForm";
-import {ReviewSubmissionModal} from "../components/ReviewSubmissionModal";
-import {AdminViewControls, ViewMode, SortBy, SortOrder, StatusFilter} from "../components/AdminViewControls";
-import {mockAdminTasks} from "../utils/mockAdminData";
-import {BaseButton} from "components/buttons/BaseButton";
+import { Plus } from "lucide-react";
+import { UnifiedTask, CreateTaskInput, ReviewAction } from "../types/admin.types";
+import { AdminTaskBoard } from "../components/AdminTaskBoard";
+import { AdminTasksTable } from "../components/AdminTasksTable";
+import { TaskCreationForm } from "../components/TaskCreationForm";
+import { ReviewSubmissionModal } from "../components/ReviewSubmissionModal";
+import { AdminViewControls, ViewMode, SortBy, SortOrder, StatusFilter } from "../components/AdminViewControls";
+import { taskService } from "../../api/services/taskService";
+import { useUser } from "../../context/UserContext";
+import { BaseButton } from "components/buttons/BaseButton";
 
 interface AdminDashboardViewProps {
     onTaskClick?: (task: UnifiedTask) => void;
@@ -37,7 +40,9 @@ const getColumnStatus = (stage: UnifiedTask['stage']): StatusFilter => {
 export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                                                                           onTaskClick,
                                                                       }) => {
-    const [tasks, setTasks] = useState<UnifiedTask[]>(mockAdminTasks);
+    const { currentUser } = useUser();
+    const [tasks, setTasks] = useState<UnifiedTask[]>([]);
+    const [loading, setLoading] = useState(true);
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [reviewingTask, setReviewingTask] = useState<UnifiedTask | null>(null);
 
@@ -55,6 +60,30 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     // Sorting
     const [sortBy, setSortBy] = useState<SortBy>('status');
     const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
+    // Load all tasks on mount (admin can see everything)
+    useEffect(() => {
+        const loadTasks = async () => {
+            setLoading(true);
+            try {
+                const allTasks = await taskService.getAllTasks();
+                setTasks(allTasks);
+            } catch (error) {
+                console.error('[AdminDashboardView] Failed to load tasks:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadTasks();
+
+        // Subscribe to task changes
+        const unsubscribe = taskService.subscribe((updatedTasks) => {
+            setTasks(updatedTasks);
+        });
+
+        return unsubscribe;
+    }, []);
 
     // Get unique users for filter dropdown
     const availableUsers = useMemo(() => {
@@ -107,7 +136,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     break;
 
                 case 'priority':
-                    const priorityOrder = {urgent: 0, high: 1, medium: 2, low: 3};
+                    const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
                     comparison = priorityOrder[a.priority] - priorityOrder[b.priority];
                     break;
 
@@ -139,167 +168,80 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     }, [tasks, searchQuery, filterPriority, filterStatus, filterAssignedTo, sortBy, sortOrder]);
 
     const handleViewSubmission = (task: UnifiedTask) => {
-        console.log("🔍 View submission clicked for task:", task.id, task.title);
+        console.log('[AdminDashboardView] View submission clicked for task:', task.id, task.title);
         setReviewingTask(task);
     };
 
     const handleEdit = (task: UnifiedTask) => {
-        console.log("Edit task:", task);
+        console.log('[AdminDashboardView] Edit task:', task);
         onTaskClick?.(task);
+        // TODO: Navigate to edit view or open edit modal
     };
 
-    const handleApproveSubmission = (action: ReviewAction) => {
-        setTasks((prev) =>
-            prev.map((task) => {
-                if (task.id !== action.taskId) return task;
+    const handleApproveSubmission = async (action: ReviewAction) => {
+        if (!currentUser) {
+            alert('No user logged in');
+            return;
+        }
 
-                let newStage: UnifiedTask['stage'];
-                const isUploadReview = task.stage === 'upload_review';
+        try {
+            await taskService.reviewSubmission(
+                { ...action, approved: true },
+                currentUser.email
+            );
+            setReviewingTask(null);
+            console.log('[AdminDashboardView] Approved submission:', action.taskId);
+        } catch (error) {
+            console.error('[AdminDashboardView] Failed to approve submission:', error);
+            alert('Failed to approve submission');
+        }
+    };
 
-                if (isUploadReview) {
-                    newStage = 'upload_approved';
-                } else {
-                    newStage = 'labeling_approved';
-                }
+    const handleRejectSubmission = async (action: ReviewAction) => {
+        if (!currentUser) {
+            alert('No user logged in');
+            return;
+        }
 
-                const updatedTask: UnifiedTask = {
-                    ...task,
-                    stage: newStage,
-                    updatedAt: new Date(),
-                };
+        try {
+            await taskService.reviewSubmission(
+                { ...action, approved: false },
+                currentUser.email
+            );
+            setReviewingTask(null);
+            console.log('[AdminDashboardView] Rejected submission:', action.taskId);
+        } catch (error) {
+            console.error('[AdminDashboardView] Failed to reject submission:', error);
+            alert('Failed to reject submission');
+        }
+    };
 
-                if (isUploadReview && task.uploadData) {
-                    updatedTask.uploadData = {
-                        ...task.uploadData,
-                        review: {
-                            reviewedBy: 'admin@mecado.com',
-                            reviewedAt: new Date(),
-                            approved: true,
-                            notes: action.notes,
-                        },
-                    };
-                } else if (task.labelingData) {
-                    updatedTask.labelingData = {
-                        ...task.labelingData,
-                        review: {
-                            reviewedBy: 'admin@mecado.com',
-                            reviewedAt: new Date(),
-                            approved: true,
-                            notes: action.notes,
-                        },
-                    };
-                }
+    const handleCreateTaskSubmit = async (input: CreateTaskInput) => {
+        if (!currentUser) {
+            alert('No user logged in');
+            return;
+        }
 
-                updatedTask.history = [
-                    ...task.history,
-                    {
-                        timestamp: new Date(),
-                        action: isUploadReview ? 'upload_approved' : 'labeling_approved',
-                        user: 'admin@mecado.com',
-                        notes: action.notes,
-                    },
-                ];
+        try {
+            await taskService.createTask(input, currentUser.email);
+            setShowCreateForm(false);
+            console.log('[AdminDashboardView] Created task:', input.title);
+        } catch (error) {
+            console.error('[AdminDashboardView] Failed to create task:', error);
+            alert('Failed to create task');
+        }
+    };
 
-                return updatedTask;
-            })
+    if (loading) {
+        return (
+            <DashboardContainer>
+                <LoadingState>
+                    <LoadingSpinner />
+                    <LoadingText>Loading tasks...</LoadingText>
+                </LoadingState>
+            </DashboardContainer>
         );
-
-        setReviewingTask(null);
-    };
-
-    const handleRejectSubmission = (action: ReviewAction) => {
-        setTasks((prev) =>
-            prev.map((task) => {
-                if (task.id !== action.taskId) return task;
-
-                let newStage: UnifiedTask['stage'];
-                const isUploadReview = task.stage === 'upload_review';
-
-                if (isUploadReview) {
-                    newStage = 'pending_upload';
-                } else {
-                    newStage = 'pending_labeling';
-                }
-
-                const updatedTask: UnifiedTask = {
-                    ...task,
-                    stage: newStage,
-                    updatedAt: new Date(),
-                };
-
-                if (isUploadReview && task.uploadData) {
-                    updatedTask.uploadData = {
-                        ...task.uploadData,
-                        review: {
-                            reviewedBy: 'admin@mecado.com',
-                            reviewedAt: new Date(),
-                            approved: false,
-                            notes: action.notes,
-                        },
-                    };
-                } else if (task.labelingData) {
-                    updatedTask.labelingData = {
-                        ...task.labelingData,
-                        review: {
-                            reviewedBy: 'admin@mecado.com',
-                            reviewedAt: new Date(),
-                            approved: false,
-                            notes: action.notes,
-                        },
-                    };
-                }
-
-                updatedTask.history = [
-                    ...task.history,
-                    {
-                        timestamp: new Date(),
-                        action: isUploadReview ? 'upload_rejected' : 'labeling_rejected',
-                        user: 'admin@mecado.com',
-                        notes: action.notes,
-                    },
-                ];
-
-                return updatedTask;
-            })
-        );
-
-        setReviewingTask(null);
-    };
-
-    const handleCreateTaskSubmit = (input: CreateTaskInput) => {
-        const newTask: UnifiedTask = {
-            id: `task-${Date.now()}`,
-            stage: "pending_upload",
-            priority: input.priority,
-            title: input.title,
-            description: input.description,
-            requirements: input.requirements,
-            referenceLinks: input.referenceLinks,
-            assignedTo: input.assignedTo,
-            createdBy: "admin@mecado.com",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            dueDate: input.dueDate,
-            uploadData: {
-                requiredFileCount: input.requiredFileCount,
-                uploadedFiles: [],
-            },
-            labelingData: {
-                labels: [],
-            },
-            history: [
-                {
-                    timestamp: new Date(),
-                    action: "created",
-                    user: "admin@mecado.com",
-                    notes: `Task created and assigned to ${input.assignedTo}`,
-                },
-            ],
-        };
-
-        setTasks([newTask, ...tasks]);
-        setShowCreateForm(false);
-    };
+    }
 
     return (
         <>
@@ -308,14 +250,16 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     <HeaderTop>
                         <HeaderContent>
                             <Title>Task Management</Title>
-                            <Subtitle>Manage and review all annotation tasks</Subtitle>
+                            <Subtitle>
+                                Manage and review all annotation tasks ({tasks.length} total)
+                            </Subtitle>
                         </HeaderContent>
                         <HeaderActions>
                             <CreateTaskButton
                                 $variant="primary"
                                 onClick={() => setShowCreateForm(true)}
                             >
-                                <Plus size={18}/>
+                                <Plus size={18} />
                                 Create Task
                             </CreateTaskButton>
                         </HeaderActions>
@@ -386,16 +330,16 @@ const DashboardContainer = styled.div`
     flex-direction: column;
     height: 100%;
     width: 100%;
-    background: ${({theme}) => theme.colors.backgroundPrimary};
+    background: ${({ theme }) => theme.colors.backgroundPrimary};
 `;
 
 const DashboardHeader = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${({theme}) => theme.spacing[4]};
-    padding: ${({theme}) => theme.spacing[6]};
-    background: ${({theme}) => theme.colors.backgroundSecondary};
-    border-bottom: 1px solid ${({theme}) => theme.colors.borderDefault};
+    gap: ${({ theme }) => theme.spacing[4]};
+    padding: ${({ theme }) => theme.spacing[6]};
+    background: ${({ theme }) => theme.colors.backgroundSecondary};
+    border-bottom: 1px solid ${({ theme }) => theme.colors.borderDefault};
 `;
 
 const HeaderTop = styled.div`
@@ -407,35 +351,35 @@ const HeaderTop = styled.div`
 const HeaderContent = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${({theme}) => theme.spacing[1]};
+    gap: ${({ theme }) => theme.spacing[1]};
 `;
 
 const Title = styled.h1`
-    font-size: ${({theme}) => theme.typography.size.xxl};
-    font-weight: ${({theme}) => theme.typography.weight.bold};
-    color: ${({theme}) => theme.colors.textPrimary};
+    font-size: ${({ theme }) => theme.typography.size.xxl};
+    font-weight: ${({ theme }) => theme.typography.weight.bold};
+    color: ${({ theme }) => theme.colors.textPrimary};
     margin: 0;
 `;
 
 const Subtitle = styled.p`
-    font-size: ${({theme}) => theme.typography.size.md};
-    color: ${({theme}) => theme.colors.textMuted};
+    font-size: ${({ theme }) => theme.typography.size.md};
+    color: ${({ theme }) => theme.colors.textMuted};
     margin: 0;
 `;
 
 const HeaderActions = styled.div`
     display: flex;
-    gap: ${({theme}) => theme.spacing[3]};
+    gap: ${({ theme }) => theme.spacing[3]};
     align-items: center;
 `;
 
 const CreateTaskButton = styled(BaseButton)`
     display: flex;
     align-items: center;
-    gap: ${({theme}) => theme.spacing[1]};
-    background: ${({theme}) => theme.colors.brandPrimary};
-    color: ${({theme}) => theme.colors.textInverted};
-    padding: ${({theme}) => `${theme.primitives.paddingY.sm} ${theme.primitives.paddingX.lg}`};
+    gap: ${({ theme }) => theme.spacing[1]};
+    background: ${({ theme }) => theme.colors.brandPrimary};
+    color: ${({ theme }) => theme.colors.textInverted};
+    padding: ${({ theme }) => `${theme.primitives.paddingY.sm} ${theme.primitives.paddingX.lg}`};
 
     &:hover:not(:disabled) {
         opacity: 0.9;
@@ -450,4 +394,31 @@ const CreateTaskButton = styled(BaseButton)`
 const ContentWrapper = styled.div`
     flex: 1;
     overflow: hidden;
+`;
+
+const LoadingState = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: ${({ theme }) => theme.spacing[4]};
+`;
+
+const LoadingSpinner = styled.div`
+    width: 48px;
+    height: 48px;
+    border: 4px solid ${({ theme }) => theme.colors.borderSubtle};
+    border-top-color: ${({ theme }) => theme.colors.brandPrimary};
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+`;
+
+const LoadingText = styled.div`
+    font-size: ${({ theme }) => theme.typography.size.md};
+    color: ${({ theme }) => theme.colors.textMuted};
 `;
