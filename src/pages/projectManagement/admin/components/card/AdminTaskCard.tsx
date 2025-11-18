@@ -1,23 +1,28 @@
-// admin/components/AdminTaskCard.tsx
-import React, {useState, useRef} from "react";
+// admin/components/card/AdminTaskCard.tsx
+import React, { useState, useRef } from "react";
 import styled from "styled-components";
-import {Tags, FileText, CheckCircle2, FileBox} from "lucide-react";
-import {UnifiedTask} from "../../types/admin.types";
-import {formatFileSize, getUsernameFromEmail} from "../../utils/adminHelpers";
-import {TaskCardHeader} from "./TaskCardHeader";
-import {TaskCardExpandableSection} from "./TaskCardExpandableSection";
-import {TaskCardFooter} from "./TaskCardFooter";
+import { Tags, FileText, CheckCircle2, FileBox } from "lucide-react";
+import { UnifiedTask, User } from "../../types/admin.types";
+import { formatFileSize } from "../../utils/adminHelpers";
+import { TaskCardHeader } from "./TaskCardHeader";
+import { TaskCardExpandableSection } from "./TaskCardExpandableSection";
+import { TaskCardFooter } from "./TaskCardFooter";
+import { TaskCardQuickAssign } from "./TaskCardQuickAssign";
 
 interface AdminTaskCardProps {
     task: UnifiedTask;
+    availableUsers?: User[];
     onViewSubmission?: (task: UnifiedTask) => void;
     onEdit?: (task: UnifiedTask) => void;
+    onAssign?: (taskId: string, userEmail: string) => void;
 }
 
 export const AdminTaskCard: React.FC<AdminTaskCardProps> = ({
                                                                 task,
+                                                                availableUsers = [],
                                                                 onViewSubmission,
                                                                 onEdit,
+                                                                onAssign,
                                                             }) => {
     // Expansion state
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
@@ -25,14 +30,16 @@ export const AdminTaskCard: React.FC<AdminTaskCardProps> = ({
     const [isHovered, setIsHovered] = useState(false);
     const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+    // Check if task is unassigned
+    const isUnassigned = !task.assignedTo;
+
     // Determine task state and stage
     const isAwaitingReview = task.stage === 'upload_review' || task.stage === 'labeling_review';
     const isCompleted = task.stage === 'completed' || task.stage === 'labeling_approved';
-    const isInProgress = !isAwaitingReview && !isCompleted;
+    const isInProgress = !isAwaitingReview && !isCompleted && !isUnassigned;
 
     // Determine which stage (upload or labeling)
     const isUploadStage = task.stage === 'pending_upload' || task.stage === 'upload_review' || task.stage === 'upload_approved';
-    const isLabelingStage = task.stage === 'pending_labeling' || task.stage === 'labeling_review' || task.stage === 'labeling_approved' || task.stage === 'completed';
 
     // Get review data
     const uploadReview = task.uploadData?.review;
@@ -47,7 +54,7 @@ export const AdminTaskCard: React.FC<AdminTaskCardProps> = ({
     const handleMouseEnter = () => {
         hoverTimeoutRef.current = setTimeout(() => {
             setIsHovered(true);
-        }, 400); // 500ms = half second
+        }, 400);
     };
 
     const handleMouseLeave = () => {
@@ -57,8 +64,16 @@ export const AdminTaskCard: React.FC<AdminTaskCardProps> = ({
         setIsHovered(false);
     };
 
+    const handleAssign = (userEmail: string) => {
+        if (onAssign) {
+            onAssign(task.id, userEmail);
+        }
+    };
+
     // Get status badge text
     const getStatusBadgeText = () => {
+        if (isUnassigned) return 'Unassigned';
+
         switch (task.stage) {
             case 'pending_upload':
                 return 'Pending Upload';
@@ -84,10 +99,17 @@ export const AdminTaskCard: React.FC<AdminTaskCardProps> = ({
         >
             {/* Header */}
             <TaskCardHeader
-                icon={isUploadStage ? <FileBox size={14}/> : <Tags size={14}/>}
-                title={task.title}
+                task={task}
+                icon={isUploadStage ? <FileBox size={14} /> : <Tags size={14} />}
                 isUploadStage={isUploadStage}
             />
+
+            {/* Unassigned Banner */}
+            {isUnassigned && (
+                <UnassignedBanner>
+                    <BannerText>This task needs to be assigned</BannerText>
+                </UnassignedBanner>
+            )}
 
             {/* Description Section */}
             <TaskCardExpandableSection
@@ -113,7 +135,7 @@ export const AdminTaskCard: React.FC<AdminTaskCardProps> = ({
                         <FileRow key={idx}>
                             <FileInfo>
                                 <FileIcon>
-                                    <FileText size={14}/>
+                                    <FileText size={14} />
                                 </FileIcon>
                                 <FileName>{file.name}</FileName>
                             </FileInfo>
@@ -142,8 +164,7 @@ export const AdminTaskCard: React.FC<AdminTaskCardProps> = ({
                 <TaskCardExpandableSection
                     title="Rejection Reason"
                     isExpanded={true}
-                    onToggle={() => {
-                    }}
+                    onToggle={() => {}}
                     alwaysOpen
                 >
                     <RejectionText>{rejectionReason}</RejectionText>
@@ -155,8 +176,7 @@ export const AdminTaskCard: React.FC<AdminTaskCardProps> = ({
                 <TaskCardExpandableSection
                     title="Review Notes"
                     isExpanded={true}
-                    onToggle={() => {
-                    }}
+                    onToggle={() => {}}
                     alwaysOpen
                 >
                     <ReviewNotesText>
@@ -172,13 +192,13 @@ export const AdminTaskCard: React.FC<AdminTaskCardProps> = ({
                 <LabelsRow>
                     {task.labelingData.labels.slice(0, 2).map((label, idx) => (
                         <LabelBadge key={idx}>
-                            <CheckCircle2 size={12}/>
+                            <CheckCircle2 size={12} />
                             {label}
                         </LabelBadge>
                     ))}
                     {task.labelingData.labels.length > 2 && (
                         <LabelBadge>
-                            <CheckCircle2 size={12}/>
+                            <CheckCircle2 size={12} />
                             +{task.labelingData.labels.length - 2}
                         </LabelBadge>
                     )}
@@ -193,7 +213,16 @@ export const AdminTaskCard: React.FC<AdminTaskCardProps> = ({
                 showEdit={isInProgress}
                 onViewSubmission={() => onViewSubmission?.(task)}
                 onEdit={() => onEdit?.(task)}
-            />
+            >
+                {/* Quick Assign for unassigned tasks */}
+                {isUnassigned && availableUsers.length > 0 && (
+                    <TaskCardQuickAssign
+                        currentAssignee={task.assignedTo}
+                        availableUsers={availableUsers}
+                        onAssign={handleAssign}
+                    />
+                )}
+            </TaskCardFooter>
         </CardContainer>
     );
 };
@@ -205,30 +234,45 @@ export const AdminTaskCard: React.FC<AdminTaskCardProps> = ({
 const CardContainer = styled.div`
     display: flex;
     flex-direction: column;
-    width: ${({theme}) => theme.components.card.width};
-    gap: ${({theme}) => theme.spacing[2]};
-    padding: ${({theme}) => theme.components.card.padding.containerPadding};
-    background: ${({theme}) => theme.colors.backgroundSecondary};
-    border: 1px solid ${({theme}) => theme.colors.borderSubtle};
-    border-radius: ${({theme}) => theme.radius.lg};
-    transition: all ${({theme}) => theme.animation.duration.fast} ${({theme}) => theme.animation.easing.standard};
+    width: ${({ theme }) => theme.components.card.width};
+    gap: ${({ theme }) => theme.spacing[2]};
+    padding: ${({ theme }) => theme.components.card.padding.containerPadding};
+    background: ${({ theme }) => theme.colors.backgroundSecondary};
+    border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
+    border-radius: ${({ theme }) => theme.radius.lg};
+    transition: all ${({ theme }) => theme.animation.duration.fast} ${({ theme }) => theme.animation.easing.standard};
 
     &:hover {
-        border-color: ${({theme}) => theme.colors.borderDefault};
+        border-color: ${({ theme }) => theme.colors.borderDefault};
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     }
 `;
 
+const UnassignedBanner = styled.div`
+    display: flex;
+    align-items: center;
+    padding: ${({ theme }) => `${theme.spacing[2]} ${theme.spacing[3]}`};
+    background: ${({ theme }) => theme.colors.statusWarning}22;
+    border-left: 3px solid ${({ theme }) => theme.colors.statusWarning};
+    border-radius: ${({ theme }) => theme.radius.md};
+`;
+
+const BannerText = styled.span`
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    color: ${({ theme }) => theme.colors.textPrimary};
+    font-weight: ${({ theme }) => theme.typography.weight.medium};
+`;
+
 const DescriptionText = styled.p`
-    font-size: ${({theme}) => theme.typography.size.sm};
-    color: ${({theme}) => theme.colors.textPrimary};
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    color: ${({ theme }) => theme.colors.textPrimary};
     margin: 0;
     line-height: 1.5;
 `;
 
 const RequirementsText = styled.p`
-    font-size: ${({theme}) => theme.typography.size.sm};
-    color: ${({theme}) => theme.colors.textMuted};
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    color: ${({ theme }) => theme.colors.textMuted};
     margin: 0;
     line-height: 1.5;
     font-style: italic;
@@ -243,54 +287,54 @@ const FileRow = styled.div`
 const FileInfo = styled.div`
     display: flex;
     align-items: center;
-    gap: ${({theme}) => theme.spacing[1]};
+    gap: ${({ theme }) => theme.spacing[1]};
 `;
 
 const FileIcon = styled.span`
     display: flex;
     align-items: center;
-    color: ${({theme}) => theme.colors.textMuted};
+    color: ${({ theme }) => theme.colors.textMuted};
 `;
 
 const FileName = styled.span`
-    font-size: ${({theme}) => theme.typography.size.sm};
-    color: ${({theme}) => theme.colors.textPrimary};
-    font-family: ${({theme}) => theme.typography.family.mono};
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    color: ${({ theme }) => theme.colors.textPrimary};
+    font-family: ${({ theme }) => theme.typography.family.mono};
 `;
 
 const FileSize = styled.span`
-    font-size: ${({theme}) => theme.typography.size.xsm};
-    color: ${({theme}) => theme.colors.textMuted};
+    font-size: ${({ theme }) => theme.typography.size.xsm};
+    color: ${({ theme }) => theme.colors.textMuted};
 `;
 
 const RejectionText = styled.p`
-    font-size: ${({theme}) => theme.typography.size.sm};
-    color: ${({theme}) => theme.colors.statusError};
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    color: ${({ theme }) => theme.colors.statusError};
     margin: 0;
     line-height: 1.5;
 `;
 
 const ReviewNotesText = styled.p`
-    font-size: ${({theme}) => theme.typography.size.sm};
-    color: ${({theme}) => theme.colors.textPrimary};
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    color: ${({ theme }) => theme.colors.textPrimary};
     margin: 0;
     line-height: 1.5;
 `;
 
 const LabelsRow = styled.div`
     display: flex;
-    gap: ${({theme}) => theme.spacing[1]};
+    gap: ${({ theme }) => theme.spacing[1]};
     flex-wrap: wrap;
 `;
 
 const LabelBadge = styled.div`
     display: flex;
     align-items: center;
-    gap: ${({theme}) => theme.spacing[1]};
-    padding: ${({theme}) => `${theme.primitives.paddingY.xxxs} ${theme.primitives.paddingX.xsm}`};
-    background: ${({theme}) => theme.colors.statusSuccess};
-    color: ${({theme}) => theme.colors.textInverted};
-    border-radius: ${({theme}) => theme.radius.md};
-    font-size: ${({theme}) => theme.typography.size.xsm};
-    font-weight: ${({theme}) => theme.typography.weight.medium};
+    gap: ${({ theme }) => theme.spacing[1]};
+    padding: ${({ theme }) => `${theme.primitives.paddingY.xxxs} ${theme.primitives.paddingX.xsm}`};
+    background: ${({ theme }) => theme.colors.statusSuccess};
+    color: ${({ theme }) => theme.colors.textInverted};
+    border-radius: ${({ theme }) => theme.radius.md};
+    font-size: ${({ theme }) => theme.typography.size.xsm};
+    font-weight: ${({ theme }) => theme.typography.weight.medium};
 `;

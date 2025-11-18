@@ -28,7 +28,7 @@ const notifyListeners = () => {
 export const taskService = {
     // ============================================
     // READ OPERATIONS
-    // ============================================
+    // ===================================api=========
 
     /**
      * Get all tasks (admin only)
@@ -139,7 +139,9 @@ export const taskService = {
                     timestamp: new Date(),
                     action: 'created',
                     user: createdBy,
-                    notes: `Task created and assigned to ${input.assignedTo}`,
+                    notes: input.assignedTo
+                        ? `Task created and assigned to ${input.assignedTo}`
+                        : 'Task created (unassigned)',
                 },
             ],
         };
@@ -148,6 +150,47 @@ export const taskService = {
         notifyListeners();
         console.log('[TaskService] Created local task:', newTask.id);
         return Promise.resolve(newTask);
+    },
+
+    /**
+     * Assign task to a user
+     */
+    async assignTask(taskId: string, userEmail: string, assignedBy: string): Promise<UnifiedTask> {
+        if (isFeatureEnabled('USE_TASK_API')) {
+            try {
+                const response = await apiClient.post(`/api/tasks/${taskId}/assign`, {
+                    assignedTo: userEmail,
+                    assignedBy,
+                });
+                console.log('[TaskService] Assigned task via API:', taskId, '→', userEmail);
+                return response.data;
+            } catch (error) {
+                console.error('[TaskService] API failed, using local fallback:', error);
+                // Fall through to local
+            }
+        }
+
+        // Local mock
+        const task = localTasks.find(t => t.id === taskId);
+        if (!task) {
+            throw new Error(`Task ${taskId} not found`);
+        }
+
+        const updates: Partial<UnifiedTask> = {
+            assignedTo: userEmail,
+            history: [
+                ...task.history,
+                {
+                    timestamp: new Date(),
+                    action: 'assigned',
+                    user: assignedBy,
+                    notes: `Task assigned to ${userEmail}`,
+                },
+            ],
+        };
+
+        console.log('[TaskService] Assigned local task:', taskId, '→', userEmail);
+        return this.updateTask(taskId, updates);
     },
 
     /**

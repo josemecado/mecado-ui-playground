@@ -1,28 +1,37 @@
-// admin/components/TaskCreationForm.tsx
+// admin/components/TaskEditForm.tsx
 import React, { useState } from "react";
 import styled from "styled-components";
 import { X, Plus, Trash2, Calendar, AlertCircle } from "lucide-react";
-import { CreateTaskInput, TaskPriority } from "../types/admin.types";
+import { UnifiedTask, TaskPriority } from "../types/admin.types";
 import { mockUsers } from "../utils/mockAdminData";
 import { BaseButton } from "components/buttons/BaseButton";
 
-interface TaskCreationFormProps {
-    onSubmit: (task: CreateTaskInput) => void;
+interface TaskEditFormProps {
+    task: UnifiedTask;
+    onSubmit: (taskId: string, updates: Partial<UnifiedTask>) => void;
     onCancel: () => void;
 }
 
-export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({
-                                                                      onSubmit,
-                                                                      onCancel,
-                                                                  }) => {
-    const [title, setTitle] = useState("");
-    const [description, setDescription] = useState("");
-    const [requirements, setRequirements] = useState("");
-    const [assignedTo, setAssignedTo] = useState(""); // Now optional - can be empty
-    const [priority, setPriority] = useState<TaskPriority>("medium");
-    const [requiredFileCount, setRequiredFileCount] = useState(1);
-    const [dueDate, setDueDate] = useState("");
-    const [referenceLinks, setReferenceLinks] = useState<string[]>([]);
+export const TaskEditForm: React.FC<TaskEditFormProps> = ({
+                                                              task,
+                                                              onSubmit,
+                                                              onCancel,
+                                                          }) => {
+    // Initialize state with existing task data
+    const [title, setTitle] = useState(task.title);
+    const [description, setDescription] = useState(task.description);
+    const [requirements, setRequirements] = useState(task.requirements || "");
+    const [assignedTo, setAssignedTo] = useState(task.assignedTo || "");
+    const [priority, setPriority] = useState<TaskPriority>(task.priority);
+    const [requiredFileCount, setRequiredFileCount] = useState(
+        task.uploadData?.requiredFileCount || 1
+    );
+    const [dueDate, setDueDate] = useState(
+        task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : ""
+    );
+    const [referenceLinks, setReferenceLinks] = useState<string[]>(
+        task.referenceLinks || []
+    );
     const [newLink, setNewLink] = useState("");
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -31,7 +40,6 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({
 
         if (!title.trim()) newErrors.title = "Title is required";
         if (!description.trim()) newErrors.description = "Description is required";
-        // assignedTo is now optional - no validation needed
         if (requiredFileCount < 1) newErrors.fileCount = "Must require at least 1 file";
 
         setErrors(newErrors);
@@ -43,18 +51,25 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({
 
         if (!validate()) return;
 
-        const taskInput: CreateTaskInput = {
+        const updates: Partial<UnifiedTask> = {
             title: title.trim(),
             description: description.trim(),
             requirements: requirements.trim() || undefined,
-            assignedTo: assignedTo || undefined, // Only include if not empty
+            assignedTo: assignedTo || undefined,
             priority,
-            requiredFileCount,
             dueDate: dueDate ? new Date(dueDate) : undefined,
             referenceLinks: referenceLinks.length > 0 ? referenceLinks : undefined,
         };
 
-        onSubmit(taskInput);
+        // Update uploadData if requiredFileCount changed
+        if (task.uploadData && requiredFileCount !== task.uploadData.requiredFileCount) {
+            updates.uploadData = {
+                ...task.uploadData,
+                requiredFileCount,
+            };
+        }
+
+        onSubmit(task.id, updates);
     };
 
     const addLink = () => {
@@ -72,7 +87,7 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({
         <FormOverlay onClick={onCancel}>
             <FormContainer onClick={(e) => e.stopPropagation()}>
                 <FormHeader>
-                    <HeaderTitle>Create New Task</HeaderTitle>
+                    <HeaderTitle>Edit Task</HeaderTitle>
                     <CloseButton onClick={onCancel}>
                         <X size={20} />
                     </CloseButton>
@@ -123,7 +138,7 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({
 
                         {/* Two Column Layout */}
                         <TwoColumnGrid>
-                            {/* Assign To - NOW OPTIONAL */}
+                            {/* Assign To */}
                             <FormField>
                                 <Label>
                                     Assign To <OptionalLabel>(Optional)</OptionalLabel>
@@ -141,7 +156,7 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({
                                             </option>
                                         ))}
                                 </Select>
-                                <HelpText>Leave unassigned to assign later from the board</HelpText>
+                                <HelpText>Change assignment or leave unassigned</HelpText>
                             </FormField>
 
                             {/* Priority */}
@@ -173,6 +188,11 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({
                                     $hasError={!!errors.fileCount}
                                 />
                                 {errors.fileCount && <ErrorText>{errors.fileCount}</ErrorText>}
+                                {task.uploadData && task.uploadData.uploadedFiles.length > 0 && (
+                                    <HelpText>
+                                        Currently has {task.uploadData.uploadedFiles.length} file(s) uploaded
+                                    </HelpText>
+                                )}
                             </FormField>
 
                             {/* Due Date */}
@@ -234,7 +254,7 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({
                         <InfoBanner>
                             <AlertCircle size={16} />
                             <InfoText>
-                                Task will be created in "Pending Upload" stage. {!assignedTo && "You can assign it to someone from the board."}
+                                Changes will be saved and a history entry will be added. Current stage: <strong>{task.stage}</strong>
                             </InfoText>
                         </InfoBanner>
 
@@ -243,7 +263,7 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({
                             <CancelButton type="button" onClick={onCancel}>
                                 Cancel
                             </CancelButton>
-                            <SubmitButton type="submit">Create Task</SubmitButton>
+                            <SubmitButton type="submit">Save Changes</SubmitButton>
                         </FormActions>
                     </form>
                 </FormContent>
@@ -348,16 +368,16 @@ const Required = styled.span`
 `;
 
 const OptionalLabel = styled.span`
-  color: ${({ theme }) => theme.colors.textMuted};
-  font-weight: ${({ theme }) => theme.typography.weight.regular};
-  font-style: italic;
+    color: ${({ theme }) => theme.colors.textMuted};
+    font-weight: ${({ theme }) => theme.typography.weight.regular};
+    font-style: italic;
 `;
 
 const Input = styled.input<{ $hasError?: boolean }>`
     padding: ${({ theme }) => `${theme.spacing[2]} ${theme.spacing[3]}`};
     border: 1px solid
     ${({ theme, $hasError }) =>
-            $hasError ? theme.colors.statusError : theme.colors.borderDefault};
+    $hasError ? theme.colors.statusError : theme.colors.borderDefault};
     border-radius: ${({ theme }) => theme.radius.md};
     background: ${({ theme }) => theme.colors.backgroundTertiary};
     color: ${({ theme }) => theme.colors.textPrimary};
@@ -366,7 +386,7 @@ const Input = styled.input<{ $hasError?: boolean }>`
     &:focus {
         outline: none;
         border-color: ${({ theme, $hasError }) =>
-                $hasError ? theme.colors.statusError : theme.colors.brandPrimary};
+    $hasError ? theme.colors.statusError : theme.colors.brandPrimary};
     }
 
     &::placeholder {
@@ -378,7 +398,7 @@ const TextArea = styled.textarea<{ $hasError?: boolean }>`
     padding: ${({ theme }) => `${theme.spacing[2]} ${theme.spacing[3]}`};
     border: 1px solid
     ${({ theme, $hasError }) =>
-            $hasError ? theme.colors.statusError : theme.colors.borderDefault};
+    $hasError ? theme.colors.statusError : theme.colors.borderDefault};
     border-radius: ${({ theme }) => theme.radius.md};
     background: ${({ theme }) => theme.colors.backgroundTertiary};
     color: ${({ theme }) => theme.colors.textPrimary};
@@ -389,7 +409,7 @@ const TextArea = styled.textarea<{ $hasError?: boolean }>`
     &:focus {
         outline: none;
         border-color: ${({ theme, $hasError }) =>
-                $hasError ? theme.colors.statusError : theme.colors.brandPrimary};
+    $hasError ? theme.colors.statusError : theme.colors.brandPrimary};
     }
 
     &::placeholder {
@@ -398,27 +418,27 @@ const TextArea = styled.textarea<{ $hasError?: boolean }>`
 `;
 
 const Select = styled.select<{ $hasError?: boolean }>`
-  padding: ${({ theme }) => `${theme.spacing[2]} ${theme.spacing[3]}`};
-  border: 1px solid
+    padding: ${({ theme }) => `${theme.spacing[2]} ${theme.spacing[3]}`};
+    border: 1px solid
     ${({ theme, $hasError }) =>
     $hasError ? theme.colors.statusError : theme.colors.borderDefault};
-  border-radius: ${({ theme }) => theme.radius.md};
-  background: ${({ theme }) => theme.colors.backgroundTertiary};
-  color: ${({ theme }) => theme.colors.textPrimary};
-  font-size: ${({ theme }) => theme.typography.size.md};
-  cursor: pointer;
+    border-radius: ${({ theme }) => theme.radius.md};
+    background: ${({ theme }) => theme.colors.backgroundTertiary};
+    color: ${({ theme }) => theme.colors.textPrimary};
+    font-size: ${({ theme }) => theme.typography.size.md};
+    cursor: pointer;
 
-  &:focus {
-    outline: none;
-    border-color: ${({ theme, $hasError }) =>
+    &:focus {
+        outline: none;
+        border-color: ${({ theme, $hasError }) =>
     $hasError ? theme.colors.statusError : theme.colors.brandPrimary};
-  }
+    }
 `;
 
 const HelpText = styled.span`
-  font-size: ${({ theme }) => theme.typography.size.xsm};
-  color: ${({ theme }) => theme.colors.textMuted};
-  font-style: italic;
+    font-size: ${({ theme }) => theme.typography.size.xsm};
+    color: ${({ theme }) => theme.colors.textMuted};
+    font-style: italic;
 `;
 
 const TwoColumnGrid = styled.div`

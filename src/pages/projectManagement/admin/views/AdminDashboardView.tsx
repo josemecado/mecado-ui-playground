@@ -1,5 +1,5 @@
 // admin/views/AdminDashboardView.tsx
-// Updated to use unified task service
+// Updated to include task editing functionality
 
 import React, { useState, useMemo, useEffect } from "react";
 import styled from "styled-components";
@@ -8,11 +8,13 @@ import { UnifiedTask, CreateTaskInput, ReviewAction } from "../types/admin.types
 import { AdminTaskBoard } from "../components/AdminTaskBoard";
 import { AdminTasksTable } from "../components/AdminTasksTable";
 import { TaskCreationForm } from "../components/TaskCreationForm";
+import { TaskEditForm } from "../components/TaskEditForm";
 import { ReviewSubmissionModal } from "../components/ReviewSubmissionModal";
 import { AdminViewControls, ViewMode, SortBy, SortOrder, StatusFilter } from "../components/AdminViewControls";
 import { taskService } from "../../api/services/taskService";
 import { useUser } from "../../context/UserContext";
 import { BaseButton } from "components/buttons/BaseButton";
+import {mockUsers} from "../utils/mockAdminData";
 
 interface AdminDashboardViewProps {
     onTaskClick?: (task: UnifiedTask) => void;
@@ -45,6 +47,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     const [loading, setLoading] = useState(true);
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [reviewingTask, setReviewingTask] = useState<UnifiedTask | null>(null);
+    const [editingTask, setEditingTask] = useState<UnifiedTask | null>(null);
 
     // View mode
     const [viewMode, setViewMode] = useState<ViewMode>('board');
@@ -85,9 +88,15 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         return unsubscribe;
     }, []);
 
-    // Get unique users for filter dropdown
+    // Get unique users for filter dropdown (FILTER OUT UNDEFINED)
     const availableUsers = useMemo(() => {
-        const users = Array.from(new Set(tasks.map(t => t.assignedTo)));
+        const users = Array.from(
+            new Set(
+                tasks
+                    .map(t => t.assignedTo)
+                    .filter((email): email is string => email !== undefined)
+            )
+        );
         return users.sort();
     }, [tasks]);
 
@@ -100,7 +109,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             result = result.filter((task) =>
                 task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 task.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                task.assignedTo.toLowerCase().includes(searchQuery.toLowerCase())
+                task.assignedTo?.toLowerCase().includes(searchQuery.toLowerCase())
             );
         }
 
@@ -132,7 +141,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     break;
 
                 case 'assignedTo':
-                    comparison = a.assignedTo.localeCompare(b.assignedTo);
+                    comparison = (a.assignedTo || '').localeCompare(b.assignedTo || '');
                     break;
 
                 case 'priority':
@@ -173,9 +182,38 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     };
 
     const handleEdit = (task: UnifiedTask) => {
-        console.log('[AdminDashboardView] Edit task:', task);
-        onTaskClick?.(task);
-        // TODO: Navigate to edit view or open edit modal
+        console.log('[AdminDashboardView] Edit task:', task.id, task.title);
+        setEditingTask(task);
+    };
+
+    const handleEditSubmit = async (taskId: string, updates: Partial<UnifiedTask>) => {
+        if (!currentUser) {
+            alert('No user logged in');
+            return;
+        }
+
+        try {
+            // Add history entry for the edit
+            const historyEntry = {
+                timestamp: new Date(),
+                action: 'edited',
+                user: currentUser.email,
+                notes: 'Task details updated',
+            };
+
+            const task = tasks.find(t => t.id === taskId);
+            const updatesWithHistory = {
+                ...updates,
+                history: task ? [...task.history, historyEntry] : [historyEntry],
+            };
+
+            await taskService.updateTask(taskId, updatesWithHistory);
+            setEditingTask(null);
+            console.log('[AdminDashboardView] Updated task:', taskId);
+        } catch (error) {
+            console.error('[AdminDashboardView] Failed to update task:', error);
+            alert('Failed to update task');
+        }
     };
 
     const handleApproveSubmission = async (action: ReviewAction) => {
@@ -229,6 +267,21 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         } catch (error) {
             console.error('[AdminDashboardView] Failed to create task:', error);
             alert('Failed to create task');
+        }
+    };
+
+    const handleAssignTask = async (taskId: string, userEmail: string) => {
+        if (!currentUser) {
+            alert('No user logged in');
+            return;
+        }
+
+        try {
+            await taskService.assignTask(taskId, userEmail, currentUser.email);
+            console.log('[AdminDashboardView] Assigned task:', taskId, '→', userEmail);
+        } catch (error) {
+            console.error('[AdminDashboardView] Failed to assign task:', error);
+            alert('Failed to assign task');
         }
     };
 
@@ -289,8 +342,10 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     {viewMode === 'board' ? (
                         <AdminTaskBoard
                             tasks={filteredAndSortedTasks}
+                            availableUsers={mockUsers}
                             onViewSubmission={handleViewSubmission}
                             onEdit={handleEdit}
+                            onAssign={handleAssignTask}
                         />
                     ) : (
                         <AdminTasksTable
@@ -306,6 +361,14 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 <TaskCreationForm
                     onSubmit={handleCreateTaskSubmit}
                     onCancel={() => setShowCreateForm(false)}
+                />
+            )}
+
+            {editingTask && (
+                <TaskEditForm
+                    task={editingTask}
+                    onSubmit={handleEditSubmit}
+                    onCancel={() => setEditingTask(null)}
                 />
             )}
 

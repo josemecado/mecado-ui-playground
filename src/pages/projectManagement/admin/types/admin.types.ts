@@ -1,5 +1,5 @@
 // admin/types/admin.types.ts
-// Updated type definitions for 3-column admin board
+// Updated type definitions for 4-column admin board (added Unassigned column)
 
 export type TaskStage =
     | 'pending_upload'      // User needs to upload files
@@ -15,8 +15,9 @@ export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export type UserRole = 'admin' | 'reviewer' | 'labeler' | 'uploader';
 
-// For organizing tasks in columns - NOW 3 COLUMNS
+// For organizing tasks in columns - NOW 4 COLUMNS
 export type AdminColumnStatus =
+    | 'unassigned'      // Tasks not yet assigned to anyone
     | 'assigned'        // All in-progress work (pending_upload, upload_approved, pending_labeling)
     | 'awaiting_review' // Admin action needed (upload_review, labeling_review)
     | 'completed';      // Done (completed, labeling_approved)
@@ -76,8 +77,8 @@ export interface UnifiedTask {
     referenceImages?: string[];
     referenceLinks?: string[];
 
-    // Assignment
-    assignedTo: string;      // User email
+    // Assignment (NOW OPTIONAL)
+    assignedTo?: string;     // User email (optional - can be unassigned)
     createdBy: string;       // Admin who created it
 
     // Timestamps
@@ -108,7 +109,7 @@ export interface CreateTaskInput {
     requirements?: string;
     referenceImages?: string[];
     referenceLinks?: string[];
-    assignedTo: string;
+    assignedTo?: string;     // NOW OPTIONAL
     priority: TaskPriority;
     dueDate?: Date;
     requiredFileCount: number;

@@ -1,24 +1,29 @@
 // admin/components/AdminTaskColumn.tsx
 import React from "react";
 import styled from "styled-components";
-import { AdminBoardColumn, UnifiedTask } from "../types/admin.types";
+import { AdminBoardColumn, UnifiedTask, User } from "../types/admin.types";
 import { AdminTaskCard } from "./card/AdminTaskCard";
 import { Inbox } from "lucide-react";
+import {useTheme} from "../../../../utilities/ThemeContext";
 
 interface AdminTaskColumnProps {
     column: AdminBoardColumn;
+    availableUsers?: User[];  // ADD THIS
     onViewSubmission?: (task: UnifiedTask) => void;
     onEdit?: (task: UnifiedTask) => void;
+    onAssign?: (taskId: string, userEmail: string) => void;  // ADD THIS
 }
 
 export const AdminTaskColumn: React.FC<AdminTaskColumnProps> = ({
                                                                     column,
+                                                                    availableUsers,  // ADD THIS
                                                                     onViewSubmission,
                                                                     onEdit,
+                                                                    onAssign,  // ADD THIS
                                                                 }) => {
     const isEmpty = column.tasks.length === 0;
     const taskCountText = `${column.tasks.length} Task${column.tasks.length === 1 ? '' : 's'}`;
-
+    const theme = useTheme();
     return (
         <ColumnContainer>
             <ColumnHeader>
@@ -41,8 +46,10 @@ export const AdminTaskColumn: React.FC<AdminTaskColumnProps> = ({
                         <AdminTaskCard
                             key={task.id}
                             task={task}
+                            availableUsers={availableUsers}  // ADD THIS
                             onViewSubmission={onViewSubmission}
                             onEdit={onEdit}
+                            onAssign={onAssign}  // ADD THIS
                         />
                     ))
                 )}
@@ -52,18 +59,18 @@ export const AdminTaskColumn: React.FC<AdminTaskColumnProps> = ({
 };
 
 // ======================
-// 🔹 Styled Components
+// 🔹 Styled Components (unchanged)
 // ======================
 
 const ColumnContainer = styled.div`
     display: flex;
     flex-direction: column;
-    min-width: 340px;
-    max-width: 550px;
+    min-width: 380px;
+    max-width: 450px;
     flex: 1;
-    background: ${({ theme }) => theme.colors.backgroundTertiary};
+    background: ${({ theme }) => theme.colors.backgroundPrimary};
     border-radius: ${({ theme }) => theme.radius.lg};
-    border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
+    //border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
     overflow: hidden;
 `;
 
@@ -72,8 +79,7 @@ const ColumnHeader = styled.div`
     justify-content: space-between;
     align-items: center;
     padding: ${({ theme }) => theme.primitives.paddingX.md};
-    background: ${({ theme }) => theme.colors.backgroundSecondary};
-    border-bottom: 2px solid ${({ theme }) => theme.colors.borderSubtle};
+    border-bottom: 1px solid ${({ theme }) => theme.colors.borderSubtle};
 `;
 
 const ColumnTitle = styled.h2`
@@ -87,6 +93,8 @@ const TaskCount = styled.div<{ $status: string }>`
     padding: ${({ theme }) => `${theme.primitives.paddingY.xxxs} ${theme.primitives.paddingX.xsm}`};
     background: ${({ theme, $status }) => {
         switch ($status) {
+            case 'unassigned':
+                return theme.colors.statusWarning;  // ADD THIS CASE
             case 'awaiting_review':
                 return theme.colors.statusWarning;
             case 'completed':

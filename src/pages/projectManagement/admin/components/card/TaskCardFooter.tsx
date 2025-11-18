@@ -11,6 +11,7 @@ interface TaskCardFooterProps {
     showEdit?: boolean;
     onViewSubmission?: () => void;
     onEdit?: () => void;
+    children?: React.ReactNode; // For custom buttons like quick-assign
 }
 
 export const TaskCardFooter: React.FC<TaskCardFooterProps> = ({
@@ -20,6 +21,7 @@ export const TaskCardFooter: React.FC<TaskCardFooterProps> = ({
                                                                   showEdit,
                                                                   onViewSubmission,
                                                                   onEdit,
+                                                                  children,
                                                               }) => {
     return (
         <FooterContainer>
@@ -48,6 +50,9 @@ export const TaskCardFooter: React.FC<TaskCardFooterProps> = ({
                     Edit
                 </ActionButton>
             )}
+
+            {/* Custom action buttons (like quick-assign) */}
+            {children}
         </FooterContainer>
     );
 };

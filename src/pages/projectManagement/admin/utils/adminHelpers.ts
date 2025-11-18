@@ -2,13 +2,19 @@
 import { UnifiedTask, AdminBoardColumn, AdminColumnStatus, TaskPriority } from "../types/admin.types";
 
 /**
- * Group tasks into 3 columns based on stage
+ * Group tasks into 4 columns based on stage and assignment
  */
 export function groupTasksByColumnStatus(tasks: UnifiedTask[]): AdminBoardColumn[] {
     const columns: AdminBoardColumn[] = [
         {
+            id: 'unassigned',
+            title: 'Unassigned',
+            status: 'unassigned',
+            tasks: [],
+        },
+        {
             id: 'assigned',
-            title: 'Assigned/To do',
+            title: 'Assigned',
             status: 'assigned',
             tasks: [],
         },
@@ -27,7 +33,7 @@ export function groupTasksByColumnStatus(tasks: UnifiedTask[]): AdminBoardColumn
     ];
 
     tasks.forEach((task) => {
-        const columnStatus = getColumnStatusFromStage(task.stage);
+        const columnStatus = getColumnStatusFromStage(task.stage, task.assignedTo);
         const column = columns.find((col) => col.status === columnStatus);
         if (column) {
             column.tasks.push(task);
@@ -38,9 +44,15 @@ export function groupTasksByColumnStatus(tasks: UnifiedTask[]): AdminBoardColumn
 }
 
 /**
- * Map task stage to column status
+ * Map task stage to column status, considering assignment
  */
-function getColumnStatusFromStage(stage: string): AdminColumnStatus {
+function getColumnStatusFromStage(stage: string, assignedTo?: string): AdminColumnStatus {
+    // If no assignedTo, task is unassigned regardless of stage
+    if (!assignedTo) {
+        return 'unassigned';
+    }
+
+    // Otherwise, use stage to determine column
     switch (stage) {
         case 'pending_upload':
         case 'upload_approved':

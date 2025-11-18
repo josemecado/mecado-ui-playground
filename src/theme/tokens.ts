@@ -73,7 +73,7 @@ const primitives = {
         mediumCard: "250px",
         cards: {
             medium: "250px",
-            wide: "400px",
+            wide: "350px",
             xlarge: "500px",
         }
     },
