@@ -39,6 +39,7 @@ export const AdminTaskBoard: React.FC<AdminTaskBoardProps> = ({
 
 const BoardContainer = styled.div`
     display: flex;
+    justify-content: space-evenly;
     gap: ${({ theme }) => theme.spacing[4]};
     height: 100%;
     padding: ${({ theme }) => theme.spacing[6]};

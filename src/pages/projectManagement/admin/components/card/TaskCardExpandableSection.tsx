@@ -26,16 +26,16 @@ export const TaskCardExpandableSection: React.FC<TaskCardExpandableSectionProps>
             >
                 <SectionTitle>{title}</SectionTitle>
                 {!alwaysOpen && (
-                    <ExpandIcon>
+                    <ExpandIcon $isExpanded={isExpanded}>
                         {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </ExpandIcon>
                 )}
             </SectionHeader>
-            {(isExpanded || alwaysOpen) && (
-                <SectionContent>
+            <SectionContent $isExpanded={isExpanded || alwaysOpen}>
+                <ContentInner>
                     {children}
-                </SectionContent>
-            )}
+                </ContentInner>
+            </SectionContent>
         </Container>
     );
 };
@@ -65,12 +65,22 @@ const SectionTitle = styled.span`
     color: ${({ theme }) => theme.colors.textAccent};
 `;
 
-const ExpandIcon = styled.div`
+const ExpandIcon = styled.div<{ $isExpanded: boolean }>`
     display: flex;
     color: ${({ theme }) => theme.colors.textAccent};
+    transition: transform ${({ theme }) => theme.animation.duration.fast} ${({ theme }) => theme.animation.easing.standard};
+    transform: ${({ $isExpanded }) => $isExpanded ? 'rotate(0deg)' : 'rotate(0deg)'};
 `;
 
-const SectionContent = styled.div`
+const SectionContent = styled.div<{ $isExpanded: boolean }>`
+    max-height: ${({ $isExpanded }) => $isExpanded ? '500px' : '0'};
+    opacity: ${({ $isExpanded }) => $isExpanded ? '1' : '0'};
+    overflow: hidden;
+    transition: max-height ${({ theme }) => theme.animation.duration.medium} ${({ theme }) => theme.animation.easing.standard},
+    opacity ${({ theme }) => theme.animation.duration.fast} ${({ theme }) => theme.animation.easing.standard};
+`;
+
+const ContentInner = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${({ theme }) => theme.spacing[2]};

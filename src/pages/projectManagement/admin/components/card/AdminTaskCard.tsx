@@ -1,5 +1,5 @@
 // admin/components/AdminTaskCard.tsx
-import React, {useState} from "react";
+import React, {useState, useRef} from "react";
 import styled from "styled-components";
 import {Tags, FileText, CheckCircle2, FileBox} from "lucide-react";
 import {UnifiedTask} from "../../types/admin.types";
@@ -22,6 +22,8 @@ export const AdminTaskCard: React.FC<AdminTaskCardProps> = ({
     // Expansion state
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
     const [isAttachmentsExpanded, setIsAttachmentsExpanded] = useState(false);
+    const [isHovered, setIsHovered] = useState(false);
+    const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Determine task state and stage
     const isAwaitingReview = task.stage === 'upload_review' || task.stage === 'labeling_review';
@@ -42,11 +44,18 @@ export const AdminTaskCard: React.FC<AdminTaskCardProps> = ({
             ? labelingReview.notes
             : null;
 
-    const approvalNotes = isCompleted && labelingReview?.approved
-        ? labelingReview.notes
-        : isCompleted && uploadReview?.approved
-            ? uploadReview.notes
-            : null;
+    const handleMouseEnter = () => {
+        hoverTimeoutRef.current = setTimeout(() => {
+            setIsHovered(true);
+        }, 400); // 500ms = half second
+    };
+
+    const handleMouseLeave = () => {
+        if (hoverTimeoutRef.current) {
+            clearTimeout(hoverTimeoutRef.current);
+        }
+        setIsHovered(false);
+    };
 
     // Get status badge text
     const getStatusBadgeText = () => {
@@ -69,7 +78,10 @@ export const AdminTaskCard: React.FC<AdminTaskCardProps> = ({
     };
 
     return (
-        <CardContainer>
+        <CardContainer
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+        >
             {/* Header */}
             <TaskCardHeader
                 icon={isUploadStage ? <FileBox size={14}/> : <Tags size={14}/>}
@@ -80,23 +92,24 @@ export const AdminTaskCard: React.FC<AdminTaskCardProps> = ({
             {/* Description Section */}
             <TaskCardExpandableSection
                 title="Description"
-                isExpanded={isDescriptionExpanded}
+                isExpanded={isHovered || isDescriptionExpanded}
                 onToggle={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
             >
                 <DescriptionText>{task.description}</DescriptionText>
                 {task.requirements && (
-                    <RequirementsText>{task.requirements}</RequirementsText>
+                    <RequirementsText>Requirements: {task.requirements}</RequirementsText>
                 )}
             </TaskCardExpandableSection>
 
             {/* Attachments Section */}
-            {task.uploadData && task.uploadData.uploadedFiles.length > 0 && (
+            {((task.uploadData && task.uploadData.uploadedFiles.length > 0) ||
+                (task.referenceLinks && task.referenceLinks.length > 0)) && (
                 <TaskCardExpandableSection
                     title="Attachments"
-                    isExpanded={isAttachmentsExpanded}
+                    isExpanded={isHovered || isAttachmentsExpanded}
                     onToggle={() => setIsAttachmentsExpanded(!isAttachmentsExpanded)}
                 >
-                    {task.uploadData.uploadedFiles.map((file, idx) => (
+                    {task.uploadData?.uploadedFiles.map((file, idx) => (
                         <FileRow key={idx}>
                             <FileInfo>
                                 <FileIcon>
@@ -107,6 +120,7 @@ export const AdminTaskCard: React.FC<AdminTaskCardProps> = ({
                             <FileSize>{formatFileSize(file.size)}</FileSize>
                         </FileRow>
                     ))}
+
                     {task.referenceLinks && task.referenceLinks.length > 0 && (
                         <>
                             {task.referenceLinks.map((link, idx) => (
@@ -136,8 +150,8 @@ export const AdminTaskCard: React.FC<AdminTaskCardProps> = ({
                 </TaskCardExpandableSection>
             )}
 
-            {/* Review Notes Section (only if completed with notes) */}
-            {isCompleted && approvalNotes && (
+            {/* Review Notes Section (if any review has notes) */}
+            {((uploadReview?.notes && uploadReview.approved) || (labelingReview?.notes && labelingReview.approved)) && (
                 <TaskCardExpandableSection
                     title="Review Notes"
                     isExpanded={true}
@@ -145,7 +159,11 @@ export const AdminTaskCard: React.FC<AdminTaskCardProps> = ({
                     }}
                     alwaysOpen
                 >
-                    <ReviewNotesText>{approvalNotes}</ReviewNotesText>
+                    <ReviewNotesText>
+                        {uploadReview?.approved && uploadReview.notes
+                            ? uploadReview.notes
+                            : labelingReview?.notes}
+                    </ReviewNotesText>
                 </TaskCardExpandableSection>
             )}
 
@@ -187,6 +205,7 @@ export const AdminTaskCard: React.FC<AdminTaskCardProps> = ({
 const CardContainer = styled.div`
     display: flex;
     flex-direction: column;
+    width: ${({theme}) => theme.components.card.width};
     gap: ${({theme}) => theme.spacing[2]};
     padding: ${({theme}) => theme.components.card.padding.containerPadding};
     background: ${({theme}) => theme.colors.backgroundSecondary};

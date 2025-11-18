@@ -1,7 +1,7 @@
 // admin/components/task-card/TaskCardFooter.tsx
 import React from "react";
 import styled from "styled-components";
-import {Clock} from "lucide-react";
+import {Clock, ArrowRight} from "lucide-react";
 import {BaseButton} from "components/buttons/BaseButton";
 
 interface TaskCardFooterProps {
@@ -23,19 +23,20 @@ export const TaskCardFooter: React.FC<TaskCardFooterProps> = ({
                                                               }) => {
     return (
         <FooterContainer>
-                <StatusBadge $stage={stage}>
-                    <StageIcon>
-                        <Clock size={12}/>
-                    </StageIcon>
-                    {statusText}
-                </StatusBadge>
+            <StatusBadge $stage={stage}>
+                <StageIcon>
+                    <Clock size={12}/>
+                </StageIcon>
+                {statusText}
+            </StatusBadge>
 
             {showViewSubmission && (
                 <ActionButton
                     $variant="primary"
                     onClick={onViewSubmission}
                 >
-                    View Submission
+                    Review
+                    <ArrowRight size={14}/>
                 </ActionButton>
             )}
 
@@ -64,8 +65,8 @@ const FooterContainer = styled.div`
 const StatusBadge = styled.div<{ $stage: string }>`
     display: flex;
     align-items: center;
-    gap: ${({ theme }) => theme.spacing[1]};
-    padding: ${({ theme }) => theme.components.card.padding.tinyPadding};
+    gap: ${({theme}) => theme.spacing[1]};
+    padding: ${({theme}) => theme.components.card.padding.tinyPadding};
     background: ${({theme}) => theme.colors.backgroundTertiary};
     border: 1px solid ${({theme}) => theme.colors.borderSubtle};
     color: ${({theme}) => theme.colors.textMutedStrong};
@@ -75,7 +76,10 @@ const StatusBadge = styled.div<{ $stage: string }>`
 `;
 
 const ActionButton = styled(BaseButton)`
-    padding: ${({theme}) => `${theme.primitives.paddingY.xxxs} ${theme.primitives.paddingX.xsm}`};
+    padding-left: ${({theme}) => theme.paddingX.xsm};
+    padding-right: ${({theme}) => theme.paddingX.xsm};
+    padding-top: ${({theme}) => theme.paddingX.xxs};
+    padding-bottom: ${({theme}) => theme.paddingX.xxs};
     font-size: ${({theme}) => theme.typography.size.xsm};
     font-weight: ${({theme}) => theme.typography.weight.medium};
     border-radius: ${({theme}) => theme.radius.pill};

@@ -71,6 +71,11 @@ const primitives = {
         sideMenu: "250px",
         collapsedSideMenu: "80px",
         mediumCard: "250px",
+        cards: {
+            medium: "250px",
+            wide: "400px",
+            xlarge: "500px",
+        }
     },
 
     heights: {
@@ -287,7 +292,7 @@ const componentTokens = {
             subTitleFontSize: primitives.fontSize.xsm,
             titleFontWeight: primitives.fontWeight.medium,
         },
-        width: primitives.widths.mediumCard,
+        width: primitives.widths.cards.wide,
         heightMedium: primitives.heights.mediumCard,
         padding: {
             containerPadding: primitives.padding.sm,

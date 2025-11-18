@@ -25,7 +25,7 @@ interface TaskContext {
 }
 
 const ProjectManagementIndexInner: React.FC = () => {
-    const [activeView, setActiveView] = useState<ViewType>("home");
+    const [activeView, setActiveView] = useState<ViewType>("admin-dashboard" as ViewType);
     const [taskContext, setTaskContext] = useState<TaskContext | null>(null);
     const [geometryData, setGeometryData] = useState<GeometryData | null>(null);
     const [geometryLoaded, setGeometryLoaded] = useState(false);

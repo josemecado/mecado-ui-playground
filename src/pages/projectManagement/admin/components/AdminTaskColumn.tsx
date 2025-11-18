@@ -59,10 +59,11 @@ const ColumnContainer = styled.div`
     display: flex;
     flex-direction: column;
     min-width: 340px;
-    max-width: 380px;
+    max-width: 550px;
     flex: 1;
     background: ${({ theme }) => theme.colors.backgroundTertiary};
     border-radius: ${({ theme }) => theme.radius.lg};
+    border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
     overflow: hidden;
 `;
 
@@ -103,6 +104,7 @@ const TaskCount = styled.div<{ $status: string }>`
 const ColumnContent = styled.div`
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: ${({ theme }) => theme.spacing[3]};
     padding: ${({ theme }) => theme.primitives.paddingX.md};
     overflow-y: auto;
