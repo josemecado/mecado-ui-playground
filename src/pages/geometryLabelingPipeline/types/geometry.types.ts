@@ -11,10 +11,10 @@ export type ClassificationStatus =
 
 // For VTK.js visualization
 export interface GeometryData {
-    bodiesFile?: string;    // Path to bodies VTP
-    facesFile?: string;     // Path to faces VTP
-    edgesFile?: string;     // Path to edges VTP
-    fileName?: string;      // Original filename
+    bodiesFile: ArrayBuffer;    // Binary VTP data for bodies
+    facesFile: ArrayBuffer;     // Binary VTP data for faces
+    edgesFile: ArrayBuffer;     // Binary VTP data for edges
+    fileName?: string;          // Original filename
 }
 
 // Pending classification

@@ -6,7 +6,7 @@ import {MenuHeader} from "./MenuHeader";
 import ThemeToggleButton from "../../../../reusable-components/ThemeToggleButton";
 import {MenuViewItem} from "./components/MenuViewItem";
 import MenuToolItem from "./components/MenuToolItem";
-import {MenuItem, ViewType} from "./components/sharedComponents";
+import {MenuItem, ViewType} from "./NavigationTypes";
 
 interface SideMenuProps {
     activeView: ViewType;
