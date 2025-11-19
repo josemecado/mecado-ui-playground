@@ -1,16 +1,16 @@
 // services/taskService.ts
 // Unified task management service with local/API routing
-import { UnifiedTask, CreateTaskInput, ReviewAction } from '../../admin/types/admin.types';
-import { isFeatureEnabled } from '../../config/featureFlags';
-import { mockAdminTasks } from '../../admin/utils/mockAdminData';
-import { apiClient } from '../client/apiClient';
+import { UnifiedTask, CreateTaskInput, ReviewAction } from '../types';
+import { isFeatureEnabled } from '../config/featureFlags';
+import { mockTasks } from './mockData';
+import { apiClient } from './apiClient';
 
 // ============================================
 // LOCAL DATA STORE
 // ============================================
 
 // In-memory task store (will be replaced by API)
-let localTasks: UnifiedTask[] = [...mockAdminTasks];
+let localTasks: UnifiedTask[] = [...mockTasks];
 
 // Subscribe to task changes
 type TaskListener = (tasks: UnifiedTask[]) => void;
@@ -470,7 +470,7 @@ export const taskService = {
      * Reset local tasks to initial state (for testing)
      */
     _resetLocalTasks(): void {
-        localTasks = [...mockAdminTasks];
+        localTasks = [...mockTasks];
         notifyListeners();
         console.log('[TaskService] Local tasks reset to initial state');
     },

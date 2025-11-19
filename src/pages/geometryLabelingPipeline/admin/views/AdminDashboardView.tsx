@@ -1,20 +1,53 @@
 // admin/views/AdminDashboardView.tsx
-// Updated to include task editing functionality
+// Updated for new structure with consolidated types and reorganized components
 
 import React, { useState, useMemo, useEffect } from "react";
 import styled from "styled-components";
 import { Plus } from "lucide-react";
-import { UnifiedTask, CreateTaskInput, ReviewAction } from "../types/admin.types";
-import { AdminTaskBoard } from "../components/AdminTaskBoard";
-import { AdminTasksTable } from "../components/AdminTasksTable";
-import { TaskCreationForm } from "../components/TaskCreationForm";
-import { TaskEditForm } from "../components/TaskEditForm";
-import { ReviewSubmissionModal } from "../components/ReviewSubmissionModal";
-import { AdminViewControls, ViewMode, SortBy, SortOrder, StatusFilter } from "../components/AdminViewControls";
-import { taskService } from "../../api/services/taskService";
+
+// ============================================
+// NEW STRUCTURE IMPORTS - Types
+// ============================================
+import { UnifiedTask, CreateTaskInput, ReviewAction, User } from "../../types";
+
+// ============================================
+// NEW STRUCTURE IMPORTS - Components
+// ============================================
+// Board components
+import { AdminTaskBoard } from "../components/board/AdminTaskBoard";
+
+// Table components
+import { AdminTasksTable } from "../components/table/AdminTasksTable";
+
+// Form components
+import { TaskCreationForm } from "../components/forms/TaskCreationForm";
+import { TaskEditForm } from "../components/forms/TaskEditForm";
+import { ReviewSubmissionModal } from "../components/forms/ReviewSubmissionModal";
+
+// Control components
+import {
+    AdminViewControls,
+    ViewMode,
+    SortBy,
+    SortOrder,
+    StatusFilter,
+} from "../components/controls/AdminViewControls";
+
+// ============================================
+// NEW STRUCTURE IMPORTS - Services & Data
+// ============================================
+import { taskService } from "../../services/taskService";
+import { mockUsers } from "../../services/mockData";
+
+// ============================================
+// KEEP - Context & Shared Components
+// ============================================
 import { useUser } from "../../context/UserContext";
-import { BaseButton } from "components/buttons/BaseButton";
-import {mockUsers} from "../utils/mockAdminData";
+import {BaseButton} from "components/buttons/BaseButton";
+
+// ============================================
+// COMPONENT
+// ============================================
 
 interface AdminDashboardViewProps {
     onTaskClick?: (task: UnifiedTask) => void;
@@ -302,7 +335,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 <DashboardHeader>
                     <HeaderTop>
                         <HeaderContent>
-                            <Title>Task</Title>
+                            <Title>Task Management</Title>
                             <Subtitle>
                                 Manage and review all annotation tasks ({tasks.length} total)
                             </Subtitle>
